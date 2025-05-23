@@ -7,7 +7,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file');
 }
 
-// Ensure URL uses http for development
+// Ensure URL uses https for authentication to work
 const apiUrl = supabaseUrl.replace('http://', 'https://');
 
 // Validate URL format
@@ -22,35 +22,12 @@ export const supabase = createClient(apiUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    storageKey: 'supabase.auth.token'
+    storageKey: 'supabase.auth.token',
+    flowType: 'pkce'
   },
   global: {
     headers: {
       'X-Client-Info': 'supabase-js/2.39.0',
-    },
-    fetch: (url, options = {}) => {
-      // Configure fetch with SSL settings
-      const fetchOptions = {
-        ...options,
-        keepalive: true,
-        credentials: 'include',
-        mode: 'cors',
-        headers: {
-          ...options.headers,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        }
-      };
-
-      // Add SSL verification options
-      if (typeof window === 'undefined') {
-        // Node.js environment
-        fetchOptions.agent = new (require('https').Agent)({
-          rejectUnauthorized: false // Only for development
-        });
-      }
-
-      return fetch(url, fetchOptions);
     }
   }
 });
