@@ -8,7 +8,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 // Ensure URL uses http for development
-const apiUrl = supabaseUrl.replace('https://', 'http://');
+const apiUrl = supabaseUrl.replace('http://', 'https://');
 
 // Validate URL format
 try {
