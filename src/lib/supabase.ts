@@ -7,14 +7,17 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file');
 }
 
+// Ensure URL uses http for development
+const apiUrl = supabaseUrl.replace('https://', 'http://');
+
 // Validate URL format
 try {
-  new URL(supabaseUrl);
+  new URL(apiUrl);
 } catch (e) {
   throw new Error('Invalid VITE_SUPABASE_URL format. Please check your .env file');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+export const supabase = createClient(apiUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
