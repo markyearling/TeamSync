@@ -1,0 +1,56 @@
+import { DivideIcon as LucideIcon } from 'lucide-react';
+
+export interface Child {
+  id: string;
+  name: string;
+  age: number;
+  color: string;
+  sports: { name: string; color: string }[];
+  eventCount: number;
+  photo_url?: string;
+  notes?: string;
+}
+
+export interface Platform {
+  id: number;
+  name: string;
+  icon: LucideIcon;
+  color: string;
+  connected: boolean;
+  hasIssue: boolean;
+}
+
+export interface Event {
+  id: number;
+  title: string;
+  description: string;
+  startTime: Date;
+  endTime: Date;
+  location: string;
+  sport: string;
+  color: string;
+  child: Child;
+  platform: string;
+  platformColor: string;
+  platformIcon: LucideIcon;
+  isToday: boolean;
+}
+
+export interface UserSettings {
+  id: string;
+  user_id: string;
+  full_name: string;
+  phone_number: string;
+  profile_photo_url: string | null;
+  email_notifications: boolean;
+  sms_notifications: boolean;
+  in_app_notifications: boolean;
+  schedule_updates: boolean;
+  team_communications: boolean;
+  all_notifications: boolean;
+  language: string;
+  theme: string;
+  additional_emails: string[];
+  created_at: string;
+  updated_at: string;
+}

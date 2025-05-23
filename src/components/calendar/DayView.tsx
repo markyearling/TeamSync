@@ -1,0 +1,158 @@
+import React, { useState } from 'react';
+import { Event } from '../../types';
+import { MapPin } from 'lucide-react';
+import EventModal from '../events/EventModal';
+
+interface DayViewProps {
+  currentDate: Date;
+  events: Event[];
+}
+
+const DayView: React.FC<DayViewProps> = ({ currentDate, events }) => {
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const today = new Date();
+  const isToday = 
+    currentDate.getDate() === today.getDate() &&
+    currentDate.getMonth() === today.getMonth() &&
+    currentDate.getFullYear() === today.getFullYear();
+  
+  // Get events for the current day
+  const dayEvents = events.filter(event => {
+    const eventDate = event.startTime;
+    return (
+      eventDate.getDate() === currentDate.getDate() &&
+      eventDate.getMonth() === currentDate.getMonth() &&
+      eventDate.getFullYear() === currentDate.getFullYear()
+    );
+  });
+  
+  // Sort events by start time
+  dayEvents.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+  
+  // Generate time slots
+  const timeSlots = Array.from({ length: 24 }, (_, i) => i);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex">
+        <div className="w-20 flex-shrink-0"></div>
+        <div className="flex-1 px-4 py-3">
+          <div className="text-center">
+            <div className="text-sm text-gray-500">
+              {currentDate.toLocaleDateString('en-US', { weekday: 'long' })}
+            </div>
+            <div className={`inline-flex items-center justify-center ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+              <span 
+                className={`text-2xl font-bold ${
+                  isToday ? 'bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center' : ''
+                }`}
+              >
+                {currentDate.getDate()}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex-1 overflow-y-auto">
+        <div className="flex h-full">
+          <div className="w-20 flex-shrink-0 border-r border-gray-200">
+            {timeSlots.map(hour => (
+              <div 
+                key={hour} 
+                className="h-12 text-xs text-gray-500 text-right pr-2"
+                style={{ marginTop: hour === 0 ? '0' : '-8px' }}
+              >
+                {hour === 0 ? '' : `${hour % 12 === 0 ? '12' : hour % 12}${hour < 12 ? 'am' : 'pm'}`}
+              </div>
+            ))}
+          </div>
+          
+          <div className="flex-1 relative">
+            {/* Time grid lines */}
+            {timeSlots.map(hour => (
+              <React.Fragment key={hour}>
+                <div 
+                  className="absolute w-full border-t border-gray-200" 
+                  style={{ top: `${hour * 48}px` }}
+                ></div>
+                <div 
+                  className="absolute w-full border-t border-gray-200 border-dashed opacity-50" 
+                  style={{ top: `${hour * 48 + 24}px` }}
+                ></div>
+              </React.Fragment>
+            ))}
+            
+            {/* Events */}
+            {dayEvents.map((event, eventIndex) => {
+              const startHour = event.startTime.getHours() + (event.startTime.getMinutes() / 60);
+              const endHour = event.endTime.getHours() + (event.endTime.getMinutes() / 60);
+              const duration = endHour - startHour;
+              
+              return (
+                <div
+                  key={eventIndex}
+                  className="absolute left-2 right-2 rounded overflow-hidden shadow-sm cursor-pointer"
+                  style={{
+                    top: `${startHour * 48}px`,
+                    height: `${duration * 48}px`,
+                    backgroundColor: event.color + '20',
+                    borderLeft: `3px solid ${event.color}`
+                  }}
+                  onClick={() => setSelectedEvent(event)}
+                >
+                  <div className="p-2 h-full overflow-hidden">
+                    <div className="flex items-center">
+                      <span 
+                        className="w-3 h-3 rounded-full mr-2"
+                        style={{ backgroundColor: event.child.color }}
+                      ></span>
+                      <span className="text-sm font-medium" style={{ color: event.color }}>
+                        {event.title}
+                      </span>
+                    </div>
+                    <div className="text-gray-600 text-xs mt-1">
+                      {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
+                      {event.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                    </div>
+                    {duration > 0.75 && event.location && (
+                      <div className="text-gray-600 text-xs mt-1 flex items-center">
+                        <MapPin className="h-3 w-3 mr-1" />
+                        {event.location}
+                      </div>
+                    )}
+                    {duration > 1.5 && (
+                      <div className="mt-1 text-xs text-gray-600">
+                        {event.description}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Current time indicator */}
+            {isToday && (
+              <div 
+                className="absolute w-full border-t-2 border-red-500 z-10"
+                style={{ 
+                  top: `${(today.getHours() + today.getMinutes() / 60) * 48}px`,
+                  left: 0,
+                  right: 0
+                }}
+              >
+                <div className="w-2 h-2 rounded-full bg-red-500 relative -top-1 -left-1"></div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {selectedEvent && (
+        <EventModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+      )}
+    </div>
+  );
+};
+
+export default DayView;
