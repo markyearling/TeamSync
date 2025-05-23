@@ -2,12 +2,18 @@ import { supabase } from './supabase';
 
 export async function testSupabaseConnection() {
   try {
-    // Test 1: Basic connection test
-    const { data, error } = await supabase
+    // Test 1: Basic connection test with timeout
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timeout')), 10000)
+    );
+
+    const connectionPromise = supabase
       .from('profiles')
       .select('count')
       .limit(0)
       .throwOnError();
+
+    const { data, error } = await Promise.race([connectionPromise, timeoutPromise]) as any;
     
     if (error) {
       console.error('Database connection test failed:', error);
@@ -50,9 +56,11 @@ export async function testSupabaseConnection() {
     return {
       success: false,
       error: 'Connection test failed',
-      details: {
+      details: error instanceof Error ? {
         message: error.message,
         name: error.name
+      } : {
+        message: 'Unknown error occurred'
       }
     };
   }
