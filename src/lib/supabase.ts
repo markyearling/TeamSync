@@ -20,6 +20,18 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'supabase.auth.token'
+  },
+  global: {
+    fetch: (url, options) => {
+      return fetch(url, {
+        ...options,
+        headers: {
+          ...options?.headers,
+          'Accept': 'application/json',
+          'ssl': 'true',
+        },
+      });
+    }
   }
 });
 
