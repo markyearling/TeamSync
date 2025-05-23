@@ -3,17 +3,21 @@ import { supabase } from './supabase';
 export async function testSupabaseConnection() {
   try {
     // Test 1: Basic connection test
-    const { data, error } = await supabase.from('profiles').select('count').limit(0);
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('count')
+      .limit(0)
+      .throwOnError();
     
     if (error) {
       console.error('Database connection test failed:', error);
       return {
         success: false,
-        error: error.message,
+        error: 'Database connection failed',
         details: {
+          message: error.message,
           code: error.code,
-          hint: error.hint,
-          details: error.details
+          hint: error.hint
         }
       };
     }
@@ -25,10 +29,10 @@ export async function testSupabaseConnection() {
       console.error('Auth service test failed:', authError);
       return {
         success: false,
-        error: authError.message,
+        error: 'Authentication service failed',
         details: {
-          name: authError.name,
-          status: authError?.status
+          message: authError.message,
+          name: authError.name
         }
       };
     }
@@ -45,10 +49,10 @@ export async function testSupabaseConnection() {
     console.error('Connection test failed:', error);
     return {
       success: false,
-      error: error.message,
+      error: 'Connection test failed',
       details: {
-        name: error.name,
-        stack: error.stack
+        message: error.message,
+        name: error.name
       }
     };
   }

@@ -22,14 +22,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storageKey: 'supabase.auth.token'
   },
   global: {
-    fetch: (url, options) => {
-      return fetch(url, {
-        ...options,
-        headers: {
-          ...options?.headers,
-          'Accept': 'application/json',
-          'ssl': 'true',
-        },
+    headers: {
+      'X-Client-Info': 'supabase-js/2.39.0',
+    },
+    fetch: (...args) => {
+      // @ts-ignore
+      return fetch(...args, {
+        keepalive: true,
+        credentials: 'include',
+        mode: 'cors',
       });
     }
   }
