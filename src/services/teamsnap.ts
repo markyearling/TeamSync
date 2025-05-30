@@ -18,7 +18,7 @@ export class TeamSnapService {
 
   constructor(config: TeamSnapConfig) {
     this.clientId = config.clientId;
-    this.redirectUri = `${window.location.origin}/connections/teamsnap/callback`;
+    this.redirectUri = config.redirectUri;
     const challenge = pkceChallenge();
     this.codeVerifier = challenge.code_verifier;
   }
@@ -67,8 +67,8 @@ export class TeamSnapService {
       const data = await response.json();
       this.accessToken = data.access_token;
 
-      // After getting the access token, fetch and store teams
-      await this.syncTeams();
+      // After getting the access token, fetch and store teams and events
+      await this.syncTeamsAndEvents();
     } catch (error) {
       console.error('Error in handleCallback:', error);
       throw error;
@@ -102,7 +102,11 @@ export class TeamSnapService {
     return this.request('/teams');
   }
 
-  private async syncTeams(): Promise<void> {
+  async getTeamEvents(teamId: string): Promise<any> {
+    return this.request(`/teams/${teamId}/events`);
+  }
+
+  private async syncTeamsAndEvents(): Promise<void> {
     try {
       const teamsData = await this.getTeams();
       
@@ -112,7 +116,7 @@ export class TeamSnapService {
 
       // For each team, store it in the platform_teams table
       for (const team of teamsData.collection.items) {
-        const { error } = await supabase
+        const { data: platformTeam, error: teamError } = await supabase
           .from('platform_teams')
           .upsert({
             platform: 'TeamSnap',
@@ -122,15 +126,48 @@ export class TeamSnapService {
             updated_at: new Date().toISOString()
           }, {
             onConflict: 'platform,team_id'
-          });
+          })
+          .select()
+          .single();
 
-        if (error) {
-          console.error('Error syncing team:', error);
-          throw error;
+        if (teamError) {
+          console.error('Error syncing team:', teamError);
+          continue;
+        }
+
+        // Fetch and store events for this team
+        try {
+          const eventsData = await this.getTeamEvents(team.id);
+          if (eventsData.collection?.items) {
+            for (const event of eventsData.collection.items) {
+              const { error: eventError } = await supabase
+                .from('events')
+                .upsert({
+                  platform: 'TeamSnap',
+                  platform_team_id: platformTeam.id,
+                  title: event.data.name,
+                  description: event.data.notes,
+                  start_time: event.data.start_date,
+                  end_time: event.data.end_date,
+                  location: event.data.location,
+                  sport: team.data.sport || 'Unknown',
+                  color: '#7C3AED', // TeamSnap purple
+                  updated_at: new Date().toISOString()
+                }, {
+                  onConflict: 'platform,platform_team_id,start_time,end_time'
+                });
+
+              if (eventError) {
+                console.error('Error syncing event:', eventError);
+              }
+            }
+          }
+        } catch (eventError) {
+          console.error('Error fetching team events:', eventError);
         }
       }
     } catch (error) {
-      console.error('Error syncing teams:', error);
+      console.error('Error syncing teams and events:', error);
       throw error;
     }
   }

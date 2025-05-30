@@ -10,16 +10,21 @@ import {
   Calendar,
   Users,
   BarChart,
-  Link as LinkIcon
+  Link as LinkIcon,
+  X
 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Platform } from '../types';
 
 const Connections: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [connecting, setConnecting] = useState<number | null>(null);
   const [connectionStep, setConnectionStep] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   
   // Available platforms that can be connected
   const availablePlatforms: Platform[] = [
@@ -60,18 +65,15 @@ const Connections: React.FC = () => {
   useEffect(() => {
     const fetchConnectedPlatforms = async () => {
       try {
-        // Get distinct platforms from platform_teams table using a modified query
         const { data: connectedPlatformsData, error } = await supabase
           .from('platform_teams')
           .select('platform')
-          .limit(1000); // Add a reasonable limit
+          .limit(1000);
 
         if (error) throw error;
 
-        // Get unique platform names using Set
         const uniquePlatforms = [...new Set(connectedPlatformsData.map(p => p.platform))];
 
-        // Map the connected platforms to our platform objects
         const connectedPlatforms = availablePlatforms.map(platform => ({
           ...platform,
           connected: uniquePlatforms.includes(platform.name)
@@ -86,7 +88,16 @@ const Connections: React.FC = () => {
     };
 
     fetchConnectedPlatforms();
-  }, []);
+
+    // Show success message if redirected from TeamSnap callback
+    if (location.state?.teamSnapConnected) {
+      setShowSuccessMessage(true);
+      // Clear the state
+      window.history.replaceState({}, document.title);
+      // Hide the message after 5 seconds
+      setTimeout(() => setShowSuccessMessage(false), 5000);
+    }
+  }, [location]);
   
   const handleConnect = (platformId: number) => {
     setConnecting(platformId);
@@ -434,6 +445,24 @@ const Connections: React.FC = () => {
 
   return (
     <div>
+      {showSuccessMessage && (
+        <div className="fixed top-4 right-4 bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 shadow-lg z-50 animate-fade-in">
+          <div className="flex items-center">
+            <CheckCircle className="h-5 w-5 text-green-400 mr-2" />
+            <div className="flex-1">
+              <p className="font-medium">TeamSnap Connected Successfully!</p>
+              <p className="text-sm">Your teams have been synchronized.</p>
+            </div>
+            <button 
+              onClick={() => setShowSuccessMessage(false)}
+              className="ml-4 text-green-400 hover:text-green-500"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0">Connections</h1>
         <button
