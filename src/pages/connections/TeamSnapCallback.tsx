@@ -6,7 +6,7 @@ import { TeamSnapService } from '../../services/teamsnap';
 const TeamSnapCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [status, setStatus] = useState<'loading' | 'syncing' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -24,12 +24,18 @@ const TeamSnapCallback: React.FC = () => {
           redirectUri: `${window.location.origin}/connections/teamsnap/callback`
         });
 
+        // Handle OAuth callback and get access token
         await teamSnap.handleCallback(code);
-        setStatus('success');
+        setStatus('syncing');
         
         // Wait a moment to show success message before redirecting
         setTimeout(() => {
-          navigate('/connections');
+          navigate('/connections', { 
+            state: { 
+              teamSnapConnected: true,
+              showSuccessMessage: true 
+            }
+          });
         }, 2000);
       } catch (err) {
         setError('Failed to complete authentication');
@@ -68,6 +74,18 @@ const TeamSnapCallback: React.FC = () => {
               <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Connecting to TeamSnap</h2>
               <p className="text-gray-600">Please wait while we complete the connection...</p>
+            </>
+          ) : status === 'syncing' ? (
+            <>
+              <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Successfully Connected!</h2>
+              <p className="text-gray-600 mb-2">Your TeamSnap account has been connected.</p>
+              <div className="flex items-center justify-center">
+                <div className="animate-pulse flex items-center text-sm text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Syncing your teams...
+                </div>
+              </div>
             </>
           ) : (
             <>
