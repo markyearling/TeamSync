@@ -1,37 +1,25 @@
 import { createClient } from '@supabase/supabase-js';
 
+// Ensure environment variables are available
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables. Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file');
+  console.error('Missing Supabase environment variables');
 }
 
-// Ensure URL uses https for authentication to work
-const apiUrl = supabaseUrl.replace('http://', 'https://');
-
-// Validate URL format
-try {
-  new URL(apiUrl);
-} catch (e) {
-  throw new Error('Invalid VITE_SUPABASE_URL format. Please check your .env file');
-}
-
-export const supabase = createClient(apiUrl, supabaseAnonKey, {
+// Create Supabase client
+export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '', {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'supabase.auth.token',
     flowType: 'pkce'
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'supabase-js/2.39.0',
-    }
   }
 });
 
+// Export helper functions
 export async function saveProfile(profileData: any) {
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError) throw userError;
