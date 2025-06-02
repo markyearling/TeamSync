@@ -22,10 +22,10 @@ export class TeamSnapService {
 
   async initiateOAuth(): Promise<string> {
     try {
-      // Generate PKCE challenge with 128-bit (32-byte) verifier
+      // Generate PKCE challenge
       const challenge = pkceChallenge(128);
       
-      // Store code verifier in localStorage instead of sessionStorage
+      // Store code verifier in localStorage
       localStorage.setItem('teamsnap_code_verifier', challenge.code_verifier);
       
       const params = new URLSearchParams({
@@ -37,7 +37,9 @@ export class TeamSnapService {
         scope: 'read write'
       });
 
-      return `${TEAMSNAP_AUTH_URL}?${params.toString()}`;
+      const authUrl = `${TEAMSNAP_AUTH_URL}?${params.toString()}`;
+      console.log('Authorization URL:', authUrl);
+      return authUrl;
     } catch (error) {
       console.error('Error initiating OAuth:', error);
       throw new Error('Failed to initiate OAuth flow');
@@ -52,46 +54,48 @@ export class TeamSnapService {
         throw new Error('Code verifier not found');
       }
 
+      // Log parameters for debugging
       console.log('Token exchange parameters:', {
-        clientId: this.clientId,
-        redirectUri: this.redirectUri,
-        codeLength: code.length,
-        verifierLength: codeVerifier.length
+        code,
+        codeVerifier,
+        redirectUri: this.redirectUri
       });
 
-      const formData = new URLSearchParams();
+      // Create form data
+      const formData = new FormData();
       formData.append('client_id', this.clientId);
       formData.append('grant_type', 'authorization_code');
       formData.append('code', code);
       formData.append('redirect_uri', this.redirectUri);
       formData.append('code_verifier', codeVerifier);
 
+      // Exchange code for token
       const response = await fetch(TEAMSNAP_TOKEN_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
           'Accept': 'application/json'
         },
-        body: formData.toString()
+        body: formData
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        console.error('TeamSnap token exchange failed:', {
+        console.error('Token exchange failed:', {
           status: response.status,
           statusText: response.statusText,
-          data
+          error: data
         });
         throw new Error(`Failed to get access token: ${data.error_description || data.error || 'Unknown error'}`);
       }
 
+      // Store access token
       this.accessToken = data.access_token;
 
       // Clear code verifier
       localStorage.removeItem('teamsnap_code_verifier');
 
-      // After getting the access token, fetch and store teams and events
+      // Sync teams and events
       await this.syncTeamsAndEvents();
     } catch (error) {
       console.error('Error in handleCallback:', error);
