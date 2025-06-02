@@ -22,13 +22,13 @@ export class TeamSnapService {
 
   async initiateOAuth(): Promise<string> {
     try {
-      // Generate PKCE challenge
+      // Generate PKCE challenge with 128 bytes of entropy
       const challenge = pkceChallenge(128);
       
-      // Store code verifier in localStorage
+      // Store code verifier securely in localStorage
       localStorage.setItem('teamsnap_code_verifier', challenge.code_verifier);
       
-      // Build authorization URL
+      // Build authorization URL with required parameters
       const params = new URLSearchParams({
         client_id: this.clientId,
         redirect_uri: this.redirectUri,
@@ -38,7 +38,9 @@ export class TeamSnapService {
         scope: 'read write'
       });
 
-      return `${TEAMSNAP_AUTH_URL}?${params.toString()}`;
+      const authUrl = `${TEAMSNAP_AUTH_URL}?${params.toString()}`;
+      console.log('Initiating OAuth with URL:', authUrl);
+      return authUrl;
     } catch (error) {
       console.error('Error initiating OAuth:', error);
       throw new Error('Failed to initiate OAuth flow');
@@ -47,13 +49,15 @@ export class TeamSnapService {
 
   async handleCallback(code: string): Promise<void> {
     try {
-      // Retrieve code verifier from localStorage
+      // Retrieve stored code verifier
       const codeVerifier = localStorage.getItem('teamsnap_code_verifier');
       if (!codeVerifier) {
-        throw new Error('Code verifier not found');
+        throw new Error('Code verifier not found in storage');
       }
 
-      // Create token request body
+      console.log('Exchanging code for token with verifier:', codeVerifier.substring(0, 10) + '...');
+
+      // Build token request body
       const body = new URLSearchParams();
       body.append('client_id', this.clientId);
       body.append('grant_type', 'authorization_code');
@@ -61,7 +65,7 @@ export class TeamSnapService {
       body.append('redirect_uri', this.redirectUri);
       body.append('code_verifier', codeVerifier);
 
-      // Exchange code for token
+      // Exchange authorization code for token
       const response = await fetch(TEAMSNAP_TOKEN_URL, {
         method: 'POST',
         headers: {
@@ -83,7 +87,7 @@ export class TeamSnapService {
       const data = await response.json();
       this.accessToken = data.access_token;
 
-      // Clear stored verifier
+      // Clean up stored verifier
       localStorage.removeItem('teamsnap_code_verifier');
 
       // Sync teams and events
