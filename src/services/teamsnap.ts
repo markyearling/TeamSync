@@ -13,23 +13,18 @@ export interface TeamSnapConfig {
 export class TeamSnapService {
   private clientId: string;
   private redirectUri: string;
-  private codeVerifier: string;
   private accessToken: string | null = null;
 
   constructor(config: TeamSnapConfig) {
     this.clientId = config.clientId;
     this.redirectUri = config.redirectUri;
-    const challenge = pkceChallenge();
-    this.codeVerifier = challenge.code_verifier;
-    
-    // Store code verifier in session storage
-    sessionStorage.setItem('teamsnap_code_verifier', this.codeVerifier);
   }
 
   async initiateOAuth(): Promise<string> {
     const challenge = pkceChallenge();
-    this.codeVerifier = challenge.code_verifier;
-    sessionStorage.setItem('teamsnap_code_verifier', this.codeVerifier);
+    
+    // Store code verifier in session storage
+    sessionStorage.setItem('teamsnap_code_verifier', challenge.code_verifier);
     
     const params = new URLSearchParams({
       client_id: this.clientId,
@@ -40,24 +35,23 @@ export class TeamSnapService {
       scope: 'read write'
     });
 
-    const authUrl = `${TEAMSNAP_AUTH_URL}?${params.toString()}`;
-    return authUrl;
+    return `${TEAMSNAP_AUTH_URL}?${params.toString()}`;
   }
 
   async handleCallback(code: string): Promise<void> {
     try {
       // Retrieve code verifier from session storage
-      const storedCodeVerifier = sessionStorage.getItem('teamsnap_code_verifier');
-      if (!storedCodeVerifier) {
-        throw new Error('Code verifier not found');
+      const codeVerifier = sessionStorage.getItem('teamsnap_code_verifier');
+      if (!codeVerifier) {
+        throw new Error('Code verifier not found in session storage');
       }
 
       const params = new URLSearchParams({
-        client_id: this.clientId,
         grant_type: 'authorization_code',
+        client_id: this.clientId,
         code,
         redirect_uri: this.redirectUri,
-        code_verifier: storedCodeVerifier
+        code_verifier: codeVerifier
       });
 
       const response = await fetch(TEAMSNAP_TOKEN_URL, {
@@ -72,6 +66,7 @@ export class TeamSnapService {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('TeamSnap token response:', errorData);
         throw new Error(`Failed to get access token: ${errorData.error_description || 'Unknown error'}`);
       }
 
