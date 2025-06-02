@@ -1,19 +1,25 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sports Calendar Integration App</title>
-    <!-- Prevent flash of unstyled content -->
+    <meta name="description" content="TeamSync - Manage your children's sports schedules" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <title>TeamSync</title>
     <style>
+      /* Critical CSS to prevent flash of unstyled content */
+      body {
+        margin: 0;
+        background: #f9fafb;
+      }
       #root {
         display: flex;
         min-height: 100vh;
       }
-      body {
-        margin: 0;
-        background: #f9fafb;
+      /* Force light theme initially to prevent FOUC */
+      :root {
+        color-scheme: light;
       }
     </style>
   </head>
