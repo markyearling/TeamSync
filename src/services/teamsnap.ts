@@ -133,42 +133,27 @@ export class TeamSnapService {
     try {
       console.log('Fetching teams...');
       
-      // First get the user's memberships
-      console.log('Fetching user memberships...');
-      const membershipsResponse = await this.request('/members/me');
-      console.log('Memberships response:', membershipsResponse);
+      // First get the user's data
+      console.log('Fetching user data...');
+      const meResponse = await this.request('/me');
+      console.log('User data response:', meResponse);
 
-      if (!membershipsResponse.collection?.items) {
-        console.log('No memberships found');
+      if (!meResponse.collection?.items?.[0]?.data?.teams_url) {
+        console.log('No teams URL found in user data');
         return { collection: { items: [] } };
       }
 
-      // Extract team IDs from memberships
-      const teamIds = membershipsResponse.collection.items
-        .filter((member: any) => member.data.active)
-        .map((member: any) => member.data.team_id);
-
-      console.log('Found team IDs:', teamIds);
-
-      if (teamIds.length === 0) {
-        console.log('No active team memberships found');
-        return { collection: { items: [] } };
-      }
-
-      // Fetch details for each team
-      console.log('Fetching team details...');
-      const teamsPromises = teamIds.map(teamId => {
-        console.log(`Fetching details for team ${teamId}`);
-        return this.request(`/teams/${teamId}`);
-      });
-
-      const teamsResponses = await Promise.all(teamsPromises);
+      // Get teams from the teams_url
+      const teamsUrl = meResponse.collection.items[0].data.teams_url;
+      console.log('Fetching teams from URL:', teamsUrl);
       
-      // Combine all team data
-      const activeTeams = teamsResponses
-        .filter(response => response.collection?.items?.[0])
-        .map(response => response.collection.items[0])
-        .filter(team => team.data.active !== false);
+      const teamsResponse = await this.request(teamsUrl.replace(TEAMSNAP_API_URL, ''));
+      console.log('Teams response:', teamsResponse);
+
+      // Filter for active teams
+      const activeTeams = teamsResponse.collection.items.filter((team: any) => 
+        team.data.active !== false
+      );
 
       console.log('Active teams:', activeTeams);
 
