@@ -9,6 +9,8 @@
 
 [build.environment]
   NODE_VERSION = "20"
+
+[context.production.environment]
   VITE_SUPABASE_URL = "${VITE_SUPABASE_URL}"
   VITE_SUPABASE_ANON_KEY = "${VITE_SUPABASE_ANON_KEY}"
   VITE_TEAMSNAP_CLIENT_ID = "${VITE_TEAMSNAP_CLIENT_ID}"
