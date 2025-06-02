@@ -31,7 +31,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -46,34 +46,36 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 function App() {
   return (
-    <ThemeProvider>
-      <AppProvider>
-        <ProfilesProvider>
-          <Router>
-            <Routes>
-              <Route path="/auth/signin" element={<SignIn />} />
-              <Route path="/auth/signup" element={<SignUp />} />
-              <Route path="/auth/callback" element={<AuthCallback />} />
-              <Route path="/connections/teamsnap/callback" element={<TeamSnapCallback />} />
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <Layout />
-                </ProtectedRoute>
-              }>
-                <Route index element={<Dashboard />} />
-                <Route path="calendar" element={<Calendar />} />
-                <Route path="connections" element={<Connections />} />
-                <Route path="connections/teamsnap" element={<TeamSnapConnection />} />
-                <Route path="profiles" element={<Profiles />} />
-                <Route path="profiles/:id" element={<ChildProfile />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="*" element={<NotFound />} />
-              </Route>
-            </Routes>
-          </Router>
-        </ProfilesProvider>
-      </AppProvider>
-    </ThemeProvider>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <ThemeProvider>
+        <AppProvider>
+          <ProfilesProvider>
+            <Router>
+              <Routes>
+                <Route path="/auth/signin" element={<SignIn />} />
+                <Route path="/auth/signup" element={<SignUp />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
+                <Route path="/connections/teamsnap/callback" element={<TeamSnapCallback />} />
+                <Route path="/" element={
+                  <ProtectedRoute>
+                    <Layout />
+                  </ProtectedRoute>
+                }>
+                  <Route index element={<Dashboard />} />
+                  <Route path="calendar" element={<Calendar />} />
+                  <Route path="connections" element={<Connections />} />
+                  <Route path="connections/teamsnap" element={<TeamSnapConnection />} />
+                  <Route path="profiles" element={<Profiles />} />
+                  <Route path="profiles/:id" element={<ChildProfile />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+              </Routes>
+            </Router>
+          </ProfilesProvider>
+        </AppProvider>
+      </ThemeProvider>
+    </div>
   );
 }
 
