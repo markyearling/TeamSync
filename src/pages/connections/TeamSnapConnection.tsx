@@ -124,9 +124,16 @@ const TeamSnapConnection: React.FC = () => {
               <button
                 onClick={handleConnect}
                 disabled={isConnecting}
-                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                {isConnecting ? 'Connecting...' : 'Connect TeamSnap Account'}
+                {isConnecting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                    Connecting...
+                  </>
+                ) : (
+                  'Connect TeamSnap Account'
+                )}
               </button>
             </div>
           </div>
