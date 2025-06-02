@@ -36,7 +36,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-function App() {
+export default function App() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <ThemeProvider>
@@ -70,5 +70,3 @@ function App() {
     </div>
   );
 }
-
-export default App
