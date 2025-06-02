@@ -13,7 +13,10 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           supabase: ['@supabase/supabase-js', '@supabase/auth-ui-react']
-        }
+        },
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]'
       }
     }
   },
@@ -23,6 +26,14 @@ export default defineConfig({
     host: true
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js', '@supabase/auth-ui-react']
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      '@supabase/supabase-js',
+      '@supabase/auth-ui-react',
+      'lucide-react'
+    ],
+    exclude: []
   }
 });
