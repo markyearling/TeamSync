@@ -1,19 +1,28 @@
 [build]
   command = "npm run build"
   publish = "dist"
-
+  
 [build.environment]
   NODE_VERSION = "20"
+  NPM_FLAGS = "--no-optional"
 
 [[headers]]
-  for = "/assets/*.js"
+  for = "/*"
   [headers.values]
-    Content-Type = "application/javascript"
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
 
 [[headers]]
   for = "/*.js"
   [headers.values]
-    Content-Type = "application/javascript"
+    Content-Type = "application/javascript; charset=utf-8"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
 
 [[redirects]]
   from = "/*"
@@ -21,8 +30,9 @@
   status = 200
   force = true
 
-[context.production.environment]
-  VITE_SUPABASE_URL = "${VITE_SUPABASE_URL}"
-  VITE_SUPABASE_ANON_KEY = "${VITE_SUPABASE_ANON_KEY}"
-  VITE_TEAMSNAP_CLIENT_ID = "${VITE_TEAMSNAP_CLIENT_ID}"
-  VITE_GOOGLE_MAPS_API_KEY = "${VITE_GOOGLE_MAPS_API_KEY}"
+[dev]
+  framework = "#custom"
+  command = "npm run dev"
+  targetPort = 5173
+  port = 8888
+  publish = "dist"

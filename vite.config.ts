@@ -16,8 +16,8 @@ export default defineConfig({
     }
   },
   server: {
-    headers: {
-      'Content-Type': 'application/javascript'
-    }
+    port: 5173,
+    strictPort: true,
+    host: true
   }
 });
