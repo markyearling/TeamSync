@@ -7,6 +7,11 @@
     <meta name="theme-color" content="#ffffff" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <title>TeamSync</title>
+    <!-- Preload critical assets -->
+    <link rel="modulepreload" href="/assets/vendor-jp6HjmV4.js" />
+    <link rel="modulepreload" href="/assets/supabase-Cx2IoUkB.js" />
+    <link rel="modulepreload" href="/assets/index-BpGNUFdY.js" />
+    <link rel="stylesheet" href="/assets/index-CAM-Dphl.css" />
     <style>
       /* Critical CSS to prevent flash of unstyled content */
       body {
@@ -21,10 +26,32 @@
       :root {
         color-scheme: light;
       }
+      /* Add loading spinner for initial load */
+      .initial-loader {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: #f9fafb;
+      }
+      .initial-loader::after {
+        content: "";
+        width: 32px;
+        height: 32px;
+        border: 2px solid #e5e7eb;
+        border-bottom-color: #2563eb;
+        border-radius: 50%;
+        animation: spin 0.75s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
     </style>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="root">
+      <div class="initial-loader"></div>
+    </div>
+    <script type="module" src="/assets/index-BpGNUFdY.js"></script>
   </body>
 </html>
