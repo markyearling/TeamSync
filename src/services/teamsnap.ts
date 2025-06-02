@@ -54,21 +54,25 @@ export class TeamSnapService {
         throw new Error('Code verifier not found');
       }
 
+      // Prepare the request body
+      const body = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        client_id: this.clientId,
+        client_secret: this.clientSecret,
+        redirect_uri: this.redirectUri,
+        code_verifier: codeVerifier
+      }).toString();
+
       // Exchange code for token
       const tokenResponse = await fetch(TEAMSNAP_TOKEN_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Content-Length': body.length.toString()
         },
-        body: new URLSearchParams({
-          grant_type: 'authorization_code',
-          code,
-          client_id: this.clientId,
-          client_secret: this.clientSecret,
-          redirect_uri: this.redirectUri,
-          code_verifier: codeVerifier
-        }).toString()
+        body
       });
 
       if (!tokenResponse.ok) {
