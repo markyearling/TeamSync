@@ -21,21 +21,26 @@ export class TeamSnapService {
   }
 
   async initiateOAuth(): Promise<string> {
-    const challenge = pkceChallenge();
-    
-    // Store code verifier in session storage
-    sessionStorage.setItem('teamsnap_code_verifier', challenge.code_verifier);
-    
-    const params = new URLSearchParams({
-      client_id: this.clientId,
-      redirect_uri: this.redirectUri,
-      response_type: 'code',
-      code_challenge: challenge.code_challenge,
-      code_challenge_method: 'S256',
-      scope: 'read write'
-    });
+    try {
+      const challenge = pkceChallenge(128); // Explicitly set length to 128 characters
+      
+      // Store code verifier in session storage
+      sessionStorage.setItem('teamsnap_code_verifier', challenge.code_verifier);
+      
+      const params = new URLSearchParams({
+        client_id: this.clientId,
+        redirect_uri: this.redirectUri,
+        response_type: 'code',
+        code_challenge: challenge.code_challenge,
+        code_challenge_method: 'S256',
+        scope: 'read write'
+      });
 
-    return `${TEAMSNAP_AUTH_URL}?${params.toString()}`;
+      return `${TEAMSNAP_AUTH_URL}?${params.toString()}`;
+    } catch (error) {
+      console.error('Error initiating OAuth:', error);
+      throw new Error('Failed to initiate OAuth flow');
+    }
   }
 
   async handleCallback(code: string): Promise<void> {
@@ -46,10 +51,12 @@ export class TeamSnapService {
         throw new Error('Code verifier not found in session storage');
       }
 
-      const params = new URLSearchParams({
-        grant_type: 'authorization_code',
+      console.log('Attempting token exchange with code verifier:', codeVerifier.length, 'characters');
+
+      const formData = new URLSearchParams({
         client_id: this.clientId,
-        code,
+        grant_type: 'authorization_code',
+        code: code,
         redirect_uri: this.redirectUri,
         code_verifier: codeVerifier
       });
@@ -58,19 +65,18 @@ export class TeamSnapService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
-          'Origin': window.location.origin
+          'Accept': 'application/json'
         },
-        body: params.toString()
+        body: formData.toString()
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('TeamSnap token response:', errorData);
-        throw new Error(`Failed to get access token: ${errorData.error_description || 'Unknown error'}`);
+        console.error('TeamSnap token response:', data);
+        throw new Error(`Failed to get access token: ${data.error_description || data.error || 'Unknown error'}`);
       }
 
-      const data = await response.json();
       this.accessToken = data.access_token;
 
       // Clear code verifier from session storage
@@ -95,7 +101,6 @@ export class TeamSnapService {
         'Authorization': `Bearer ${this.accessToken}`,
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Origin': window.location.origin,
         ...options.headers,
       }
     });
