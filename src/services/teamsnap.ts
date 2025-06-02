@@ -118,17 +118,34 @@ export class TeamSnapService {
 
   async getTeams(): Promise<any> {
     try {
-      // Directly fetch all teams for the authenticated user
-      const response = await this.request('/teams');
+      // First get the user's memberships to find active teams
+      const membershipsResponse = await this.request('/members/search?member_id=me');
       
-      if (!response.collection?.items) {
+      if (!membershipsResponse.collection?.items) {
         return { collection: { items: [] } };
       }
 
-      // Filter for active teams
-      const activeTeams = response.collection.items.filter((team: any) => 
-        team.data.active !== false
+      // Extract team IDs from memberships
+      const teamIds = membershipsResponse.collection.items
+        .filter((member: any) => member.data.active)
+        .map((member: any) => member.data.team_id);
+
+      if (teamIds.length === 0) {
+        return { collection: { items: [] } };
+      }
+
+      // Fetch details for each team
+      const teamsPromises = teamIds.map(teamId => 
+        this.request(`/teams/${teamId}`)
       );
+
+      const teamsResponses = await Promise.all(teamsPromises);
+      
+      // Combine all team data
+      const activeTeams = teamsResponses
+        .filter(response => response.collection?.items?.[0])
+        .map(response => response.collection.items[0])
+        .filter(team => team.data.active !== false);
 
       return {
         collection: {
