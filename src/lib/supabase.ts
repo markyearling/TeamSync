@@ -4,24 +4,54 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables. Please check your environment configuration.');
+  throw new Error('Missing Supabase environment variables. Please ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env file');
 }
 
-export const supabase = createClient(supabaseUrl!, supabaseAnonKey!, {
+// Ensure URL uses https for authentication to work
+const apiUrl = supabaseUrl.replace('http://', 'https://');
+
+// Validate URL format
+try {
+  new URL(apiUrl);
+} catch (e) {
+  throw new Error('Invalid VITE_SUPABASE_URL format. Please check your .env file');
+}
+
+export const supabase = createClient(apiUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
     storageKey: 'supabase.auth.token',
     flowType: 'pkce'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'supabase-js/2.39.0',
+    }
   }
 });
 
-// Test connection
+// Test connection with better error handling
 export async function testConnection() {
   try {
-    const { error } = await supabase.from('profiles').select('count').limit(0);
-    if (error) throw error;
+    const { data, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Auth initialization failed:', error.message);
+      return false;
+    }
+
+    const { error: dbError } = await supabase
+      .from('profiles')
+      .select('count')
+      .limit(0);
+
+    if (dbError) {
+      console.error('Database connection test failed:', dbError.message);
+      return false;
+    }
+
     return true;
   } catch (error) {
     console.error('Supabase connection test failed:', error);
@@ -29,25 +59,10 @@ export async function testConnection() {
   }
 }
 
-interface SaveSettingsParams {
-  full_name?: string;
-  phone_number?: string;
-  profile_photo_url?: string | null;
-  email_notifications?: boolean;
-  sms_notifications?: boolean;
-  in_app_notifications?: boolean;
-  schedule_updates?: boolean;
-  team_communications?: boolean;
-  all_notifications?: boolean;
-  language?: string;
-  theme?: string;
-  additional_emails?: string[];
-  photo_file?: File | null;
-}
-
 export async function saveSettings(settings: SaveSettingsParams) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
     if (!user) throw new Error('No authenticated user found');
 
     let profile_photo_url = settings.profile_photo_url;
@@ -91,4 +106,20 @@ export async function saveSettings(settings: SaveSettingsParams) {
     console.error('Error saving settings:', error);
     throw error;
   }
+}
+
+interface SaveSettingsParams {
+  full_name?: string;
+  phone_number?: string;
+  profile_photo_url?: string | null;
+  email_notifications?: boolean;
+  sms_notifications?: boolean;
+  in_app_notifications?: boolean;
+  schedule_updates?: boolean;
+  team_communications?: boolean;
+  all_notifications?: boolean;
+  language?: string;
+  theme?: string;
+  additional_emails?: string[];
+  photo_file?: File | null;
 }
