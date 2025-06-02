@@ -117,37 +117,28 @@ export class TeamSnapService {
   }
 
   async getTeams(): Promise<any> {
-    // First get the user's memberships to find active teams
-    const membershipsResponse = await this.request('/me/memberships');
-    
-    if (!membershipsResponse.collection?.items) {
-      throw new Error('No memberships found');
-    }
-
-    // Filter for active team memberships
-    const activeTeamIds = membershipsResponse.collection.items
-      .filter((membership: any) => membership.data.active)
-      .map((membership: any) => membership.data.team_id);
-
-    if (activeTeamIds.length === 0) {
-      return { collection: { items: [] } };
-    }
-
-    // Fetch details for each active team
-    const teamsPromises = activeTeamIds.map(teamId => 
-      this.request(`/teams/${teamId}`)
-    );
-
-    const teamsResponses = await Promise.all(teamsPromises);
-    
-    // Combine all team responses into a single collection
-    const teams = teamsResponses.map(response => response.collection?.items?.[0]).filter(Boolean);
-
-    return {
-      collection: {
-        items: teams
+    try {
+      // Directly fetch all teams for the authenticated user
+      const response = await this.request('/teams');
+      
+      if (!response.collection?.items) {
+        return { collection: { items: [] } };
       }
-    };
+
+      // Filter for active teams
+      const activeTeams = response.collection.items.filter((team: any) => 
+        team.data.active !== false
+      );
+
+      return {
+        collection: {
+          items: activeTeams
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+      throw error;
+    }
   }
 
   async getTeamEvents(teamId: string): Promise<any> {
