@@ -102,9 +102,10 @@ export class TeamSnapService {
       throw new Error('Not authenticated');
     }
 
-    console.log(`Making API request to: ${endpoint}`);
+    const url = endpoint.startsWith('http') ? endpoint : `${TEAMSNAP_API_URL}${endpoint}`;
+    console.log(`Making API request to: ${url}`);
 
-    const response = await fetch(`${TEAMSNAP_API_URL}${endpoint}`, {
+    const response = await fetch(url, {
       ...options,
       headers: {
         'Authorization': `Bearer ${this.accessToken}`,
@@ -115,17 +116,18 @@ export class TeamSnapService {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
       console.error('API request failed:', {
-        endpoint,
+        url,
         status: response.status,
-        error: errorData
+        statusText: response.statusText
       });
-      throw new Error(`API request failed: ${errorData.error || response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error response:', errorData);
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
-    console.log(`API response from ${endpoint}:`, data);
+    console.log(`API response from ${url}:`, data);
     return data;
   }
 
@@ -135,6 +137,8 @@ export class TeamSnapService {
       
       // First get the user's data
       console.log('Fetching user data...');
+      console.log('Access token:', this.accessToken); // Log the access token
+      
       const meResponse = await this.request('/members/me');
       console.log('User data response:', meResponse);
 
@@ -147,7 +151,7 @@ export class TeamSnapService {
       const teamsUrl = meResponse.collection.items[0].data.teams_url;
       console.log('Fetching teams from URL:', teamsUrl);
       
-      const teamsResponse = await this.request(teamsUrl.replace(TEAMSNAP_API_URL, ''));
+      const teamsResponse = await this.request(teamsUrl);
       console.log('Teams response:', teamsResponse);
 
       // Filter for active teams
