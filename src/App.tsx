@@ -18,14 +18,6 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ProfilesProvider } from './context/ProfilesContext';
 import { useAuth } from './hooks/useAuth';
 
-// Verify environment variables are loaded
-if (
-  !import.meta.env.VITE_SUPABASE_URL ||
-  !import.meta.env.VITE_SUPABASE_ANON_KEY
-) {
-  console.error('Required environment variables are missing. Please check your .env file and deployment settings.');
-}
-
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
 
@@ -78,5 +70,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
