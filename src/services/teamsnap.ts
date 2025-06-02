@@ -63,6 +63,8 @@ export class TeamSnapService {
         redirect_uri: this.redirectUri
       }).toString();
 
+      console.log('Exchanging code for token...');
+      
       // Exchange code for token
       const tokenResponse = await fetch(TEAMSNAP_TOKEN_URL, {
         method: 'POST',
@@ -82,6 +84,8 @@ export class TeamSnapService {
       const tokenData = await tokenResponse.json();
       this.accessToken = tokenData.access_token;
 
+      console.log('Successfully obtained access token');
+
       // Clean up
       localStorage.removeItem('teamsnap_code_verifier');
 
@@ -98,6 +102,8 @@ export class TeamSnapService {
       throw new Error('Not authenticated');
     }
 
+    console.log(`Making API request to: ${endpoint}`);
+
     const response = await fetch(`${TEAMSNAP_API_URL}${endpoint}`, {
       ...options,
       headers: {
@@ -110,18 +116,30 @@ export class TeamSnapService {
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('API request failed:', {
+        endpoint,
+        status: response.status,
+        error: errorData
+      });
       throw new Error(`API request failed: ${errorData.error || response.statusText}`);
     }
 
-    return response.json();
+    const data = await response.json();
+    console.log(`API response from ${endpoint}:`, data);
+    return data;
   }
 
   async getTeams(): Promise<any> {
     try {
-      // First get the user's memberships to find active teams
-      const membershipsResponse = await this.request('/members/search?member_id=me');
+      console.log('Fetching teams...');
       
+      // First get the user's memberships
+      console.log('Fetching user memberships...');
+      const membershipsResponse = await this.request('/members/me');
+      console.log('Memberships response:', membershipsResponse);
+
       if (!membershipsResponse.collection?.items) {
+        console.log('No memberships found');
         return { collection: { items: [] } };
       }
 
@@ -130,14 +148,19 @@ export class TeamSnapService {
         .filter((member: any) => member.data.active)
         .map((member: any) => member.data.team_id);
 
+      console.log('Found team IDs:', teamIds);
+
       if (teamIds.length === 0) {
+        console.log('No active team memberships found');
         return { collection: { items: [] } };
       }
 
       // Fetch details for each team
-      const teamsPromises = teamIds.map(teamId => 
-        this.request(`/teams/${teamId}`)
-      );
+      console.log('Fetching team details...');
+      const teamsPromises = teamIds.map(teamId => {
+        console.log(`Fetching details for team ${teamId}`);
+        return this.request(`/teams/${teamId}`);
+      });
 
       const teamsResponses = await Promise.all(teamsPromises);
       
@@ -146,6 +169,8 @@ export class TeamSnapService {
         .filter(response => response.collection?.items?.[0])
         .map(response => response.collection.items[0])
         .filter(team => team.data.active !== false);
+
+      console.log('Active teams:', activeTeams);
 
       return {
         collection: {
@@ -159,19 +184,25 @@ export class TeamSnapService {
   }
 
   async getTeamEvents(teamId: string): Promise<any> {
+    console.log(`Fetching events for team ${teamId}`);
     return this.request(`/teams/${teamId}/events`);
   }
 
   private async syncTeamsAndEvents(): Promise<void> {
     try {
+      console.log('Starting teams and events sync...');
       const teamsData = await this.getTeams();
       
       if (!teamsData.collection?.items) {
         throw new Error('Invalid teams data received');
       }
 
+      console.log(`Found ${teamsData.collection.items.length} teams to sync`);
+
       // For each team, store it in the platform_teams table
       for (const team of teamsData.collection.items) {
+        console.log(`Syncing team: ${team.data.name}`);
+        
         const { data: platformTeam, error: teamError } = await supabase
           .from('platform_teams')
           .upsert({
@@ -191,10 +222,14 @@ export class TeamSnapService {
           continue;
         }
 
+        console.log(`Successfully synced team: ${team.data.name}`);
+
         // Fetch and store events for this team
         try {
+          console.log(`Fetching events for team: ${team.data.name}`);
           const eventsData = await this.getTeamEvents(team.data.id);
           if (eventsData.collection?.items) {
+            console.log(`Found ${eventsData.collection.items.length} events for team ${team.data.name}`);
             for (const event of eventsData.collection.items) {
               const { error: eventError } = await supabase
                 .from('events')
@@ -222,6 +257,8 @@ export class TeamSnapService {
           console.error('Error fetching team events:', eventError);
         }
       }
+
+      console.log('Teams and events sync completed');
     } catch (error) {
       console.error('Error syncing teams and events:', error);
       throw error;
