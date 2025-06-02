@@ -21,11 +21,15 @@ export class TeamSnapService {
     this.redirectUri = config.redirectUri;
     const challenge = pkceChallenge();
     this.codeVerifier = challenge.code_verifier;
+    
+    // Store code verifier in session storage
+    sessionStorage.setItem('teamsnap_code_verifier', this.codeVerifier);
   }
 
   async initiateOAuth(): Promise<string> {
     const challenge = pkceChallenge();
     this.codeVerifier = challenge.code_verifier;
+    sessionStorage.setItem('teamsnap_code_verifier', this.codeVerifier);
     
     const params = new URLSearchParams({
       client_id: this.clientId,
@@ -42,19 +46,26 @@ export class TeamSnapService {
 
   async handleCallback(code: string): Promise<void> {
     try {
+      // Retrieve code verifier from session storage
+      const storedCodeVerifier = sessionStorage.getItem('teamsnap_code_verifier');
+      if (!storedCodeVerifier) {
+        throw new Error('Code verifier not found');
+      }
+
       const params = new URLSearchParams({
         client_id: this.clientId,
         grant_type: 'authorization_code',
         code,
         redirect_uri: this.redirectUri,
-        code_verifier: this.codeVerifier
+        code_verifier: storedCodeVerifier
       });
 
       const response = await fetch(TEAMSNAP_TOKEN_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json'
+          'Accept': 'application/json',
+          'Origin': window.location.origin
         },
         body: params.toString()
       });
@@ -66,6 +77,9 @@ export class TeamSnapService {
 
       const data = await response.json();
       this.accessToken = data.access_token;
+
+      // Clear code verifier from session storage
+      sessionStorage.removeItem('teamsnap_code_verifier');
 
       // After getting the access token, fetch and store teams and events
       await this.syncTeamsAndEvents();
@@ -86,6 +100,7 @@ export class TeamSnapService {
         'Authorization': `Bearer ${this.accessToken}`,
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'Origin': window.location.origin,
         ...options.headers,
       }
     });
