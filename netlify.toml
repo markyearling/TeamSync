@@ -1,7 +1,6 @@
 [build]
   command = "npm run build"
   publish = "dist"
-  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF ./src/"
 
 [[redirects]]
   from = "/*"
@@ -16,6 +15,3 @@
   VITE_SUPABASE_ANON_KEY = "${VITE_SUPABASE_ANON_KEY}"
   VITE_TEAMSNAP_CLIENT_ID = "${VITE_TEAMSNAP_CLIENT_ID}"
   VITE_GOOGLE_MAPS_API_KEY = "${VITE_GOOGLE_MAPS_API_KEY}"
-
-[functions]
-  node_bundler = "esbuild"
