@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, testConnection } from '../lib/supabase';
 import { Child } from '../types';
 
 interface ProfilesContextType {
@@ -32,27 +32,53 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const subscription = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        if (session?.user) {
-          fetchProfiles();
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setProfiles([]);
-      }
-    });
+    let mounted = true;
 
-    // Initial fetch only if we have a session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        fetchProfiles();
-      } else {
-        setLoading(false);
+    const initializeConnection = async () => {
+      try {
+        const isConnected = await testConnection();
+        if (!isConnected) {
+          throw new Error('Failed to establish connection with Supabase');
+        }
+        
+        if (mounted) {
+          const subscription = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+              if (session?.user) {
+                fetchProfiles();
+              }
+            } else if (event === 'SIGNED_OUT') {
+              setProfiles([]);
+            }
+          });
+
+          // Initial fetch only if we have a session
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            await fetchProfiles();
+          }
+
+          return () => {
+            subscription.data.subscription.unsubscribe();
+          };
+        }
+      } catch (err) {
+        if (mounted) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to initialize Supabase connection';
+          setError(errorMessage);
+          console.error('Connection initialization error:', err);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-    });
+    };
+
+    initializeConnection();
 
     return () => {
-      subscription.data.subscription.unsubscribe();
+      mounted = false;
     };
   }, []);
 
@@ -60,14 +86,10 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError) {
-        console.error('Auth error:', authError);
-        setProfiles([]);
-        setLoading(false);
-        return;
+        throw authError;
       }
       if (!user) {
         setProfiles([]);
-        setLoading(false);
         return;
       }
 
@@ -88,7 +110,6 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         .eq('user_id', user.id);
 
       if (profilesError) {
-        console.error('Profiles fetch error:', profilesError);
         throw profilesError;
       }
 
@@ -107,12 +128,12 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       })) || [];
 
       setProfiles(formattedProfiles);
+      setError(null); // Clear any previous errors on successful fetch
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
       setError(errorMessage);
       console.error('Error fetching profiles:', err);
-    } finally {
-      setLoading(false);
+      setProfiles([]); // Reset profiles on error
     }
   };
 
