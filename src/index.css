@@ -2,8 +2,19 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    @apply bg-gray-50 dark:bg-gray-900;
-  }
+/* Ensure the app is visible */
+#root {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* Add some basic styles */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Force light theme initially to prevent FOUC */
+:root {
+  color-scheme: light;
 }
