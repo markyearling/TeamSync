@@ -117,7 +117,37 @@ export class TeamSnapService {
   }
 
   async getTeams(): Promise<any> {
-    return this.request('/teams');
+    // First get the user's memberships to find active teams
+    const membershipsResponse = await this.request('/me/memberships');
+    
+    if (!membershipsResponse.collection?.items) {
+      throw new Error('No memberships found');
+    }
+
+    // Filter for active team memberships
+    const activeTeamIds = membershipsResponse.collection.items
+      .filter((membership: any) => membership.data.active)
+      .map((membership: any) => membership.data.team_id);
+
+    if (activeTeamIds.length === 0) {
+      return { collection: { items: [] } };
+    }
+
+    // Fetch details for each active team
+    const teamsPromises = activeTeamIds.map(teamId => 
+      this.request(`/teams/${teamId}`)
+    );
+
+    const teamsResponses = await Promise.all(teamsPromises);
+    
+    // Combine all team responses into a single collection
+    const teams = teamsResponses.map(response => response.collection?.items?.[0]).filter(Boolean);
+
+    return {
+      collection: {
+        items: teams
+      }
+    };
   }
 
   async getTeamEvents(teamId: string): Promise<any> {
@@ -138,9 +168,9 @@ export class TeamSnapService {
           .from('platform_teams')
           .upsert({
             platform: 'TeamSnap',
-            team_id: team.id,
+            team_id: team.data.id,
             team_name: team.data.name,
-            sport: team.data.sport || 'Unknown',
+            sport: team.data.sport_name || 'Unknown',
             updated_at: new Date().toISOString()
           }, {
             onConflict: 'platform,team_id'
@@ -155,7 +185,7 @@ export class TeamSnapService {
 
         // Fetch and store events for this team
         try {
-          const eventsData = await this.getTeamEvents(team.id);
+          const eventsData = await this.getTeamEvents(team.data.id);
           if (eventsData.collection?.items) {
             for (const event of eventsData.collection.items) {
               const { error: eventError } = await supabase
@@ -168,7 +198,7 @@ export class TeamSnapService {
                   start_time: event.data.start_date,
                   end_time: event.data.end_date,
                   location: event.data.location,
-                  sport: team.data.sport || 'Unknown',
+                  sport: team.data.sport_name || 'Unknown',
                   color: '#7C3AED', // TeamSnap purple
                   updated_at: new Date().toISOString()
                 }, {
