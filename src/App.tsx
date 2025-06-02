@@ -66,7 +66,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) {
-    return <Navigate to="/auth/signin\" replace />;
+    return <Navigate to="/auth/signin" replace />;
   }
 
   return <>{children}</>;
@@ -142,7 +142,7 @@ const AppContent = () => {
 export default function App() {
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen min-w-full bg-gray-50 dark:bg-gray-900">
         <ThemeProvider>
           <AppProvider>
             <ProfilesProvider>

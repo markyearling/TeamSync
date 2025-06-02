@@ -10,7 +10,7 @@ const Layout: React.FC = () => {
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="flex h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-40 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div 
@@ -30,7 +30,7 @@ const Layout: React.FC = () => {
       </div>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col w-full overflow-hidden">
         <Header>
           <button
             type="button"
@@ -41,7 +41,9 @@ const Layout: React.FC = () => {
           </button>
         </Header>
         <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
-          <Outlet />
+          <div className="container mx-auto max-w-7xl">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>
