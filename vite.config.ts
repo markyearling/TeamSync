@@ -21,5 +21,8 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     host: true
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js', '@supabase/auth-ui-react']
   }
 });
