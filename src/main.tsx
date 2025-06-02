@@ -1,18 +1,27 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './App.tsx';
+import App from './App';
 import './index.css';
+import { testConnection } from './lib/supabase';
 
-// Verify environment variables are loaded
-if (
-  !import.meta.env.VITE_SUPABASE_URL ||
-  !import.meta.env.VITE_SUPABASE_ANON_KEY
-) {
-  console.error('Required environment variables are missing');
+const root = document.getElementById('root');
+
+if (!root) {
+  throw new Error('Root element not found');
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>
-);
+// Test Supabase connection before mounting app
+testConnection().then(connected => {
+  if (!connected) {
+    console.error('Failed to connect to Supabase');
+  }
+  
+  createRoot(root).render(
+    <StrictMode>
+      <App />
+    </StrictMode>
+  );
+}).catch(error => {
+  console.error('Error during initialization:', error);
+  root.innerHTML = '<div style="color: red; padding: 20px;">Failed to initialize application. Please check your configuration.</div>';
+});
