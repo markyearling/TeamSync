@@ -61,7 +61,7 @@ export class TeamSnapService {
         client_id: this.clientId,
         client_secret: this.clientSecret,
         redirect_uri: this.redirectUri,
-        code_verifier: codeVerifier
+        //code_verifier: codeVerifier
       }).toString();
 
       // Exchange code for token
