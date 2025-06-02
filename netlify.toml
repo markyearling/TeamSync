@@ -4,7 +4,7 @@
   
 [build.environment]
   NODE_VERSION = "20"
-  NPM_FLAGS = "--no-optional"
+  NPM_FLAGS = "--no-optional --platform=linux --arch=x64"
 
 [build.processing]
   skip_processing = false
