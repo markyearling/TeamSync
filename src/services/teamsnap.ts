@@ -135,7 +135,7 @@ export class TeamSnapService {
       
       // First get the user's data
       console.log('Fetching user data...');
-      const meResponse = await this.request('/me');
+      const meResponse = await this.request('/members/me');
       console.log('User data response:', meResponse);
 
       if (!meResponse.collection?.items?.[0]?.data?.teams_url) {
