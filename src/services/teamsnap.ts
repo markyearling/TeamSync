@@ -39,7 +39,11 @@ export class TeamSnapService {
         scope: 'read'
       });
 
-      return `${TEAMSNAP_AUTH_URL}?${params.toString()}`;
+      const authUrl = `${TEAMSNAP_AUTH_URL}?${params.toString()}`;
+      console.log('Authorization URL:', authUrl);
+      console.log('Authorization parameters:', Object.fromEntries(params.entries()));
+
+      return authUrl;
     } catch (error) {
       console.error('Error initiating OAuth:', error);
       throw new Error('Failed to initiate OAuth flow');
@@ -63,7 +67,15 @@ export class TeamSnapService {
         redirect_uri: this.redirectUri
       }).toString();
 
-      console.log('Exchanging code for token...');
+      console.log('Token exchange request:', {
+        url: TEAMSNAP_TOKEN_URL,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+          'Content-Length': body.length.toString()
+        },
+        body: Object.fromEntries(new URLSearchParams(body).entries())
+      });
       
       // Exchange code for token
       const tokenResponse = await fetch(TEAMSNAP_TOKEN_URL, {
@@ -78,13 +90,22 @@ export class TeamSnapService {
 
       if (!tokenResponse.ok) {
         const errorData = await tokenResponse.json();
+        console.error('Token exchange error:', {
+          status: tokenResponse.status,
+          statusText: tokenResponse.statusText,
+          error: errorData
+        });
         throw new Error(`Token exchange failed: ${errorData.error_description || errorData.error || 'Unknown error'}`);
       }
 
       const tokenData = await tokenResponse.json();
       this.accessToken = tokenData.access_token;
 
-      console.log('Successfully obtained access token');
+      console.log('Token exchange successful:', {
+        tokenReceived: !!this.accessToken,
+        tokenType: tokenData.token_type,
+        scope: tokenData.scope
+      });
 
       // Clean up
       localStorage.removeItem('teamsnap_code_verifier');
@@ -103,7 +124,15 @@ export class TeamSnapService {
     }
 
     const url = endpoint.startsWith('http') ? endpoint : `${TEAMSNAP_API_URL}${endpoint}`;
-    console.log(`Making API request to: ${url}`);
+    console.log('Making API request:', {
+      url,
+      method: options.method || 'GET',
+      headers: {
+        ...options.headers,
+        'Authorization': `Bearer ${this.accessToken}`,
+        'Accept': 'application/json',
+      }
+    });
 
     const response = await fetch(url, {
       ...options,
@@ -119,10 +148,9 @@ export class TeamSnapService {
       console.error('API request failed:', {
         url,
         status: response.status,
-        statusText: response.statusText
+        statusText: response.statusText,
+        response: await response.text()
       });
-      const errorData = await response.json().catch(() => ({}));
-      console.error('Error response:', errorData);
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
@@ -137,7 +165,7 @@ export class TeamSnapService {
       
       // First get the user's data
       console.log('Fetching user data...');
-      console.log('Access token:', this.accessToken); // Log the access token
+      console.log('Access token:', this.accessToken ? 'Present' : 'Missing'); 
       
       const meResponse = await this.request('/members/me');
       console.log('User data response:', meResponse);
