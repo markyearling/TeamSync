@@ -14,7 +14,7 @@ export class TeamSnapService {
   private clientId: string;
   private redirectUri: string;
   private accessToken: string | null = null;
-  private readonly clientSecret = 'v3MnBMysXsfisUjXdKvMXFOwSZDeL44Rj4Ht8qjp5wk';
+  private readonly clientSecret = 'osTEt8nG9LVNoqEHX5GBw2FwxjBCYUijCLfo-H-ihaA';
 
   constructor(config: TeamSnapConfig) {
     this.clientId = config.clientId;
