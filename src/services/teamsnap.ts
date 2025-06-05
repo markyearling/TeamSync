@@ -36,7 +36,7 @@ export class TeamSnapService {
         response_type: 'code',
         code_challenge: challenge.code_challenge,
         code_challenge_method: 'S256',
-        scope: 'read'
+        scope: 'read write members teams'
       });
 
       const authUrl = `${TEAMSNAP_AUTH_URL}?${params.toString()}`;
