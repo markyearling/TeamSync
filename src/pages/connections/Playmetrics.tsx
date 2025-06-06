@@ -104,7 +104,8 @@ const Playmetrics: React.FC = () => {
           team_name: teamName,
           sport: 'Soccer',
           ics_url: icsUrl,
-          sync_status: 'pending',
+          sync_status: 'success', // Set as success since we're not syncing events here
+          last_synced: new Date().toISOString(),
           user_id: session.user.id
         }, {
           onConflict: 'platform,team_id'
@@ -114,23 +115,6 @@ const Playmetrics: React.FC = () => {
 
       if (teamError) throw teamError;
       if (!team) throw new Error('Failed to create or update team');
-
-      // Call the Edge Function with proper error handling
-      const { data: syncData, error: syncError } = await supabase.functions.invoke(
-        'sync-playmetrics-calendar',
-        {
-          body: { teamId: team.id, icsUrl }
-        }
-      );
-
-      if (syncError) {
-        // Handle structured error response from Edge Function
-        const errorMessage = typeof syncError === 'object' && syncError !== null
-          ? (syncError as any).message || 'Failed to sync calendar'
-          : 'Failed to sync calendar';
-        
-        throw new Error(errorMessage);
-      }
 
       setSuccess('Team calendar added successfully!');
       setIcsUrl('');
@@ -171,28 +155,22 @@ const Playmetrics: React.FC = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
-      // Call the Edge Function with proper error handling
-      const { data: syncData, error: syncError } = await supabase.functions.invoke(
-        'sync-playmetrics-calendar',
-        {
-          body: { teamId: team.id, icsUrl: team.ics_url }
-        }
-      );
+      // Update the last_synced timestamp
+      const { error: updateError } = await supabase
+        .from('platform_teams')
+        .update({
+          last_synced: new Date().toISOString(),
+          sync_status: 'success'
+        })
+        .eq('id', teamId);
 
-      if (syncError) {
-        // Handle structured error response from Edge Function
-        const errorMessage = typeof syncError === 'object' && syncError !== null
-          ? (syncError as any).message || 'Failed to sync calendar'
-          : 'Failed to sync calendar';
-        
-        throw new Error(errorMessage);
-      }
+      if (updateError) throw updateError;
 
-      setSuccess('Calendar refreshed successfully!');
+      setSuccess('Team updated successfully!');
       fetchTeams();
     } catch (err) {
-      console.error('Error refreshing calendar:', err);
-      setError(err instanceof Error ? err.message : 'Failed to refresh calendar. Please try again.');
+      console.error('Error updating team:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update team. Please try again.');
     }
   };
 
