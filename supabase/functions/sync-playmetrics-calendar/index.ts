@@ -22,6 +22,10 @@ serve(async (req) => {
     teamId = body.teamId;
     icsUrl = body.icsUrl;
 
+    if (!teamId || !icsUrl) {
+      throw new Error('Missing required parameters: teamId or icsUrl');
+    }
+
     // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -44,32 +48,71 @@ serve(async (req) => {
     // Fetch ICS calendar
     const response = await fetch(icsUrl);
     if (!response.ok) {
-      throw new Error('Failed to fetch calendar: ' + response.statusText);
+      throw new Error(`Failed to fetch calendar: ${response.status} ${response.statusText}`);
     }
 
     const icsData = await response.text();
-    const jCalData = VCalendar.parse(icsData);
+    if (!icsData.trim()) {
+      throw new Error('Empty calendar data received');
+    }
+
+    let jCalData;
+    try {
+      jCalData = VCalendar.parse(icsData);
+    } catch (error) {
+      throw new Error(`Failed to parse calendar data: ${error.message}`);
+    }
+
     const calendar = new VCalendar(jCalData);
+    const allEvents = calendar.getAllSubcomponents('vevent');
 
-    // Process events
-    const events = calendar.getAllSubcomponents('vevent').map(event => {
-      const start = event.getFirstPropertyValue('dtstart');
-      const end = event.getFirstPropertyValue('dtend');
-      const summary = event.getFirstPropertyValue('summary');
-      const description = event.getFirstPropertyValue('description');
-      const location = event.getFirstPropertyValue('location');
+    if (!allEvents.length) {
+      throw new Error('No events found in calendar');
+    }
 
-      return {
-        title: summary,
-        description,
-        start_time: start.toJSDate().toISOString(),
-        end_time: end.toJSDate().toISOString(),
-        location,
-        platform: 'Playmetrics',
-        platform_color: '#10B981',
-        sport: 'Soccer'
-      };
-    });
+    // Process events with validation
+    const events = allEvents
+      .map(event => {
+        try {
+          const start = event.getFirstPropertyValue('dtstart');
+          const end = event.getFirstPropertyValue('dtend');
+          const summary = event.getFirstPropertyValue('summary');
+          
+          // Skip events with missing required data
+          if (!start || !end || !summary) {
+            console.warn('Skipping event due to missing required data');
+            return null;
+          }
+
+          // Validate dates
+          const startDate = start.toJSDate();
+          const endDate = end.toJSDate();
+
+          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+            console.warn('Skipping event due to invalid dates');
+            return null;
+          }
+
+          return {
+            title: summary,
+            description: event.getFirstPropertyValue('description') || '',
+            start_time: startDate.toISOString(),
+            end_time: endDate.toISOString(),
+            location: event.getFirstPropertyValue('location') || '',
+            platform: 'Playmetrics',
+            platform_color: '#10B981',
+            sport: 'Soccer'
+          };
+        } catch (error) {
+          console.warn('Error processing event:', error);
+          return null;
+        }
+      })
+      .filter(event => event !== null); // Remove any invalid events
+
+    if (!events.length) {
+      throw new Error('No valid events found in calendar');
+    }
 
     // Get the platform team
     const { data: team, error: teamError } = await supabase
@@ -94,7 +137,7 @@ serve(async (req) => {
         .from('profiles')
         .select('id')
         .eq('user_id', user.id)
-        .limit(1); // Use limit(1) instead of single() to handle multiple profiles
+        .limit(1);
 
       if (profilesError || !profiles || profiles.length === 0) {
         throw new Error('No profile found for this user');
@@ -139,12 +182,16 @@ serve(async (req) => {
         sync_status: 'success'
       })
       .eq('id', teamId)
-      .eq('user_id', user.id); // Ensure we're updating the correct team
+      .eq('user_id', user.id);
 
     if (updateError) throw updateError;
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Calendar synced successfully' }),
+      JSON.stringify({ 
+        success: true, 
+        message: 'Calendar synced successfully',
+        eventCount: events.length 
+      }),
       {
         headers: {
           ...corsHeaders,
@@ -167,7 +214,8 @@ serve(async (req) => {
         await supabase
           .from('platform_teams')
           .update({
-            sync_status: 'error'
+            sync_status: 'error',
+            last_synced: new Date().toISOString()
           })
           .eq('id', teamId);
       } catch (updateError) {
