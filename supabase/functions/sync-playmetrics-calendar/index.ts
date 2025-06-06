@@ -31,9 +31,12 @@ async function fetchWithTimeout(url: string, timeout = 10000) {
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
+    return new Response('ok', {
       status: 200,
-      headers: corsHeaders
+      headers: {
+        ...corsHeaders,
+        'Content-Type': 'text/plain',
+      }
     });
   }
 
