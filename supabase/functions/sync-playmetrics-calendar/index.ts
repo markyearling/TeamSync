@@ -83,6 +83,18 @@ Deno.serve(async (req) => {
 
       console.log('Transformed events:', events.length);
 
+      // Deduplicate events based on the unique constraint fields
+      const uniqueEvents = new Map();
+      events.forEach(event => {
+        const key = `${event.platform}-${event.platform_team_id}-${event.start_time}-${event.end_time}`;
+        if (!uniqueEvents.has(key)) {
+          uniqueEvents.set(key, event);
+        }
+      });
+
+      const deduplicatedEvents = Array.from(uniqueEvents.values());
+      console.log('Deduplicated events:', deduplicatedEvents.length, 'from original:', events.length);
+
       // Initialize Supabase client
       const supabaseClient = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
@@ -98,7 +110,7 @@ Deno.serve(async (req) => {
       console.log('Upserting events into database');
       const { data: eventsData, error: eventsError } = await supabaseClient
         .from('events')
-        .upsert(events, {
+        .upsert(deduplicatedEvents, {
           onConflict: 'platform,platform_team_id,start_time,end_time'
         });
 
@@ -130,7 +142,7 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           success: true, 
           message: 'Calendar synced successfully', 
-          eventCount: events.length 
+          eventCount: deduplicatedEvents.length 
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
