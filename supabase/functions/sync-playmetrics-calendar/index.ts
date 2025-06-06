@@ -166,20 +166,32 @@ Deno.serve(async (req) => {
         console.log('Successfully updated team name:', teamUpdateData);
       }
 
-      // Insert events
-      console.log('Upserting events into database');
+      // Delete existing events for this profile and team to avoid duplicates
+      console.log('Deleting existing events for profile:', profileId, 'and team:', teamId);
+      const { error: deleteError } = await supabaseClient
+        .from('events')
+        .delete()
+        .eq('profile_id', profileId)
+        .eq('platform_team_id', teamId)
+        .eq('platform', 'Playmetrics');
+
+      if (deleteError) {
+        console.error('Error deleting existing events:', deleteError);
+        // Continue with insert anyway
+      }
+
+      // Insert new events
+      console.log('Inserting new events into database');
       const { data: eventsData, error: eventsError } = await supabaseClient
         .from('events')
-        .upsert(deduplicatedEvents, {
-          onConflict: 'platform,platform_team_id,start_time,end_time'
-        });
+        .insert(deduplicatedEvents);
 
       if (eventsError) {
-        console.error('Error upserting events:', eventsError);
+        console.error('Error inserting events:', eventsError);
         throw eventsError;
       }
 
-      console.log('Successfully upserted events:', eventsData);
+      console.log('Successfully inserted events:', eventsData);
 
       return new Response(
         JSON.stringify({ 
@@ -239,7 +251,7 @@ Deno.serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+      status: 500,
       }
     );
   }

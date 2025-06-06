@@ -13,7 +13,8 @@ import {
   UserPlus,
   Edit2,
   Save,
-  X
+  X,
+  Users
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
@@ -24,6 +25,7 @@ interface PlaymetricsTeam {
   ics_url: string;
   last_synced: string | null;
   sync_status: 'pending' | 'success' | 'error';
+  mapped_profiles?: { id: string; name: string; color: string }[];
 }
 
 const Playmetrics: React.FC = () => {
@@ -37,6 +39,8 @@ const Playmetrics: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [editingTeam, setEditingTeam] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [showMappingModal, setShowMappingModal] = useState<string | null>(null);
+  const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
 
   useEffect(() => {
     fetchTeams();
@@ -44,14 +48,36 @@ const Playmetrics: React.FC = () => {
 
   const fetchTeams = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: teamsData, error: teamsError } = await supabase
         .from('platform_teams')
         .select('*')
         .eq('platform', 'Playmetrics')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setTeams(data || []);
+      if (teamsError) throw teamsError;
+
+      // Fetch profile mappings for each team
+      const teamsWithMappings = await Promise.all(
+        (teamsData || []).map(async (team) => {
+          const { data: profileTeams, error: profileError } = await supabase
+            .from('profile_teams')
+            .select(`
+              profile_id,
+              profiles!inner(id, name, color)
+            `)
+            .eq('platform_team_id', team.id);
+
+          if (profileError) {
+            console.error('Error fetching profile mappings:', profileError);
+            return { ...team, mapped_profiles: [] };
+          }
+
+          const mapped_profiles = profileTeams?.map(pt => pt.profiles) || [];
+          return { ...team, mapped_profiles };
+        })
+      );
+
+      setTeams(teamsWithMappings);
     } catch (err) {
       console.error('Error fetching teams:', err);
     } finally {
@@ -77,11 +103,6 @@ const Playmetrics: React.FC = () => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-
-    if (!profiles || profiles.length === 0) {
-      setError('Please create at least one child profile before adding a team calendar');
-      return;
-    }
 
     if (!validateIcsUrl(icsUrl)) {
       setError('Please enter a valid Playmetrics calendar URL');
@@ -120,69 +141,12 @@ const Playmetrics: React.FC = () => {
       if (teamError) throw teamError;
       if (!team) throw new Error('Failed to create or update team');
 
-      // Create profile team mapping if it doesn't exist
-      const { data: profileTeam, error: profileTeamError } = await supabase
-        .from('profile_teams')
-        .select('profile_id')
-        .eq('platform_team_id', team.id)
-        .maybeSingle();
-
-      if (profileTeamError) throw profileTeamError;
-
-      let profileId;
-      if (!profileTeam) {
-        // Use the first profile if no mapping exists
-        profileId = profiles[0].id;
-        const { error: createProfileTeamError } = await supabase
-          .from('profile_teams')
-          .insert({
-            profile_id: profileId,
-            platform_team_id: team.id
-          });
-
-        if (createProfileTeamError) throw createProfileTeamError;
-      } else {
-        profileId = profileTeam.profile_id;
-      }
-
-      // Call the Edge Function to sync the calendar
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          icsUrl: team.ics_url,
-          teamId: team.id,
-          profileId
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to sync calendar');
-      }
-
-      const result = await response.json();
-      setSuccess(`Team calendar added successfully! Synced ${result.eventCount} events.${result.teamName ? ` Team name: ${result.teamName}` : ''}`);
+      setSuccess('Team calendar added successfully! You can now map it to your children\'s profiles.');
       setIcsUrl('');
       fetchTeams();
     } catch (err) {
       console.error('Error adding team:', err);
       setError(err instanceof Error ? err.message : 'Failed to add team calendar. Please try again.');
-      
-      // Update team sync status to error if we have a team ID
-      if (teams.length > 0) {
-        await supabase
-          .from('platform_teams')
-          .update({
-            sync_status: 'error',
-            last_synced: new Date().toISOString()
-          })
-          .eq('platform', 'Playmetrics')
-          .eq('ics_url', icsUrl);
-      }
     } finally {
       setSubmitting(false);
     }
@@ -216,41 +180,38 @@ const Playmetrics: React.FC = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
+      if (!team.mapped_profiles || team.mapped_profiles.length === 0) {
+        setError('Please map this team to at least one child profile before syncing events.');
+        return;
+      }
+
       // Get the current session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
       if (!session) throw new Error('No authenticated session');
 
-      // Get profile ID
-      const { data: profileTeam, error: profileTeamError } = await supabase
-        .from('profile_teams')
-        .select('profile_id')
-        .eq('platform_team_id', team.id)
-        .single();
+      // Sync events for each mapped profile
+      for (const profile of team.mapped_profiles) {
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            icsUrl: team.ics_url,
+            teamId: team.id,
+            profileId: profile.id
+          })
+        });
 
-      if (profileTeamError) throw profileTeamError;
-
-      // Call the Edge Function to sync the calendar
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          icsUrl: team.ics_url,
-          teamId: team.id,
-          profileId: profileTeam.profile_id
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to sync calendar');
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to sync calendar');
+        }
       }
 
-      const result = await response.json();
-      setSuccess(`Calendar refreshed successfully! Synced ${result.eventCount} events.${result.teamName ? ` Team name: ${result.teamName}` : ''}`);
+      setSuccess(`Calendar refreshed successfully for ${team.mapped_profiles.length} profile(s)!`);
       fetchTeams();
     } catch (err) {
       console.error('Error refreshing calendar:', err);
@@ -311,36 +272,63 @@ const Playmetrics: React.FC = () => {
     setEditingName('');
   };
 
-  if (!profiles || profiles.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <button
-            onClick={() => navigate('/connections')}
-            className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Connections
-          </button>
+  const handleOpenMapping = (teamId: string) => {
+    const team = teams.find(t => t.id === teamId);
+    if (team) {
+      setSelectedProfiles(team.mapped_profiles?.map(p => p.id) || []);
+      setShowMappingModal(teamId);
+    }
+  };
 
-          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-            <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold text-gray-900 mb-2">Create a Profile First</h2>
-            <p className="text-gray-600 mb-6">
-              You need to create at least one child profile before you can add team calendars.
-            </p>
-            <button
-              onClick={() => navigate('/profiles')}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Create Profile
-            </button>
-          </div>
-        </div>
-      </div>
+  const handleSaveMapping = async () => {
+    if (!showMappingModal) return;
+
+    try {
+      setError(null);
+      setSuccess(null);
+
+      // Delete existing mappings
+      await supabase
+        .from('profile_teams')
+        .delete()
+        .eq('platform_team_id', showMappingModal);
+
+      // Insert new mappings
+      if (selectedProfiles.length > 0) {
+        const { error } = await supabase
+          .from('profile_teams')
+          .insert(
+            selectedProfiles.map(profileId => ({
+              profile_id: profileId,
+              platform_team_id: showMappingModal
+            }))
+          );
+
+        if (error) throw error;
+      }
+
+      setShowMappingModal(null);
+      setSelectedProfiles([]);
+      setSuccess('Team mapping updated successfully');
+      fetchTeams();
+    } catch (err) {
+      console.error('Error saving team mapping:', err);
+      setError('Failed to update team mapping. Please try again.');
+    }
+  };
+
+  const handleCancelMapping = () => {
+    setShowMappingModal(null);
+    setSelectedProfiles([]);
+  };
+
+  const toggleProfileSelection = (profileId: string) => {
+    setSelectedProfiles(prev =>
+      prev.includes(profileId)
+        ? prev.filter(id => id !== profileId)
+        : [...prev, profileId]
     );
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -391,7 +379,7 @@ const Playmetrics: React.FC = () => {
                     />
                   </div>
                   <p className="mt-2 text-sm text-gray-500">
-                    Enter the Playmetrics calendar URL for your team. The team name will be automatically extracted from the calendar.
+                    Enter the Playmetrics calendar URL for your team. After adding, you can map it to your children's profiles.
                   </p>
                 </div>
 
@@ -489,6 +477,32 @@ const Playmetrics: React.FC = () => {
                                 </button>
                               </div>
                             )}
+                            
+                            {/* Profile mappings */}
+                            <div className="mt-2">
+                              {team.mapped_profiles && team.mapped_profiles.length > 0 ? (
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-xs text-gray-500">Mapped to:</span>
+                                  {team.mapped_profiles.map(profile => (
+                                    <span
+                                      key={profile.id}
+                                      className="inline-flex items-center px-2 py-1 rounded-full text-xs"
+                                      style={{ 
+                                        backgroundColor: profile.color + '20',
+                                        color: profile.color
+                                      }}
+                                    >
+                                      {profile.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                                  Not mapped to any profiles
+                                </span>
+                              )}
+                            </div>
+
                             <div className="flex items-center mt-1">
                               {team.sync_status === 'success' ? (
                                 <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
@@ -506,6 +520,13 @@ const Playmetrics: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
+                          <button
+                            onClick={() => handleOpenMapping(team.id)}
+                            className="p-2 text-gray-400 hover:text-blue-500"
+                            title="Map to profiles"
+                          >
+                            <Users className="h-4 w-4" />
+                          </button>
                           <button
                             onClick={() => handleRefresh(team.id)}
                             className="p-2 text-gray-400 hover:text-gray-500"
@@ -535,6 +556,92 @@ const Playmetrics: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Profile Mapping Modal */}
+      {showMappingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900">Map Team to Profiles</h3>
+              <button
+                onClick={handleCancelMapping}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-4">
+                Select which children's profiles this team calendar should be associated with:
+              </p>
+
+              {profiles && profiles.length > 0 ? (
+                <div className="space-y-3">
+                  {profiles.map(profile => (
+                    <label
+                      key={profile.id}
+                      className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedProfiles.includes(profile.id)
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-200 hover:bg-gray-50'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={selectedProfiles.includes(profile.id)}
+                        onChange={() => toggleProfileSelection(profile.id)}
+                      />
+                      <div className="flex items-center flex-1">
+                        <div
+                          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold mr-3"
+                          style={{ backgroundColor: profile.color }}
+                        >
+                          {profile.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{profile.name}</div>
+                          <div className="text-xs text-gray-500">Age: {profile.age}</div>
+                        </div>
+                      </div>
+                      {selectedProfiles.includes(profile.id) && (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      )}
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <UserPlus className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500">No profiles available</p>
+                  <button
+                    onClick={() => navigate('/profiles')}
+                    className="mt-2 text-sm text-green-600 hover:text-green-700"
+                  >
+                    Create a profile first
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={handleCancelMapping}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveMapping}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+              >
+                Save Mapping
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
