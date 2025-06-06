@@ -70,9 +70,15 @@ const Playmetrics: React.FC = () => {
   };
 
   const fetchAndParseCalendar = async (url: string) => {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'text/calendar',
+        'Cache-Control': 'no-cache'
+      }
+    });
+    
     if (!response.ok) {
-      throw new Error('Failed to fetch calendar');
+      throw new Error(`Failed to fetch calendar: ${response.status} ${response.statusText}`);
     }
     
     const icsData = await response.text();
@@ -123,9 +129,6 @@ const Playmetrics: React.FC = () => {
       const teamId = icsUrl.split('/team/')[1]?.split('-')[0];
       const teamName = `Team ${teamId}`;
 
-      // Fetch and parse calendar events
-      const events = await fetchAndParseCalendar(icsUrl);
-
       // Add or update team in platform_teams using upsert
       const { data: team, error: teamError } = await supabase
         .from('platform_teams')
@@ -171,6 +174,9 @@ const Playmetrics: React.FC = () => {
         profileId = profileTeam.profile_id;
       }
 
+      // Fetch and parse calendar events
+      const events = await fetchAndParseCalendar(icsUrl);
+
       // Insert events
       const { error: eventsError } = await supabase
         .from('events')
@@ -202,6 +208,18 @@ const Playmetrics: React.FC = () => {
     } catch (err) {
       console.error('Error adding team:', err);
       setError(err instanceof Error ? err.message : 'Failed to add team calendar. Please try again.');
+      
+      // Update team sync status to error if we have a team ID
+      if (teams.length > 0) {
+        await supabase
+          .from('platform_teams')
+          .update({
+            sync_status: 'error',
+            last_synced: new Date().toISOString()
+          })
+          .eq('platform', 'Playmetrics')
+          .eq('ics_url', icsUrl);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -235,9 +253,6 @@ const Playmetrics: React.FC = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
-      // Fetch and parse calendar events
-      const events = await fetchAndParseCalendar(team.ics_url);
-
       // Get profile ID
       const { data: profileTeam, error: profileTeamError } = await supabase
         .from('profile_teams')
@@ -246,6 +261,9 @@ const Playmetrics: React.FC = () => {
         .single();
 
       if (profileTeamError) throw profileTeamError;
+
+      // Fetch and parse calendar events
+      const events = await fetchAndParseCalendar(team.ics_url);
 
       // Insert events
       const { error: eventsError } = await supabase
@@ -277,6 +295,17 @@ const Playmetrics: React.FC = () => {
     } catch (err) {
       console.error('Error refreshing calendar:', err);
       setError(err instanceof Error ? err.message : 'Failed to refresh calendar. Please try again.');
+      
+      // Update team sync status to error
+      if (teamId) {
+        await supabase
+          .from('platform_teams')
+          .update({
+            sync_status: 'error',
+            last_synced: new Date().toISOString()
+          })
+          .eq('id', teamId);
+      }
     }
   };
 
