@@ -9,9 +9,11 @@ import {
   CheckCircle, 
   XCircle, 
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  UserPlus
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useProfiles } from '../../context/ProfilesContext';
 
 interface PlaymetricsTeam {
   id: string;
@@ -23,6 +25,7 @@ interface PlaymetricsTeam {
 
 const Playmetrics: React.FC = () => {
   const navigate = useNavigate();
+  const { profiles } = useProfiles();
   const [teams, setTeams] = useState<PlaymetricsTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [icsUrl, setIcsUrl] = useState('');
@@ -69,6 +72,11 @@ const Playmetrics: React.FC = () => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+
+    if (!profiles || profiles.length === 0) {
+      setError('Please create at least one child profile before adding a team calendar');
+      return;
+    }
 
     if (!validateIcsUrl(icsUrl)) {
       setError('Please enter a valid Playmetrics calendar URL');
@@ -187,6 +195,37 @@ const Playmetrics: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to refresh calendar. Please try again.');
     }
   };
+
+  if (!profiles || profiles.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <button
+            onClick={() => navigate('/connections')}
+            className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Connections
+          </button>
+
+          <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+            <UserPlus className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Create a Profile First</h2>
+            <p className="text-gray-600 mb-6">
+              You need to create at least one child profile before you can add team calendars.
+            </p>
+            <button
+              onClick={() => navigate('/profiles')}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Create Profile
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
