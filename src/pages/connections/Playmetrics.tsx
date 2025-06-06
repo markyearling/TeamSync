@@ -86,10 +86,10 @@ const Playmetrics: React.FC = () => {
     setSubmitting(true);
 
     try {
-      // Get the current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      if (!user) throw new Error('No authenticated user');
+      // Get the current user and session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error('No authenticated session');
 
       // Extract team name from URL
       const teamId = icsUrl.split('/team/')[1]?.split('-')[0];
@@ -105,7 +105,7 @@ const Playmetrics: React.FC = () => {
           sport: 'Soccer',
           ics_url: icsUrl,
           sync_status: 'pending',
-          user_id: user.id
+          user_id: session.user.id
         }, {
           onConflict: 'platform,team_id'
         })
@@ -115,12 +115,12 @@ const Playmetrics: React.FC = () => {
       if (teamError) throw teamError;
       if (!team) throw new Error('Failed to create or update team');
 
-      // Sync events from ICS using Supabase Edge Function with timeout
+      // Sync events from ICS using Supabase Edge Function with proper authorization
       const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`;
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ teamId: team.id, icsUrl }),
@@ -167,11 +167,16 @@ const Playmetrics: React.FC = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
+      // Get the current session for proper authorization
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error('No authenticated session');
+
       const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`;
       const response = await fetch(functionUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ teamId: team.id, icsUrl: team.ics_url }),
