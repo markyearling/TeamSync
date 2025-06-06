@@ -10,7 +10,7 @@ const corsHeaders = {
 interface ICSRequestBody {
   icsUrl: string;
   teamId: string;
-  profileId: string;
+  profileId: string | null;
 }
 
 Deno.serve(async (req) => {
@@ -29,9 +29,9 @@ Deno.serve(async (req) => {
 
     const { icsUrl, teamId, profileId }: ICSRequestBody = body;
 
-    if (!icsUrl || !teamId || !profileId) {
+    if (!icsUrl || !teamId) {
       console.error('Missing parameters:', { icsUrl, teamId, profileId });
-      throw new Error('Missing required parameters: icsUrl, teamId, or profileId');
+      throw new Error('Missing required parameters: icsUrl or teamId');
     }
 
     console.log('Fetching ICS file from:', icsUrl);
@@ -105,7 +105,53 @@ Deno.serve(async (req) => {
       const vevents = comp.getAllSubcomponents('vevent');
       console.log('Successfully parsed ICS data, found events:', vevents.length);
 
-      // Transform events
+      // Initialize Supabase client
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+        {
+          auth: {
+            persistSession: false,
+          }
+        }
+      );
+
+      // Update team name in platform_teams table
+      console.log('Updating team name to:', calendarName);
+      const { data: teamUpdateData, error: teamUpdateError } = await supabaseClient
+        .from('platform_teams')
+        .update({
+          team_name: calendarName,
+          sync_status: 'success',
+          last_synced: new Date().toISOString()
+        })
+        .eq('id', teamId);
+
+      if (teamUpdateError) {
+        console.error('Error updating team name:', teamUpdateError);
+        // Don't throw here, continue with event sync
+      } else {
+        console.log('Successfully updated team name:', teamUpdateData);
+      }
+
+      // If no profileId provided, just return the team info (for initial sync)
+      if (!profileId) {
+        console.log('No profile ID provided, returning team info only');
+        return new Response(
+          JSON.stringify({ 
+            success: true, 
+            message: 'Team calendar synced successfully', 
+            eventCount: vevents.length,
+            teamName: calendarName
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          }
+        );
+      }
+
+      // Transform events for the specific profile
       const events = vevents.map(vevent => {
         const event = new ICAL.Event(vevent);
         return {
@@ -136,35 +182,6 @@ Deno.serve(async (req) => {
 
       const deduplicatedEvents = Array.from(uniqueEvents.values());
       console.log('Deduplicated events:', deduplicatedEvents.length, 'from original:', events.length);
-
-      // Initialize Supabase client
-      const supabaseClient = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-        {
-          auth: {
-            persistSession: false,
-          }
-        }
-      );
-
-      // Update team name in platform_teams table
-      console.log('Updating team name to:', calendarName);
-      const { data: teamUpdateData, error: teamUpdateError } = await supabaseClient
-        .from('platform_teams')
-        .update({
-          team_name: calendarName,
-          sync_status: 'success',
-          last_synced: new Date().toISOString()
-        })
-        .eq('id', teamId);
-
-      if (teamUpdateError) {
-        console.error('Error updating team name:', teamUpdateError);
-        // Don't throw here, continue with event sync
-      } else {
-        console.log('Successfully updated team name:', teamUpdateData);
-      }
 
       // Delete existing events for this profile and team to avoid duplicates
       console.log('Deleting existing events for profile:', profileId, 'and team:', teamId);
@@ -219,7 +236,8 @@ Deno.serve(async (req) => {
 
     // Update team sync status to error
     try {
-      const { teamId } = await req.json();
+      const body = await req.json();
+      const { teamId } = body;
       if (teamId) {
         const supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
@@ -251,7 +269,7 @@ Deno.serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 500,
+        status: 500,
       }
     );
   }

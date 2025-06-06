@@ -26,6 +26,7 @@ interface PlaymetricsTeam {
   last_synced: string | null;
   sync_status: 'pending' | 'success' | 'error';
   mapped_profiles?: { id: string; name: string; color: string }[];
+  event_count?: number;
 }
 
 const Playmetrics: React.FC = () => {
@@ -56,9 +57,10 @@ const Playmetrics: React.FC = () => {
 
       if (teamsError) throw teamsError;
 
-      // Fetch profile mappings for each team
+      // Fetch profile mappings and event counts for each team
       const teamsWithMappings = await Promise.all(
         (teamsData || []).map(async (team) => {
+          // Get profile mappings
           const { data: profileTeams, error: profileError } = await supabase
             .from('profile_teams')
             .select(`
@@ -69,11 +71,24 @@ const Playmetrics: React.FC = () => {
 
           if (profileError) {
             console.error('Error fetching profile mappings:', profileError);
-            return { ...team, mapped_profiles: [] };
+          }
+
+          // Get event count for this team
+          const { count: eventCount, error: eventError } = await supabase
+            .from('events')
+            .select('*', { count: 'exact', head: true })
+            .eq('platform_team_id', team.id);
+
+          if (eventError) {
+            console.error('Error fetching event count:', eventError);
           }
 
           const mapped_profiles = profileTeams?.map(pt => pt.profiles) || [];
-          return { ...team, mapped_profiles };
+          return { 
+            ...team, 
+            mapped_profiles,
+            event_count: eventCount || 0
+          };
         })
       );
 
@@ -141,7 +156,34 @@ const Playmetrics: React.FC = () => {
       if (teamError) throw teamError;
       if (!team) throw new Error('Failed to create or update team');
 
-      setSuccess('Team calendar added successfully! You can now map it to your children\'s profiles.');
+      // Immediately sync the calendar to get events and team name
+      try {
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            icsUrl: icsUrl,
+            teamId: team.id,
+            profileId: null // No profile mapping yet
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to sync calendar');
+        }
+
+        const syncResult = await response.json();
+        
+        setSuccess(`Team calendar added successfully! Found ${syncResult.eventCount || 0} events. You can now map it to your children's profiles.`);
+      } catch (syncError) {
+        console.error('Error syncing calendar:', syncError);
+        setSuccess('Team calendar added successfully! You can now map it to your children\'s profiles and sync events.');
+      }
+
       setIcsUrl('');
       fetchTeams();
     } catch (err) {
@@ -190,7 +232,14 @@ const Playmetrics: React.FC = () => {
       if (sessionError) throw sessionError;
       if (!session) throw new Error('No authenticated session');
 
+      // Update team status to pending
+      await supabase
+        .from('platform_teams')
+        .update({ sync_status: 'pending' })
+        .eq('id', teamId);
+
       // Sync events for each mapped profile
+      let totalEvents = 0;
       for (const profile of team.mapped_profiles) {
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
           method: 'POST',
@@ -209,9 +258,12 @@ const Playmetrics: React.FC = () => {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to sync calendar');
         }
+
+        const syncResult = await response.json();
+        totalEvents += syncResult.eventCount || 0;
       }
 
-      setSuccess(`Calendar refreshed successfully for ${team.mapped_profiles.length} profile(s)!`);
+      setSuccess(`Calendar refreshed successfully! Synced ${totalEvents} events for ${team.mapped_profiles.length} profile(s).`);
       fetchTeams();
     } catch (err) {
       console.error('Error refreshing calendar:', err);
@@ -309,7 +361,7 @@ const Playmetrics: React.FC = () => {
 
       setShowMappingModal(null);
       setSelectedProfiles([]);
-      setSuccess('Team mapping updated successfully');
+      setSuccess('Team mapping updated successfully. Use the refresh button to sync events for the mapped profiles.');
       fetchTeams();
     } catch (err) {
       console.error('Error saving team mapping:', err);
@@ -379,7 +431,7 @@ const Playmetrics: React.FC = () => {
                     />
                   </div>
                   <p className="mt-2 text-sm text-gray-500">
-                    Enter the Playmetrics calendar URL for your team. After adding, you can map it to your children's profiles.
+                    Enter the Playmetrics calendar URL for your team. Events will be imported immediately, then you can map the team to your children's profiles.
                   </p>
                 </div>
 
@@ -403,7 +455,7 @@ const Playmetrics: React.FC = () => {
                   {submitting ? (
                     <>
                       <RefreshCw className="animate-spin h-4 w-4 mr-2" />
-                      Adding Team...
+                      Adding & Syncing Team...
                     </>
                   ) : (
                     <>
@@ -478,11 +530,24 @@ const Playmetrics: React.FC = () => {
                               </div>
                             )}
                             
-                            {/* Profile mappings */}
-                            <div className="mt-2">
+                            {/* Event count and profile mappings */}
+                            <div className="mt-2 space-y-1">
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs text-gray-500">
+                                  {team.event_count || 0} events imported
+                                </span>
+                                {team.mapped_profiles && team.mapped_profiles.length > 0 && (
+                                  <>
+                                    <span className="text-xs text-gray-300">•</span>
+                                    <span className="text-xs text-gray-500">
+                                      Mapped to {team.mapped_profiles.length} profile(s)
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              
                               {team.mapped_profiles && team.mapped_profiles.length > 0 ? (
                                 <div className="flex items-center space-x-2">
-                                  <span className="text-xs text-gray-500">Mapped to:</span>
                                   {team.mapped_profiles.map(profile => (
                                     <span
                                       key={profile.id}
@@ -498,7 +563,7 @@ const Playmetrics: React.FC = () => {
                                 </div>
                               ) : (
                                 <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
-                                  Not mapped to any profiles
+                                  Not mapped to any profiles - events won't appear in calendars
                                 </span>
                               )}
                             </div>
@@ -531,6 +596,7 @@ const Playmetrics: React.FC = () => {
                             onClick={() => handleRefresh(team.id)}
                             className="p-2 text-gray-400 hover:text-gray-500"
                             title="Refresh calendar"
+                            disabled={!team.mapped_profiles || team.mapped_profiles.length === 0}
                           >
                             <RefreshCw className="h-4 w-4" />
                           </button>
@@ -573,7 +639,7 @@ const Playmetrics: React.FC = () => {
 
             <div className="p-6">
               <p className="text-sm text-gray-600 mb-4">
-                Select which children's profiles this team calendar should be associated with:
+                Select which children's profiles this team calendar should be associated with. Events will only appear in the calendars of mapped profiles.
               </p>
 
               {profiles && profiles.length > 0 ? (
