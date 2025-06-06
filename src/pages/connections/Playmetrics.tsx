@@ -115,16 +115,20 @@ const Playmetrics: React.FC = () => {
       if (teamError) throw teamError;
       if (!team) throw new Error('Failed to create or update team');
 
-      // Sync events from ICS using Supabase Edge Function
-      const { data: syncData, error: invokeError } = await supabase.functions.invoke(
-        'sync-playmetrics-calendar',
-        {
-          body: { teamId: team.id, icsUrl }
-        }
-      );
+      // Sync events from ICS using Supabase Edge Function with timeout
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ teamId: team.id, icsUrl }),
+      });
 
-      if (invokeError) {
-        throw new Error(invokeError.message || 'Failed to sync calendar events');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to sync calendar events');
       }
 
       setSuccess('Team calendar added successfully!');
@@ -143,7 +147,6 @@ const Playmetrics: React.FC = () => {
       setError(null);
       setSuccess(null);
 
-      // Delete the team from platform_teams
       const { error: deleteError } = await supabase
         .from('platform_teams')
         .delete()
@@ -151,7 +154,6 @@ const Playmetrics: React.FC = () => {
 
       if (deleteError) throw deleteError;
 
-      // Update local state
       setTeams(teams.filter(team => team.id !== teamId));
       setSuccess('Team removed successfully');
     } catch (err) {
@@ -165,16 +167,19 @@ const Playmetrics: React.FC = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
-      // Sync events from ICS using Supabase Edge Function
-      const { data: syncData, error: invokeError } = await supabase.functions.invoke(
-        'sync-playmetrics-calendar',
-        {
-          body: { teamId: team.id, icsUrl: team.ics_url }
-        }
-      );
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ teamId: team.id, icsUrl: team.ics_url }),
+      });
 
-      if (invokeError) {
-        throw new Error(invokeError.message || 'Failed to sync calendar events');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to sync calendar events');
       }
 
       setSuccess('Calendar refreshed successfully!');

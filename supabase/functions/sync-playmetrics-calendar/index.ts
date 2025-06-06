@@ -7,6 +7,26 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Timeout wrapper for fetch
+async function fetchWithTimeout(url: string, timeout = 10000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    if (error.name === 'AbortError') {
+      throw new Error(`Request to ${url} timed out after ${timeout}ms`);
+    }
+    throw error;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -15,6 +35,7 @@ serve(async (req) => {
   let teamId: string;
   let icsUrl: string;
   let profileId: string;
+  let supabase: any;
 
   try {
     // Parse request body once at the start
@@ -27,9 +48,9 @@ serve(async (req) => {
     }
 
     // Initialize Supabase client
-    const supabase = createClient(
+    supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '' // Use service role key for admin access
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     // Get the authenticated user from the request authorization header
@@ -45,8 +66,8 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Fetch ICS calendar
-    const response = await fetch(icsUrl);
+    // Fetch ICS calendar with timeout
+    const response = await fetchWithTimeout(icsUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch calendar: ${response.status} ${response.statusText}`);
     }
@@ -78,13 +99,11 @@ serve(async (req) => {
           const end = event.getFirstPropertyValue('dtend');
           const summary = event.getFirstPropertyValue('summary');
           
-          // Skip events with missing required data
           if (!start || !end || !summary) {
             console.warn('Skipping event due to missing required data');
             return null;
           }
 
-          // Validate dates
           const startDate = start.toJSDate();
           const endDate = end.toJSDate();
 
@@ -108,7 +127,7 @@ serve(async (req) => {
           return null;
         }
       })
-      .filter(event => event !== null); // Remove any invalid events
+      .filter(event => event !== null);
 
     if (!events.length) {
       throw new Error('No valid events found in calendar');
@@ -119,7 +138,7 @@ serve(async (req) => {
       .from('platform_teams')
       .select('*')
       .eq('id', teamId)
-      .eq('user_id', user.id) // Ensure the team belongs to the authenticated user
+      .eq('user_id', user.id)
       .single();
 
     if (teamError) throw new Error('Team not found or access denied');
@@ -129,10 +148,9 @@ serve(async (req) => {
       .from('profile_teams')
       .select('profile_id')
       .eq('platform_team_id', teamId)
-      .maybeSingle(); // Use maybeSingle instead of single to handle non-existing mapping
+      .maybeSingle();
 
     if (!profileTeam) {
-      // If no profile team mapping exists, get the first available profile for the user
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id')
@@ -143,7 +161,6 @@ serve(async (req) => {
         throw new Error('No profile found for this user');
       }
       
-      // Create profile team mapping with the first available profile
       const { error: createProfileTeamError } = await supabase
         .from('profile_teams')
         .insert({
@@ -203,14 +220,9 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error syncing calendar:', error);
 
-    // Only update team sync status if we have a teamId
-    if (teamId) {
+    // Only update team sync status if we have teamId and supabase client
+    if (teamId && supabase) {
       try {
-        const supabase = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        );
-
         await supabase
           .from('platform_teams')
           .update({
@@ -225,7 +237,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'An unexpected error occurred while syncing the calendar'
+        error: error instanceof Error ? error.message : 'An unexpected error occurred while syncing the calendar'
       }),
       {
         headers: {
