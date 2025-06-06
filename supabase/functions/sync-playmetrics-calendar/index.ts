@@ -29,6 +29,20 @@ async function fetchWithTimeout(url: string, timeout = 10000) {
   }
 }
 
+// Validate and normalize URL
+function validateUrl(urlString: string): string {
+  try {
+    const url = new URL(urlString);
+    // Ensure the protocol is either http or https
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      throw new Error('URL must use HTTP or HTTPS protocol');
+    }
+    return url.toString();
+  } catch (error) {
+    throw new Error(`Invalid URL provided: ${error.message}`);
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -53,6 +67,9 @@ serve(async (req) => {
       throw new Error('Missing required parameters: teamId or icsUrl');
     }
 
+    // Validate and normalize the ICS URL
+    const validatedUrl = validateUrl(icsUrl);
+
     // Initialize Supabase client
     supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -72,8 +89,8 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Fetch ICS calendar with timeout
-    const response = await fetchWithTimeout(icsUrl);
+    // Fetch ICS calendar with timeout using the validated URL
+    const response = await fetchWithTimeout(validatedUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch calendar: ${response.status} ${response.statusText}`);
     }
