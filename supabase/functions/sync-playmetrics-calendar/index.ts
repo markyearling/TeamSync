@@ -86,29 +86,31 @@ serve(async (req) => {
       .from('profile_teams')
       .select('profile_id')
       .eq('platform_team_id', teamId)
-      .single();
+      .maybeSingle(); // Use maybeSingle instead of single to handle non-existing mapping
 
-    if (profileTeamError) {
-      // If no profile team mapping exists, get the first profile for the authenticated user
-      const { data: profile, error: profileError } = await supabase
+    if (!profileTeam) {
+      // If no profile team mapping exists, get the first available profile for the user
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .limit(1); // Use limit(1) instead of single() to handle multiple profiles
 
-      if (profileError) throw new Error('No profile found for this user');
+      if (profilesError || !profiles || profiles.length === 0) {
+        throw new Error('No profile found for this user');
+      }
       
-      // Create profile team mapping
+      // Create profile team mapping with the first available profile
       const { error: createProfileTeamError } = await supabase
         .from('profile_teams')
         .insert({
-          profile_id: profile.id,
+          profile_id: profiles[0].id,
           platform_team_id: teamId
         });
 
       if (createProfileTeamError) throw createProfileTeamError;
       
-      profileId = profile.id;
+      profileId = profiles[0].id;
     } else {
       profileId = profileTeam.profile_id;
     }
