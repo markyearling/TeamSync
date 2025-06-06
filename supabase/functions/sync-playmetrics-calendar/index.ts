@@ -14,6 +14,7 @@ serve(async (req) => {
 
   let teamId: string;
   let icsUrl: string;
+  let profileId: string;
 
   try {
     // Parse request body once at the start
@@ -92,9 +93,9 @@ serve(async (req) => {
 
       if (createProfileTeamError) throw createProfileTeamError;
       
-      var profileId = profile.id;
+      profileId = profile.id;
     } else {
-      var profileId = profileTeam.profile_id;
+      profileId = profileTeam.profile_id;
     }
 
     // Insert events
