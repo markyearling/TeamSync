@@ -60,16 +60,71 @@ serve(async (req) => {
       );
     }
 
-    // Fetch ICS calendar
-    const response = await fetch(icsUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch calendar: ${response.status} ${response.statusText}`);
+    // Fetch ICS calendar with improved error handling
+    let response;
+    try {
+      response = await fetch(icsUrl, {
+        headers: {
+          'Accept': 'text/calendar',
+          'User-Agent': 'Supabase Edge Function'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Calendar server returned ${response.status}: ${response.statusText}`);
+      }
+
+      if (!response.headers.get('content-type')?.includes('text/calendar')) {
+        throw new Error('Invalid calendar response: Expected iCalendar format');
+      }
+    } catch (fetchError) {
+      // Update team sync status to error
+      await supabase
+        .from('platform_teams')
+        .update({
+          last_synced: new Date().toISOString(),
+          sync_status: 'error'
+        })
+        .eq('id', teamId)
+        .eq('user_id', user.id);
+
+      return new Response(
+        JSON.stringify({
+          error: `Failed to fetch calendar: ${fetchError.message}`,
+          details: 'The calendar server is not responding or returned an invalid response. Please verify the URL and try again later.'
+        }),
+        { status: 502, headers: corsHeaders }
+      );
     }
 
     const icsData = await response.text();
-    const jCalData = VCalendar.parse(icsData);
+
+    // Validate iCalendar data
+    let jCalData;
+    try {
+      jCalData = VCalendar.parse(icsData);
+    } catch (parseError) {
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid calendar data',
+          details: 'The calendar URL returned data that is not in a valid iCalendar format.'
+        }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
     const calendar = new VCalendar(jCalData);
     const allEvents = calendar.getAllSubcomponents('vevent');
+
+    if (!allEvents.length) {
+      return new Response(
+        JSON.stringify({
+          error: 'No events found',
+          details: 'The calendar exists but contains no events.'
+        }),
+        { status: 404, headers: corsHeaders }
+      );
+    }
 
     // Process events
     const events = allEvents
@@ -179,9 +234,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error syncing calendar:', error);
 
+    // Ensure we return a structured error response
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : 'An unexpected error occurred'
+        error: error instanceof Error ? error.message : 'An unexpected error occurred',
+        details: error instanceof Error ? error.stack : undefined
       }),
       { status: 500, headers: corsHeaders }
     );

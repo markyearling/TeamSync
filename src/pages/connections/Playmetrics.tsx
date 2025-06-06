@@ -115,7 +115,7 @@ const Playmetrics: React.FC = () => {
       if (teamError) throw teamError;
       if (!team) throw new Error('Failed to create or update team');
 
-      // Use supabase.functions.invoke instead of fetch
+      // Call the Edge Function with proper error handling
       const { data: syncData, error: syncError } = await supabase.functions.invoke(
         'sync-playmetrics-calendar',
         {
@@ -123,7 +123,14 @@ const Playmetrics: React.FC = () => {
         }
       );
 
-      if (syncError) throw syncError;
+      if (syncError) {
+        // Handle structured error response from Edge Function
+        const errorMessage = typeof syncError === 'object' && syncError !== null
+          ? (syncError as any).message || 'Failed to sync calendar'
+          : 'Failed to sync calendar';
+        
+        throw new Error(errorMessage);
+      }
 
       setSuccess('Team calendar added successfully!');
       setIcsUrl('');
@@ -158,10 +165,13 @@ const Playmetrics: React.FC = () => {
 
   const handleRefresh = async (teamId: string) => {
     try {
+      setError(null);
+      setSuccess(null);
+      
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
-      // Use supabase.functions.invoke instead of fetch
+      // Call the Edge Function with proper error handling
       const { data: syncData, error: syncError } = await supabase.functions.invoke(
         'sync-playmetrics-calendar',
         {
@@ -169,7 +179,14 @@ const Playmetrics: React.FC = () => {
         }
       );
 
-      if (syncError) throw syncError;
+      if (syncError) {
+        // Handle structured error response from Edge Function
+        const errorMessage = typeof syncError === 'object' && syncError !== null
+          ? (syncError as any).message || 'Failed to sync calendar'
+          : 'Failed to sync calendar';
+        
+        throw new Error(errorMessage);
+      }
 
       setSuccess('Calendar refreshed successfully!');
       fetchTeams();
