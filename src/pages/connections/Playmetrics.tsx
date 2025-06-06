@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
-import ICAL from 'ical.js';
 
 interface PlaymetricsTeam {
   id: string;
@@ -67,39 +66,6 @@ const Playmetrics: React.FC = () => {
     } catch {
       return false;
     }
-  };
-
-  const fetchAndParseCalendar = async (url: string) => {
-    const response = await fetch(url, {
-      headers: {
-        'Accept': 'text/calendar',
-        'Cache-Control': 'no-cache'
-      }
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch calendar: ${response.status} ${response.statusText}`);
-    }
-    
-    const icsData = await response.text();
-    const jCalData = ICAL.parse(icsData);
-    const comp = new ICAL.Component(jCalData);
-    const vevents = comp.getAllSubcomponents('vevent');
-    
-    return vevents.map(vevent => {
-      const event = new ICAL.Event(vevent);
-      return {
-        title: event.summary,
-        description: event.description || '',
-        start_time: event.startDate.toJSDate().toISOString(),
-        end_time: event.endDate.toJSDate().toISOString(),
-        location: event.location || '',
-        sport: 'Soccer',
-        color: '#10B981',
-        platform: 'Playmetrics',
-        platform_color: '#10B981'
-      };
-    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -174,35 +140,27 @@ const Playmetrics: React.FC = () => {
         profileId = profileTeam.profile_id;
       }
 
-      // Fetch and parse calendar events
-      const events = await fetchAndParseCalendar(icsUrl);
-
-      // Insert events
-      const { error: eventsError } = await supabase
-        .from('events')
-        .upsert(
-          events.map(event => ({
-            ...event,
-            profile_id: profileId,
-            platform_team_id: team.id
-          })),
-          { onConflict: 'platform,platform_team_id,start_time,end_time' }
-        );
-
-      if (eventsError) throw eventsError;
-
-      // Update team sync status
-      const { error: updateError } = await supabase
-        .from('platform_teams')
-        .update({
-          sync_status: 'success',
-          last_synced: new Date().toISOString()
+      // Call the Edge Function to sync the calendar
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          icsUrl: team.ics_url,
+          teamId: team.id,
+          profileId
         })
-        .eq('id', team.id);
+      });
 
-      if (updateError) throw updateError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to sync calendar');
+      }
 
-      setSuccess('Team calendar and events added successfully!');
+      const result = await response.json();
+      setSuccess(`Team calendar added successfully! Synced ${result.eventCount} events.`);
       setIcsUrl('');
       fetchTeams();
     } catch (err) {
@@ -262,35 +220,27 @@ const Playmetrics: React.FC = () => {
 
       if (profileTeamError) throw profileTeamError;
 
-      // Fetch and parse calendar events
-      const events = await fetchAndParseCalendar(team.ics_url);
-
-      // Insert events
-      const { error: eventsError } = await supabase
-        .from('events')
-        .upsert(
-          events.map(event => ({
-            ...event,
-            profile_id: profileTeam.profile_id,
-            platform_team_id: team.id
-          })),
-          { onConflict: 'platform,platform_team_id,start_time,end_time' }
-        );
-
-      if (eventsError) throw eventsError;
-
-      // Update team sync status
-      const { error: updateError } = await supabase
-        .from('platform_teams')
-        .update({
-          last_synced: new Date().toISOString(),
-          sync_status: 'success'
+      // Call the Edge Function to sync the calendar
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          icsUrl: team.ics_url,
+          teamId: team.id,
+          profileId: profileTeam.profile_id
         })
-        .eq('id', team.id);
+      });
 
-      if (updateError) throw updateError;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to sync calendar');
+      }
 
-      setSuccess('Calendar refreshed successfully!');
+      const result = await response.json();
+      setSuccess(`Calendar refreshed successfully! Synced ${result.eventCount} events.`);
       fetchTeams();
     } catch (err) {
       console.error('Error refreshing calendar:', err);
