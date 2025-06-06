@@ -22,10 +22,24 @@ serve(async (req) => {
     teamId = body.teamId;
     icsUrl = body.icsUrl;
 
+    // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '' // Use service role key for admin access
     );
+
+    // Get the authenticated user from the request authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    
+    if (userError || !user) {
+      throw new Error('Unauthorized');
+    }
 
     // Fetch ICS calendar
     const response = await fetch(icsUrl);
@@ -62,9 +76,10 @@ serve(async (req) => {
       .from('platform_teams')
       .select('*')
       .eq('id', teamId)
+      .eq('user_id', user.id) // Ensure the team belongs to the authenticated user
       .single();
 
-    if (teamError) throw teamError;
+    if (teamError) throw new Error('Team not found or access denied');
 
     // Get profile_id from profile_teams table
     const { data: profileTeam, error: profileTeamError } = await supabase
@@ -74,11 +89,11 @@ serve(async (req) => {
       .single();
 
     if (profileTeamError) {
-      // If no profile team mapping exists, get the first profile for the user
+      // If no profile team mapping exists, get the first profile for the authenticated user
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('user_id', team.user_id)
+        .eq('user_id', user.id)
         .single();
 
       if (profileError) throw new Error('No profile found for this user');
@@ -121,7 +136,8 @@ serve(async (req) => {
         last_synced: new Date().toISOString(),
         sync_status: 'success'
       })
-      .eq('id', teamId);
+      .eq('id', teamId)
+      .eq('user_id', user.id); // Ensure we're updating the correct team
 
     if (updateError) throw updateError;
 
@@ -143,7 +159,7 @@ serve(async (req) => {
       try {
         const supabase = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
         );
 
         await supabase
