@@ -87,17 +87,20 @@ const PlaymetricsConnection: React.FC = () => {
       const teamId = icsUrl.split('/team/')[1]?.split('-')[0];
       const teamName = `Team ${teamId}`;
 
-      // Add team to platform_teams
+      // Add or update team in platform_teams using upsert
       const { data: team, error: teamError } = await supabase
         .from('platform_teams')
-        .insert({
+        .upsert({
           platform: 'Playmetrics',
           team_id: teamId,
           team_name: teamName,
-          sport: 'Soccer', // Default to Soccer since Playmetrics is primarily for soccer
+          sport: 'Soccer',
           ics_url: icsUrl,
           sync_status: 'pending',
-          user_id: user.id // Add the user_id field
+          user_id: user.id
+        }, {
+          onConflict: 'platform,team_id',
+          returning: 'minimal'
         })
         .select()
         .single();
@@ -118,7 +121,8 @@ const PlaymetricsConnection: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to sync calendar events');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Failed to sync calendar events');
       }
 
       setSuccess('Team calendar added successfully!');
@@ -126,7 +130,7 @@ const PlaymetricsConnection: React.FC = () => {
       fetchTeams();
     } catch (err) {
       console.error('Error adding team:', err);
-      setError('Failed to add team calendar. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to add team calendar. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -167,14 +171,15 @@ const PlaymetricsConnection: React.FC = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to sync calendar events');
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.error || 'Failed to sync calendar events');
       }
 
       setSuccess('Calendar refreshed successfully!');
       fetchTeams();
     } catch (err) {
       console.error('Error refreshing calendar:', err);
-      setError('Failed to refresh calendar. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to refresh calendar. Please try again.');
     }
   };
 
