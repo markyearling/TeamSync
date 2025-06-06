@@ -115,21 +115,15 @@ const Playmetrics: React.FC = () => {
       if (teamError) throw teamError;
       if (!team) throw new Error('Failed to create or update team');
 
-      // Sync events from ICS using Supabase Edge Function with proper authorization
-      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`;
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ teamId: team.id, icsUrl }),
-      });
+      // Use supabase.functions.invoke instead of fetch
+      const { data: syncData, error: syncError } = await supabase.functions.invoke(
+        'sync-playmetrics-calendar',
+        {
+          body: { teamId: team.id, icsUrl }
+        }
+      );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to sync calendar events');
-      }
+      if (syncError) throw syncError;
 
       setSuccess('Team calendar added successfully!');
       setIcsUrl('');
@@ -167,25 +161,15 @@ const Playmetrics: React.FC = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
-      // Get the current session for proper authorization
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
-      if (!session) throw new Error('No authenticated session');
+      // Use supabase.functions.invoke instead of fetch
+      const { data: syncData, error: syncError } = await supabase.functions.invoke(
+        'sync-playmetrics-calendar',
+        {
+          body: { teamId: team.id, icsUrl: team.ics_url }
+        }
+      );
 
-      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`;
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ teamId: team.id, icsUrl: team.ics_url }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to sync calendar events');
-      }
+      if (syncError) throw syncError;
 
       setSuccess('Calendar refreshed successfully!');
       fetchTeams();
