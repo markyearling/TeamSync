@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AddEventModal from '../components/events/AddEventModal';
 import EventModal from '../components/events/EventModal';
-import { Filter, Calendar, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users } from 'lucide-react';
+import { Filter, Calendar, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useProfiles } from '../context/ProfilesContext';
 import { Child, Event } from '../types';
 import { supabase } from '../lib/supabase';
@@ -190,6 +190,69 @@ const ChildProfile: React.FC = () => {
     }
   };
 
+  // Calendar navigation functions
+  const navigatePrevious = () => {
+    const newDate = new Date(currentDate);
+    switch (view) {
+      case 'month':
+        newDate.setMonth(newDate.getMonth() - 1);
+        break;
+      case 'week':
+        newDate.setDate(newDate.getDate() - 7);
+        break;
+      case 'day':
+        newDate.setDate(newDate.getDate() - 1);
+        break;
+    }
+    setCurrentDate(newDate);
+  };
+  
+  const navigateNext = () => {
+    const newDate = new Date(currentDate);
+    switch (view) {
+      case 'month':
+        newDate.setMonth(newDate.getMonth() + 1);
+        break;
+      case 'week':
+        newDate.setDate(newDate.getDate() + 7);
+        break;
+      case 'day':
+        newDate.setDate(newDate.getDate() + 1);
+        break;
+    }
+    setCurrentDate(newDate);
+  };
+  
+  const navigateToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const renderTitle = () => {
+    const options: Intl.DateTimeFormatOptions = { 
+      year: 'numeric', 
+    };
+    
+    switch (view) {
+      case 'month':
+        options.month = 'long';
+        break;
+      case 'week':
+        options.month = 'short';
+        options.day = 'numeric';
+        // Add end of week date
+        const endOfWeek = new Date(currentDate);
+        endOfWeek.setDate(currentDate.getDate() + 6);
+        return `${currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      case 'day':
+        options.weekday = 'long';
+        options.month = 'long';
+        options.day = 'numeric';
+        break;
+    }
+    
+    return currentDate.toLocaleDateString('en-US', options);
+  };
+
   const renderCalendarView = () => {
     switch (view) {
       case 'month':
@@ -351,7 +414,32 @@ const ChildProfile: React.FC = () => {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-4">
+              {/* Calendar Navigation */}
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={navigatePrevious}
+                  className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <ChevronLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                </button>
+                <button
+                  onClick={navigateToday}
+                  className="px-3 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  Today
+                </button>
+                <button
+                  onClick={navigateNext}
+                  className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                >
+                  <ChevronRight className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                </button>
+                <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 ml-2">
+                  {renderTitle()}
+                </h2>
+              </div>
+
               <button
                 onClick={() => setFilterOpen(!filterOpen)}
                 className="flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 text-sm"
