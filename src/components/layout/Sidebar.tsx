@@ -6,7 +6,8 @@ import {
   Link as LinkIcon, 
   Users, 
   Settings, 
-  X 
+  X,
+  BarChart 
 } from 'lucide-react';
 import { useProfiles } from '../../context/ProfilesContext';
 
@@ -26,7 +27,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       icon: LinkIcon, 
       href: '/connections',
       subItems: [
-        { name: 'TeamSnap', href: '/connections/teamsnap' }
+        { name: 'TeamSnap', href: '/connections/teamsnap' },
+        { name: 'Playmetrics', href: '/connections/playmetrics' }
       ]
     },
     { name: 'Profiles', icon: Users, href: '/profiles' },

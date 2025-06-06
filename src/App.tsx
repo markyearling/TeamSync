@@ -6,6 +6,7 @@ import Calendar from './pages/Calendar';
 import Connections from './pages/Connections';
 import TeamSnapConnection from './pages/connections/TeamSnapConnection';
 import TeamSnapCallback from './pages/connections/TeamSnapCallback';
+import PlaymetricsConnection from './pages/connections/PlaymetricsConnection';
 import Profiles from './pages/Profiles';
 import Settings from './pages/Settings';
 import ChildProfile from './pages/ChildProfile';
@@ -66,7 +67,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) {
-    return <Navigate to="/auth/signin\" replace />;
+    return <Navigate to="/auth/signin" replace />;
   }
 
   return <>{children}</>;
@@ -129,6 +130,7 @@ const AppContent = () => {
           <Route path="calendar" element={<Calendar />} />
           <Route path="connections" element={<Connections />} />
           <Route path="connections/teamsnap" element={<TeamSnapConnection />} />
+          <Route path="connections/playmetrics" element={<PlaymetricsConnection />} />
           <Route path="profiles" element={<Profiles />} />
           <Route path="profiles/:id" element={<ChildProfile />} />
           <Route path="settings" element={<Settings />} />
