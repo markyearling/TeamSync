@@ -12,18 +12,24 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  let teamId: string;
+  let icsUrl: string;
+
   try {
+    // Parse request body once at the start
+    const body = await req.json();
+    teamId = body.teamId;
+    icsUrl = body.icsUrl;
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    const { teamId, icsUrl } = await req.json();
-
     // Fetch ICS calendar
     const response = await fetch(icsUrl);
     if (!response.ok) {
-      throw new Error('Failed to fetch calendar');
+      throw new Error('Failed to fetch calendar: ' + response.statusText);
     }
 
     const icsData = await response.text();
@@ -131,26 +137,29 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error syncing calendar:', error);
 
-    // Update team sync status to error
-    try {
-      const { teamId } = await req.json();
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-      );
+    // Only update team sync status if we have a teamId
+    if (teamId) {
+      try {
+        const supabase = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+        );
 
-      await supabase
-        .from('platform_teams')
-        .update({
-          sync_status: 'error'
-        })
-        .eq('id', teamId);
-    } catch (updateError) {
-      console.error('Error updating team status:', updateError);
+        await supabase
+          .from('platform_teams')
+          .update({
+            sync_status: 'error'
+          })
+          .eq('id', teamId);
+      } catch (updateError) {
+        console.error('Error updating team status:', updateError);
+      }
     }
 
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || 'An unexpected error occurred while syncing the calendar'
+      }),
       {
         headers: {
           ...corsHeaders,
