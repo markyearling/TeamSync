@@ -145,6 +145,7 @@ const Playmetrics: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           icsUrl: team.ics_url,
@@ -210,6 +211,11 @@ const Playmetrics: React.FC = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
+      // Get the current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error('No authenticated session');
+
       // Get profile ID
       const { data: profileTeam, error: profileTeamError } = await supabase
         .from('profile_teams')
@@ -224,6 +230,7 @@ const Playmetrics: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           icsUrl: team.ics_url,
