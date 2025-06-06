@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
+import ICAL from 'ical.js';
 
 interface PlaymetricsTeam {
   id: string;
@@ -68,6 +69,33 @@ const Playmetrics: React.FC = () => {
     }
   };
 
+  const fetchAndParseCalendar = async (url: string) => {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error('Failed to fetch calendar');
+    }
+    
+    const icsData = await response.text();
+    const jCalData = ICAL.parse(icsData);
+    const comp = new ICAL.Component(jCalData);
+    const vevents = comp.getAllSubcomponents('vevent');
+    
+    return vevents.map(vevent => {
+      const event = new ICAL.Event(vevent);
+      return {
+        title: event.summary,
+        description: event.description || '',
+        start_time: event.startDate.toJSDate().toISOString(),
+        end_time: event.endDate.toJSDate().toISOString(),
+        location: event.location || '',
+        sport: 'Soccer',
+        color: '#10B981',
+        platform: 'Playmetrics',
+        platform_color: '#10B981'
+      };
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -95,6 +123,9 @@ const Playmetrics: React.FC = () => {
       const teamId = icsUrl.split('/team/')[1]?.split('-')[0];
       const teamName = `Team ${teamId}`;
 
+      // Fetch and parse calendar events
+      const events = await fetchAndParseCalendar(icsUrl);
+
       // Add or update team in platform_teams using upsert
       const { data: team, error: teamError } = await supabase
         .from('platform_teams')
@@ -104,8 +135,7 @@ const Playmetrics: React.FC = () => {
           team_name: teamName,
           sport: 'Soccer',
           ics_url: icsUrl,
-          sync_status: 'success', // Set as success since we're not syncing events here
-          last_synced: new Date().toISOString(),
+          sync_status: 'pending',
           user_id: session.user.id
         }, {
           onConflict: 'platform,team_id'
@@ -116,7 +146,57 @@ const Playmetrics: React.FC = () => {
       if (teamError) throw teamError;
       if (!team) throw new Error('Failed to create or update team');
 
-      setSuccess('Team calendar added successfully!');
+      // Create profile team mapping if it doesn't exist
+      const { data: profileTeam, error: profileTeamError } = await supabase
+        .from('profile_teams')
+        .select('profile_id')
+        .eq('platform_team_id', team.id)
+        .maybeSingle();
+
+      if (profileTeamError) throw profileTeamError;
+
+      let profileId;
+      if (!profileTeam) {
+        // Use the first profile if no mapping exists
+        profileId = profiles[0].id;
+        const { error: createProfileTeamError } = await supabase
+          .from('profile_teams')
+          .insert({
+            profile_id: profileId,
+            platform_team_id: team.id
+          });
+
+        if (createProfileTeamError) throw createProfileTeamError;
+      } else {
+        profileId = profileTeam.profile_id;
+      }
+
+      // Insert events
+      const { error: eventsError } = await supabase
+        .from('events')
+        .upsert(
+          events.map(event => ({
+            ...event,
+            profile_id: profileId,
+            platform_team_id: team.id
+          })),
+          { onConflict: 'platform,platform_team_id,start_time,end_time' }
+        );
+
+      if (eventsError) throw eventsError;
+
+      // Update team sync status
+      const { error: updateError } = await supabase
+        .from('platform_teams')
+        .update({
+          sync_status: 'success',
+          last_synced: new Date().toISOString()
+        })
+        .eq('id', team.id);
+
+      if (updateError) throw updateError;
+
+      setSuccess('Team calendar and events added successfully!');
       setIcsUrl('');
       fetchTeams();
     } catch (err) {
@@ -155,22 +235,48 @@ const Playmetrics: React.FC = () => {
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
 
-      // Update the last_synced timestamp
+      // Fetch and parse calendar events
+      const events = await fetchAndParseCalendar(team.ics_url);
+
+      // Get profile ID
+      const { data: profileTeam, error: profileTeamError } = await supabase
+        .from('profile_teams')
+        .select('profile_id')
+        .eq('platform_team_id', team.id)
+        .single();
+
+      if (profileTeamError) throw profileTeamError;
+
+      // Insert events
+      const { error: eventsError } = await supabase
+        .from('events')
+        .upsert(
+          events.map(event => ({
+            ...event,
+            profile_id: profileTeam.profile_id,
+            platform_team_id: team.id
+          })),
+          { onConflict: 'platform,platform_team_id,start_time,end_time' }
+        );
+
+      if (eventsError) throw eventsError;
+
+      // Update team sync status
       const { error: updateError } = await supabase
         .from('platform_teams')
         .update({
           last_synced: new Date().toISOString(),
           sync_status: 'success'
         })
-        .eq('id', teamId);
+        .eq('id', team.id);
 
       if (updateError) throw updateError;
 
-      setSuccess('Team updated successfully!');
+      setSuccess('Calendar refreshed successfully!');
       fetchTeams();
     } catch (err) {
-      console.error('Error updating team:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update team. Please try again.');
+      console.error('Error refreshing calendar:', err);
+      setError(err instanceof Error ? err.message : 'Failed to refresh calendar. Please try again.');
     }
   };
 
