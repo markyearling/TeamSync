@@ -5,6 +5,7 @@ import { VCalendar } from 'npm:ical.js@1.5.0';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 // Timeout wrapper for fetch
@@ -28,8 +29,12 @@ async function fetchWithTimeout(url: string, timeout = 10000) {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders
+    });
   }
 
   let teamId: string;
@@ -38,7 +43,7 @@ serve(async (req) => {
   let supabase: any;
 
   try {
-    // Parse request body once at the start
+    // Only parse request body for non-OPTIONS requests
     const body = await req.json();
     teamId = body.teamId;
     icsUrl = body.icsUrl;
