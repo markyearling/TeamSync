@@ -59,12 +59,45 @@ serve(async (req) => {
 
     if (teamError) throw teamError;
 
+    // Get profile_id from profile_teams table
+    const { data: profileTeam, error: profileTeamError } = await supabase
+      .from('profile_teams')
+      .select('profile_id')
+      .eq('platform_team_id', teamId)
+      .single();
+
+    if (profileTeamError) {
+      // If no profile team mapping exists, get the first profile for the user
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', team.user_id)
+        .single();
+
+      if (profileError) throw new Error('No profile found for this user');
+      
+      // Create profile team mapping
+      const { error: createProfileTeamError } = await supabase
+        .from('profile_teams')
+        .insert({
+          profile_id: profile.id,
+          platform_team_id: teamId
+        });
+
+      if (createProfileTeamError) throw createProfileTeamError;
+      
+      var profileId = profile.id;
+    } else {
+      var profileId = profileTeam.profile_id;
+    }
+
     // Insert events
     const { error: eventsError } = await supabase
       .from('events')
       .upsert(
         events.map(event => ({
           ...event,
+          profile_id: profileId,
           platform_team_id: team.id
         })),
         {
