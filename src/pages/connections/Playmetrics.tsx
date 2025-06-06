@@ -107,13 +107,13 @@ const Playmetrics: React.FC = () => {
           sync_status: 'pending',
           user_id: user.id
         }, {
-          onConflict: 'platform,team_id',
-          returning: 'minimal'
+          onConflict: 'platform,team_id'
         })
         .select()
         .single();
 
       if (teamError) throw teamError;
+      if (!team) throw new Error('Failed to create or update team');
 
       // Sync events from ICS
       const response = await fetch('/api/sync-playmetrics-calendar', {
