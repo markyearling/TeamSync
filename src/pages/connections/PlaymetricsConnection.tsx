@@ -78,6 +78,11 @@ const PlaymetricsConnection: React.FC = () => {
     setSubmitting(true);
 
     try {
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('No authenticated user');
+
       // Extract team name from URL
       const teamId = icsUrl.split('/team/')[1]?.split('-')[0];
       const teamName = `Team ${teamId}`;
@@ -91,7 +96,8 @@ const PlaymetricsConnection: React.FC = () => {
           team_name: teamName,
           sport: 'Soccer', // Default to Soccer since Playmetrics is primarily for soccer
           ics_url: icsUrl,
-          sync_status: 'pending'
+          sync_status: 'pending',
+          user_id: user.id // Add the user_id field
         })
         .select()
         .single();
