@@ -10,7 +10,10 @@ import {
   XCircle, 
   AlertTriangle,
   RefreshCw,
-  UserPlus
+  UserPlus,
+  Edit2,
+  Save,
+  X
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
@@ -32,6 +35,8 @@ const Playmetrics: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [editingTeam, setEditingTeam] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
 
   useEffect(() => {
     fetchTeams();
@@ -160,7 +165,7 @@ const Playmetrics: React.FC = () => {
       }
 
       const result = await response.json();
-      setSuccess(`Team calendar added successfully! Synced ${result.eventCount} events.`);
+      setSuccess(`Team calendar added successfully! Synced ${result.eventCount} events.${result.teamName ? ` Team name: ${result.teamName}` : ''}`);
       setIcsUrl('');
       fetchTeams();
     } catch (err) {
@@ -245,7 +250,7 @@ const Playmetrics: React.FC = () => {
       }
 
       const result = await response.json();
-      setSuccess(`Calendar refreshed successfully! Synced ${result.eventCount} events.`);
+      setSuccess(`Calendar refreshed successfully! Synced ${result.eventCount} events.${result.teamName ? ` Team name: ${result.teamName}` : ''}`);
       fetchTeams();
     } catch (err) {
       console.error('Error refreshing calendar:', err);
@@ -262,6 +267,48 @@ const Playmetrics: React.FC = () => {
           .eq('id', teamId);
       }
     }
+  };
+
+  const handleEditTeamName = (teamId: string, currentName: string) => {
+    setEditingTeam(teamId);
+    setEditingName(currentName);
+  };
+
+  const handleSaveTeamName = async (teamId: string) => {
+    try {
+      setError(null);
+      setSuccess(null);
+
+      if (!editingName.trim()) {
+        setError('Team name cannot be empty');
+        return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('platform_teams')
+        .update({ team_name: editingName.trim() })
+        .eq('id', teamId);
+
+      if (updateError) throw updateError;
+
+      setTeams(teams.map(team => 
+        team.id === teamId 
+          ? { ...team, team_name: editingName.trim() }
+          : team
+      ));
+
+      setEditingTeam(null);
+      setEditingName('');
+      setSuccess('Team name updated successfully');
+    } catch (err) {
+      console.error('Error updating team name:', err);
+      setError('Failed to update team name. Please try again.');
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTeam(null);
+    setEditingName('');
   };
 
   if (!profiles || profiles.length === 0) {
@@ -344,7 +391,7 @@ const Playmetrics: React.FC = () => {
                     />
                   </div>
                   <p className="mt-2 text-sm text-gray-500">
-                    Enter the Playmetrics calendar URL for your team
+                    Enter the Playmetrics calendar URL for your team. The team name will be automatically extracted from the calendar.
                   </p>
                 </div>
 
@@ -394,12 +441,54 @@ const Playmetrics: React.FC = () => {
                       className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center">
+                        <div className="flex items-center flex-1">
                           <Calendar className="h-5 w-5 text-gray-400 mr-3" />
-                          <div>
-                            <h3 className="text-sm font-medium text-gray-900">
-                              {team.team_name}
-                            </h3>
+                          <div className="flex-1">
+                            {editingTeam === team.id ? (
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="text"
+                                  value={editingName}
+                                  onChange={(e) => setEditingName(e.target.value)}
+                                  className="flex-1 text-sm font-medium border-gray-300 rounded-md focus:border-green-500 focus:ring-green-500"
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      handleSaveTeamName(team.id);
+                                    } else if (e.key === 'Escape') {
+                                      handleCancelEdit();
+                                    }
+                                  }}
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() => handleSaveTeamName(team.id)}
+                                  className="p-1 text-green-600 hover:text-green-700"
+                                  title="Save"
+                                >
+                                  <Save className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={handleCancelEdit}
+                                  className="p-1 text-gray-400 hover:text-gray-500"
+                                  title="Cancel"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center space-x-2">
+                                <h3 className="text-sm font-medium text-gray-900">
+                                  {team.team_name}
+                                </h3>
+                                <button
+                                  onClick={() => handleEditTeamName(team.id, team.team_name)}
+                                  className="p-1 text-gray-400 hover:text-gray-500"
+                                  title="Edit team name"
+                                >
+                                  <Edit2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
                             <div className="flex items-center mt-1">
                               {team.sync_status === 'success' ? (
                                 <CheckCircle className="h-4 w-4 text-green-500 mr-1" />

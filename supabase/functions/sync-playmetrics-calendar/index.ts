@@ -60,6 +60,48 @@ Deno.serve(async (req) => {
     try {
       const jCalData = ICAL.parse(icsData);
       const comp = new ICAL.Component(jCalData);
+      
+      // Extract calendar name from X-WR-CALNAME property or use a fallback
+      let calendarName = comp.getFirstPropertyValue('x-wr-calname') || 
+                        comp.getFirstPropertyValue('name') ||
+                        comp.getFirstPropertyValue('summary');
+      
+      // If no calendar name found, try to extract from the first event
+      if (!calendarName) {
+        const vevents = comp.getAllSubcomponents('vevent');
+        if (vevents.length > 0) {
+          const firstEvent = new ICAL.Event(vevents[0]);
+          // Try to extract team name from event summary or location
+          const summary = firstEvent.summary || '';
+          const location = firstEvent.location || '';
+          
+          // Look for common team name patterns
+          const teamMatch = summary.match(/vs\s+(.+?)(?:\s|$)/i) || 
+                           summary.match(/(.+?)\s+vs/i) ||
+                           location.match(/(.+?)\s+(?:field|court|gym)/i);
+          
+          if (teamMatch) {
+            calendarName = teamMatch[1].trim();
+          }
+        }
+      }
+      
+      // Clean up the calendar name
+      if (calendarName) {
+        calendarName = calendarName
+          .replace(/calendar/i, '')
+          .replace(/schedule/i, '')
+          .trim();
+      }
+      
+      // Fallback to URL-based name if still no name found
+      if (!calendarName) {
+        const teamIdFromUrl = icsUrl.split('/team/')[1]?.split('-')[0];
+        calendarName = `Team ${teamIdFromUrl}`;
+      }
+      
+      console.log('Extracted calendar name:', calendarName);
+      
       const vevents = comp.getAllSubcomponents('vevent');
       console.log('Successfully parsed ICS data, found events:', vevents.length);
 
@@ -106,6 +148,24 @@ Deno.serve(async (req) => {
         }
       );
 
+      // Update team name in platform_teams table
+      console.log('Updating team name to:', calendarName);
+      const { data: teamUpdateData, error: teamUpdateError } = await supabaseClient
+        .from('platform_teams')
+        .update({
+          team_name: calendarName,
+          sync_status: 'success',
+          last_synced: new Date().toISOString()
+        })
+        .eq('id', teamId);
+
+      if (teamUpdateError) {
+        console.error('Error updating team name:', teamUpdateError);
+        // Don't throw here, continue with event sync
+      } else {
+        console.log('Successfully updated team name:', teamUpdateData);
+      }
+
       // Insert events
       console.log('Upserting events into database');
       const { data: eventsData, error: eventsError } = await supabaseClient
@@ -121,28 +181,12 @@ Deno.serve(async (req) => {
 
       console.log('Successfully upserted events:', eventsData);
 
-      // Update team sync status
-      console.log('Updating team sync status');
-      const { data: updateData, error: updateError } = await supabaseClient
-        .from('platform_teams')
-        .update({
-          sync_status: 'success',
-          last_synced: new Date().toISOString()
-        })
-        .eq('id', teamId);
-
-      if (updateError) {
-        console.error('Error updating team sync status:', updateError);
-        throw updateError;
-      }
-
-      console.log('Successfully updated team sync status:', updateData);
-
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'Calendar synced successfully', 
-          eventCount: deduplicatedEvents.length 
+          eventCount: deduplicatedEvents.length,
+          teamName: calendarName
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
