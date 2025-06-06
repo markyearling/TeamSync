@@ -7,103 +7,46 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Max-Age': '86400',
+  'Content-Type': 'application/json',
 };
-
-// Verify environment variables are set
-function verifyEnvironment() {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-  if (!supabaseUrl) {
-    throw new Error('SUPABASE_URL environment variable is not set');
-  }
-  if (!supabaseServiceRoleKey) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is not set');
-  }
-
-  return { supabaseUrl, supabaseServiceRoleKey };
-}
-
-// Timeout wrapper for fetch
-async function fetchWithTimeout(url: string, timeout = 10000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-    });
-    clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    if (error.name === 'AbortError') {
-      throw new Error(`Request to ${url} timed out after ${timeout}ms`);
-    }
-    throw error;
-  }
-}
-
-// Validate and normalize URL
-function validateUrl(urlString: string): string {
-  try {
-    const url = new URL(urlString);
-    // Ensure the protocol is either http or https
-    if (!['http:', 'https:'].includes(url.protocol)) {
-      throw new Error('URL must use HTTP or HTTPS protocol');
-    }
-    return url.toString();
-  } catch (error) {
-    throw new Error(`Invalid URL provided: ${error.message}`);
-  }
-}
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
-      headers: {
-        ...corsHeaders,
-        'Content-Length': '0',
-      }
+      headers: corsHeaders
     });
   }
 
-  let teamId: string;
-  let profileId: string;
-  let supabase: any;
-
   try {
-    // Verify environment variables before proceeding
-    const { supabaseUrl, supabaseServiceRoleKey } = verifyEnvironment();
+    // Verify environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    // Only parse request body for non-OPTIONS requests
-    const body = await req.json();
-    const { teamId, icsUrl } = body;
-
-    if (!teamId || !icsUrl) {
-      throw new Error('Missing required parameters: teamId or icsUrl');
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error('Missing required environment variables');
     }
 
-    // Validate and normalize the ICS URL
-    const validatedUrl = validateUrl(icsUrl);
+    // Parse request body
+    const { teamId, icsUrl } = await req.json();
+
+    if (!teamId || !icsUrl) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters: teamId or icsUrl' }), 
+        { status: 400, headers: corsHeaders }
+      );
+    }
 
     // Initialize Supabase client
-    supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Get the authenticated user from the request authorization header
+    // Get the authenticated user
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: 'No authorization header provided' }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -113,82 +56,42 @@ serve(async (req) => {
     if (userError || !user) {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
+        { status: 401, headers: corsHeaders }
       );
     }
 
-    // Fetch ICS calendar with timeout using the validated URL
-    const response = await fetchWithTimeout(validatedUrl);
+    // Fetch ICS calendar
+    const response = await fetch(icsUrl);
     if (!response.ok) {
       throw new Error(`Failed to fetch calendar: ${response.status} ${response.statusText}`);
     }
 
     const icsData = await response.text();
-    if (!icsData.trim()) {
-      throw new Error('Empty calendar data received');
-    }
-
-    let jCalData;
-    try {
-      jCalData = VCalendar.parse(icsData);
-    } catch (error) {
-      throw new Error(`Failed to parse calendar data: ${error.message}`);
-    }
-
+    const jCalData = VCalendar.parse(icsData);
     const calendar = new VCalendar(jCalData);
     const allEvents = calendar.getAllSubcomponents('vevent');
 
-    if (!allEvents.length) {
-      throw new Error('No events found in calendar');
-    }
-
-    // Process events with validation
+    // Process events
     const events = allEvents
       .map(event => {
-        try {
-          const start = event.getFirstPropertyValue('dtstart');
-          const end = event.getFirstPropertyValue('dtend');
-          const summary = event.getFirstPropertyValue('summary');
-          
-          if (!start || !end || !summary) {
-            console.warn('Skipping event due to missing required data');
-            return null;
-          }
+        const start = event.getFirstPropertyValue('dtstart');
+        const end = event.getFirstPropertyValue('dtend');
+        const summary = event.getFirstPropertyValue('summary');
 
-          const startDate = start.toJSDate();
-          const endDate = end.toJSDate();
+        if (!start || !end || !summary) return null;
 
-          if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-            console.warn('Skipping event due to invalid dates');
-            return null;
-          }
-
-          return {
-            title: summary,
-            description: event.getFirstPropertyValue('description') || '',
-            start_time: startDate.toISOString(),
-            end_time: endDate.toISOString(),
-            location: event.getFirstPropertyValue('location') || '',
-            platform: 'Playmetrics',
-            platform_color: '#10B981',
-            sport: 'Soccer'
-          };
-        } catch (error) {
-          console.warn('Error processing event:', error);
-          return null;
-        }
+        return {
+          title: summary,
+          description: event.getFirstPropertyValue('description') || '',
+          start_time: start.toJSDate().toISOString(),
+          end_time: end.toJSDate().toISOString(),
+          location: event.getFirstPropertyValue('location') || '',
+          platform: 'Playmetrics',
+          platform_color: '#10B981',
+          sport: 'Soccer'
+        };
       })
-      .filter(event => event !== null);
-
-    if (!events.length) {
-      throw new Error('No valid events found in calendar');
-    }
+      .filter(Boolean);
 
     // Get the platform team
     const { data: team, error: teamError } = await supabase
@@ -198,15 +101,21 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    if (teamError) throw new Error('Team not found or access denied');
+    if (teamError) {
+      return new Response(
+        JSON.stringify({ error: 'Team not found or access denied' }),
+        { status: 404, headers: corsHeaders }
+      );
+    }
 
-    // Get profile_id from profile_teams table
-    const { data: profileTeam, error: profileTeamError } = await supabase
+    // Get or create profile team mapping
+    const { data: profileTeam } = await supabase
       .from('profile_teams')
       .select('profile_id')
       .eq('platform_team_id', teamId)
       .maybeSingle();
 
+    let profileId;
     if (!profileTeam) {
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
@@ -214,10 +123,13 @@ serve(async (req) => {
         .eq('user_id', user.id)
         .limit(1);
 
-      if (profilesError || !profiles || profiles.length === 0) {
-        throw new Error('No profile found for this user');
+      if (profilesError || !profiles?.length) {
+        return new Response(
+          JSON.stringify({ error: 'No profile found for this user' }),
+          { status: 404, headers: corsHeaders }
+        );
       }
-      
+
       const { error: createProfileTeamError } = await supabase
         .from('profile_teams')
         .insert({
@@ -226,7 +138,6 @@ serve(async (req) => {
         });
 
       if (createProfileTeamError) throw createProfileTeamError;
-      
       profileId = profiles[0].id;
     } else {
       profileId = profileTeam.profile_id;
@@ -241,15 +152,13 @@ serve(async (req) => {
           profile_id: profileId,
           platform_team_id: team.id
         })),
-        {
-          onConflict: 'platform,platform_team_id,start_time,end_time'
-        }
+        { onConflict: 'platform,platform_team_id,start_time,end_time' }
       );
 
     if (eventsError) throw eventsError;
 
     // Update team sync status
-    const { error: updateError } = await supabase
+    await supabase
       .from('platform_teams')
       .update({
         last_synced: new Date().toISOString(),
@@ -258,51 +167,23 @@ serve(async (req) => {
       .eq('id', teamId)
       .eq('user_id', user.id);
 
-    if (updateError) throw updateError;
-
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: 'Calendar synced successfully',
-        eventCount: events.length 
+        eventCount: events.length
       }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        status: 200,
-      }
+      { headers: corsHeaders }
     );
+
   } catch (error) {
     console.error('Error syncing calendar:', error);
 
-    // Only update team sync status if we have teamId and supabase client
-    if (teamId && supabase) {
-      try {
-        await supabase
-          .from('platform_teams')
-          .update({
-            sync_status: 'error',
-            last_synced: new Date().toISOString()
-          })
-          .eq('id', teamId);
-      } catch (updateError) {
-        console.error('Error updating team status:', updateError);
-      }
-    }
-
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'An unexpected error occurred while syncing the calendar'
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'An unexpected error occurred'
       }),
-      {
-        headers: {
-          ...corsHeaders,
-          'Content-Type': 'application/json',
-        },
-        status: 500,
-      }
+      { status: 500, headers: corsHeaders }
     );
   }
 });
