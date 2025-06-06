@@ -9,6 +9,21 @@ const corsHeaders = {
   'Access-Control-Max-Age': '86400',
 };
 
+// Verify environment variables are set
+function verifyEnvironment() {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+  if (!supabaseUrl) {
+    throw new Error('SUPABASE_URL environment variable is not set');
+  }
+  if (!supabaseServiceRoleKey) {
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is not set');
+  }
+
+  return { supabaseUrl, supabaseServiceRoleKey };
+}
+
 // Timeout wrapper for fetch
 async function fetchWithTimeout(url: string, timeout = 10000) {
   const controller = new AbortController();
@@ -47,21 +62,25 @@ serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
-      status: 204, // Use 204 for OPTIONS
-      headers: corsHeaders
+      status: 204,
+      headers: {
+        ...corsHeaders,
+        'Content-Length': '0',
+      }
     });
   }
 
   let teamId: string;
-  let icsUrl: string;
   let profileId: string;
   let supabase: any;
 
   try {
+    // Verify environment variables before proceeding
+    const { supabaseUrl, supabaseServiceRoleKey } = verifyEnvironment();
+
     // Only parse request body for non-OPTIONS requests
     const body = await req.json();
-    teamId = body.teamId;
-    icsUrl = body.icsUrl;
+    const { teamId, icsUrl } = body;
 
     if (!teamId || !icsUrl) {
       throw new Error('Missing required parameters: teamId or icsUrl');
@@ -71,22 +90,37 @@ serve(async (req) => {
     const validatedUrl = validateUrl(icsUrl);
 
     // Initialize Supabase client
-    supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // Get the authenticated user from the request authorization header
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
-      throw new Error('No authorization header');
+      return new Response(
+        JSON.stringify({ error: 'No authorization header provided' }),
+        {
+          status: 401,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
     }
 
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     
     if (userError || !user) {
-      throw new Error('Unauthorized');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        {
+          status: 401,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
     }
 
     // Fetch ICS calendar with timeout using the validated URL
