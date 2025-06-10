@@ -152,6 +152,7 @@ export class TeamSnapService {
       // Find the id field in the data array
       const idField = meResponse.data.find((field: any) => field.name === 'id');
       console.log('idField is: ', idField, ' and ifField.alue is: ', idField.value);
+      
       if (!idField || !idField.value) {
         throw new Error('User ID not found in /me response data');
       }
