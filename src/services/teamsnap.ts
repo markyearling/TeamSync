@@ -144,12 +144,20 @@ export class TeamSnapService {
       console.log('Step 1: Fetching user ID from /me endpoint');
       const meResponse = await this.request('/me');
       
-      if (!meResponse.id) {
-        throw new Error('User ID not found in /me response');
+      // Parse the user ID from the data array structure
+      if (!meResponse.data || !Array.isArray(meResponse.data)) {
+        throw new Error('Invalid /me response structure - missing data array');
       }
 
-      console.log('User ID obtained:', meResponse.id);
-      return meResponse.id;
+      // Find the id field in the data array
+      const idField = meResponse.data.find((field: any) => field.name === 'id');
+      if (!idField || !idField.value) {
+        throw new Error('User ID not found in /me response data');
+      }
+
+      const userId = idField.value.toString();
+      console.log('User ID obtained:', userId);
+      return userId;
     } catch (error) {
       console.error('Error fetching user ID:', error);
       throw error;
