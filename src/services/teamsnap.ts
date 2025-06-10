@@ -41,7 +41,6 @@ export class TeamSnapService {
 
       const authUrl = `${TEAMSNAP_AUTH_URL}?${params.toString()}`;
       console.log('Authorization URL:', authUrl);
-      console.log('Authorization parameters:', Object.fromEntries(params.entries()));
 
       return authUrl;
     } catch (error) {
@@ -67,15 +66,7 @@ export class TeamSnapService {
         redirect_uri: this.redirectUri
       }).toString();
 
-      console.log('Token exchange request:', {
-        url: TEAMSNAP_TOKEN_URL,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
-          'Content-Length': body.length.toString()
-        },
-        body: Object.fromEntries(new URLSearchParams(body).entries())
-      });
+      console.log('Token exchange request to:', TEAMSNAP_TOKEN_URL);
       
       // Exchange code for token
       const tokenResponse = await fetch(TEAMSNAP_TOKEN_URL, {
@@ -101,16 +92,12 @@ export class TeamSnapService {
       const tokenData = await tokenResponse.json();
       this.accessToken = tokenData.access_token;
 
-      console.log('Token exchange successful:', {
-        tokenReceived: !!this.accessToken,
-        tokenType: tokenData.token_type,
-        scope: tokenData.scope
-      });
+      console.log('Token exchange successful');
 
       // Clean up
       localStorage.removeItem('teamsnap_code_verifier');
 
-      // Sync data
+      // Sync data using the proper API sequence
       await this.syncTeamsAndEvents();
     } catch (error) {
       console.error('Error in handleCallback:', error);
@@ -124,15 +111,7 @@ export class TeamSnapService {
     }
 
     const url = endpoint.startsWith('http') ? endpoint : `${TEAMSNAP_API_URL}${endpoint}`;
-    console.log('Making API request:', {
-      url,
-      method: options.method || 'GET',
-      headers: {
-        ...options.headers,
-        'Authorization': `Bearer ${this.accessToken}`,
-        'Accept': 'application/json',
-      }
-    });
+    console.log('Making API request to:', url);
 
     const response = await fetch(url, {
       ...options,
@@ -145,11 +124,12 @@ export class TeamSnapService {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
       console.error('API request failed:', {
         url,
         status: response.status,
         statusText: response.statusText,
-        response: await response.text()
+        response: errorText
       });
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
@@ -159,75 +139,92 @@ export class TeamSnapService {
     return data;
   }
 
-  async getTeams(): Promise<any> {
+  async getUserId(): Promise<string> {
     try {
-      console.log('Fetching teams...');
+      console.log('Step 1: Fetching user ID from /me endpoint');
+      const meResponse = await this.request('/me');
       
-      // First get the user's data
-      console.log('Fetching user data...');
-      console.log('Access token:', this.accessToken ? 'Present' : 'Missing'); 
-      
-      const meResponse = await this.request('/members/me');
-      console.log('User data response:', meResponse);
-
-      if (!meResponse.collection?.items?.[0]?.data?.teams_url) {
-        console.log('No teams URL found in user data');
-        return { collection: { items: [] } };
+      if (!meResponse.id) {
+        throw new Error('User ID not found in /me response');
       }
 
-      // Get teams from the teams_url
-      const teamsUrl = meResponse.collection.items[0].data.teams_url;
-      console.log('Fetching teams from URL:', teamsUrl);
-      
-      const teamsResponse = await this.request(teamsUrl);
-      console.log('Teams response:', teamsResponse);
-
-      // Filter for active teams
-      const activeTeams = teamsResponse.collection.items.filter((team: any) => 
-        team.data.active !== false
-      );
-
-      console.log('Active teams:', activeTeams);
-
-      return {
-        collection: {
-          items: activeTeams
-        }
-      };
+      console.log('User ID obtained:', meResponse.id);
+      return meResponse.id;
     } catch (error) {
-      console.error('Error fetching teams:', error);
+      console.error('Error fetching user ID:', error);
       throw error;
     }
   }
 
-  async getTeamEvents(teamId: string): Promise<any> {
-    console.log(`Fetching events for team ${teamId}`);
-    return this.request(`/teams/${teamId}/events`);
+  async getActiveTeams(userId: string): Promise<any[]> {
+    try {
+      console.log(`Step 2: Fetching active teams for user ID: ${userId}`);
+      const teamsResponse = await this.request(`/teams/active?user_id=${userId}`);
+      
+      if (!Array.isArray(teamsResponse)) {
+        throw new Error('Invalid teams response format');
+      }
+
+      console.log(`Found ${teamsResponse.length} active teams`);
+      return teamsResponse;
+    } catch (error) {
+      console.error('Error fetching active teams:', error);
+      throw error;
+    }
+  }
+
+  async getTeamEvents(teamId: string): Promise<any[]> {
+    try {
+      console.log(`Step 3: Fetching events for team ID: ${teamId}`);
+      const eventsResponse = await this.request(`/events/search?team_id=${teamId}`);
+      
+      if (!Array.isArray(eventsResponse)) {
+        throw new Error('Invalid events response format');
+      }
+
+      console.log(`Found ${eventsResponse.length} events for team ${teamId}`);
+      return eventsResponse;
+    } catch (error) {
+      console.error('Error fetching team events:', error);
+      throw error;
+    }
   }
 
   private async syncTeamsAndEvents(): Promise<void> {
     try {
-      console.log('Starting teams and events sync...');
-      const teamsData = await this.getTeams();
+      console.log('Starting TeamSnap sync process...');
       
-      if (!teamsData.collection?.items) {
-        throw new Error('Invalid teams data received');
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('No authenticated user');
+
+      // Step 1: Get user ID
+      const userId = await this.getUserId();
+      
+      // Step 2: Get active teams
+      const activeTeams = await this.getActiveTeams(userId);
+      
+      if (activeTeams.length === 0) {
+        console.log('No active teams found for user');
+        return;
       }
 
-      console.log(`Found ${teamsData.collection.items.length} teams to sync`);
-
-      // For each team, store it in the platform_teams table
-      for (const team of teamsData.collection.items) {
-        console.log(`Syncing team: ${team.data.name}`);
+      // Step 3: For each team, store it and fetch its events
+      for (const team of activeTeams) {
+        console.log(`Processing team: ${team.name} (ID: ${team.id})`);
         
+        // Store team in platform_teams table
         const { data: platformTeam, error: teamError } = await supabase
           .from('platform_teams')
           .upsert({
             platform: 'TeamSnap',
-            team_id: team.data.id,
-            team_name: team.data.name,
-            sport: team.data.sport_name || 'Unknown',
-            updated_at: new Date().toISOString()
+            team_id: team.id.toString(),
+            team_name: team.name,
+            sport: team.sport || 'Unknown',
+            sync_status: 'success',
+            last_synced: new Date().toISOString(),
+            user_id: user.id
           }, {
             onConflict: 'platform,team_id'
           })
@@ -235,51 +232,92 @@ export class TeamSnapService {
           .single();
 
         if (teamError) {
-          console.error('Error syncing team:', teamError);
+          console.error('Error storing team:', teamError);
           continue;
         }
 
-        console.log(`Successfully synced team: ${team.data.name}`);
+        console.log(`Successfully stored team: ${team.name}`);
 
-        // Fetch and store events for this team
+        // Step 4: Fetch and store events for this team
         try {
-          console.log(`Fetching events for team: ${team.data.name}`);
-          const eventsData = await this.getTeamEvents(team.data.id);
-          if (eventsData.collection?.items) {
-            console.log(`Found ${eventsData.collection.items.length} events for team ${team.data.name}`);
-            for (const event of eventsData.collection.items) {
-              const { error: eventError } = await supabase
-                .from('events')
-                .upsert({
-                  platform: 'TeamSnap',
-                  platform_team_id: platformTeam.id,
-                  title: event.data.name,
-                  description: event.data.notes,
-                  start_time: event.data.start_date,
-                  end_time: event.data.end_date,
-                  location: event.data.location,
-                  sport: team.data.sport_name || 'Unknown',
-                  color: '#7C3AED', // TeamSnap purple
-                  updated_at: new Date().toISOString()
-                }, {
-                  onConflict: 'platform,platform_team_id,start_time,end_time'
-                });
+          const teamEvents = await this.getTeamEvents(team.id.toString());
+          
+          if (teamEvents.length > 0) {
+            console.log(`Processing ${teamEvents.length} events for team ${team.name}`);
+            
+            // Transform and store events
+            const eventsToInsert = teamEvents.map(event => ({
+              title: event.name || 'TeamSnap Event',
+              description: event.notes || '',
+              start_time: event.start_date,
+              end_time: event.end_date || event.start_date,
+              location: event.location_name || '',
+              sport: team.sport || 'Unknown',
+              color: '#7C3AED', // TeamSnap purple
+              platform: 'TeamSnap',
+              platform_color: '#7C3AED',
+              platform_team_id: platformTeam.id,
+              profile_id: null // Will be set when user maps teams to profiles
+            })).filter(event => event.start_time); // Only include events with valid start times
 
-              if (eventError) {
-                console.error('Error syncing event:', eventError);
+            if (eventsToInsert.length > 0) {
+              // Delete existing events for this team to avoid duplicates
+              await supabase
+                .from('events')
+                .delete()
+                .eq('platform_team_id', platformTeam.id)
+                .eq('platform', 'TeamSnap');
+
+              // Insert new events
+              const { error: eventsError } = await supabase
+                .from('events')
+                .insert(eventsToInsert);
+
+              if (eventsError) {
+                console.error('Error storing events:', eventsError);
+              } else {
+                console.log(`Successfully stored ${eventsToInsert.length} events for team ${team.name}`);
               }
             }
           }
         } catch (eventError) {
-          console.error('Error fetching team events:', eventError);
+          console.error(`Error processing events for team ${team.name}:`, eventError);
+          
+          // Update team sync status to error
+          await supabase
+            .from('platform_teams')
+            .update({
+              sync_status: 'error',
+              last_synced: new Date().toISOString()
+            })
+            .eq('id', platformTeam.id);
         }
       }
 
-      console.log('Teams and events sync completed');
+      console.log('TeamSnap sync process completed successfully');
     } catch (error) {
-      console.error('Error syncing teams and events:', error);
+      console.error('Error in syncTeamsAndEvents:', error);
       throw error;
     }
+  }
+
+  // Legacy methods for backward compatibility
+  async getTeams(): Promise<any> {
+    const userId = await this.getUserId();
+    const activeTeams = await this.getActiveTeams(userId);
+    
+    return {
+      collection: {
+        items: activeTeams.map(team => ({
+          data: {
+            id: team.id,
+            name: team.name,
+            sport_name: team.sport,
+            active: true
+          }
+        }))
+      }
+    };
   }
 }
 
