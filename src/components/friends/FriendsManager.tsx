@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Users, 
   UserPlus, 
@@ -53,15 +53,31 @@ const FriendsManager: React.FC = () => {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchFriendsData();
   }, []);
 
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchEmail.trim().length >= 2) {
+        searchUsers();
+      } else {
+        setSearchResults([]);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchEmail]);
+
   const fetchFriendsData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      setCurrentUserId(user.id);
 
       // Fetch friends
       const { data: friendsData, error: friendsError } = await supabase
@@ -199,25 +215,29 @@ const FriendsManager: React.FC = () => {
     }
   };
 
-  const searchUsers = async () => {
-    if (!searchEmail.trim()) return;
+  const searchUsers = useCallback(async () => {
+    if (!searchEmail.trim() || searchEmail.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
 
     setSearching(true);
     setError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!currentUserId) {
+        setError('User not authenticated');
+        return;
+      }
 
       console.log('Searching for users with name:', searchEmail.trim());
 
-      // Search for users by looking in user_settings table where we can match email patterns
-      // This is a workaround since we can't use admin.listUsers()
-      // We'll search by full_name instead since we can't access emails directly
+      // Search for users by looking in user_settings table where we can match name patterns
       const { data: userSettings, error: settingsError } = await supabase
         .from('user_settings')
         .select('user_id, full_name, profile_photo_url')
         .ilike('full_name', `%${searchEmail.trim()}%`)
+        .not('user_id', 'eq', currentUserId) // Exclude current user
         .limit(10);
 
       if (settingsError) throw settingsError;
@@ -225,7 +245,7 @@ const FriendsManager: React.FC = () => {
       console.log('Raw search results:', userSettings);
 
       if (!userSettings || userSettings.length === 0) {
-        setError('No users found with that name.');
+        console.log('No users found in search');
         setSearchResults([]);
         return;
       }
@@ -234,24 +254,30 @@ const FriendsManager: React.FC = () => {
       const existingFriendIds = friends.map(f => f.friend_id);
       const pendingIncomingIds = incomingRequests.map(r => r.requester_id);
       const pendingOutgoingIds = outgoingRequests.map(r => r.requested_id);
-      const excludeIds = [user.id, ...existingFriendIds, ...pendingIncomingIds, ...pendingOutgoingIds];
+      
+      console.log('Current user ID:', currentUserId);
+      console.log('Existing friend IDs:', existingFriendIds);
+      console.log('Pending incoming IDs:', pendingIncomingIds);
+      console.log('Pending outgoing IDs:', pendingOutgoingIds);
 
-      console.log('Excluding user IDs:', excludeIds);
-
-      // Filter out current user and existing friends/requests
+      // Filter out existing friends and pending requests
       const filteredUsers = userSettings.filter(u => {
-        const shouldExclude = excludeIds.includes(u.user_id);
-        console.log(`User ${u.user_id} (${u.full_name}): shouldExclude = ${shouldExclude}`);
-        return !shouldExclude;
+        const isExistingFriend = existingFriendIds.includes(u.user_id);
+        const hasPendingIncoming = pendingIncomingIds.includes(u.user_id);
+        const hasPendingOutgoing = pendingOutgoingIds.includes(u.user_id);
+        
+        console.log(`User ${u.user_id} (${u.full_name}):`);
+        console.log(`  - Is existing friend: ${isExistingFriend}`);
+        console.log(`  - Has pending incoming: ${hasPendingIncoming}`);
+        console.log(`  - Has pending outgoing: ${hasPendingOutgoing}`);
+        
+        const shouldInclude = !isExistingFriend && !hasPendingIncoming && !hasPendingOutgoing;
+        console.log(`  - Should include: ${shouldInclude}`);
+        
+        return shouldInclude;
       });
 
       console.log('Filtered users:', filteredUsers);
-
-      if (filteredUsers.length === 0) {
-        setError('No new users found with that name. They may already be your friend or have a pending request.');
-        setSearchResults([]);
-        return;
-      }
 
       // Transform to expected format
       const transformedUsers = filteredUsers.map(settings => ({
@@ -270,7 +296,7 @@ const FriendsManager: React.FC = () => {
     } finally {
       setSearching(false);
     }
-  };
+  }, [searchEmail, currentUserId, friends, incomingRequests, outgoingRequests]);
 
   const sendFriendRequest = async (userId: string) => {
     try {
@@ -439,32 +465,26 @@ const FriendsManager: React.FC = () => {
         </h4>
         
         <div className="space-y-3">
-          <div className="flex space-x-2">
-            <div className="flex-1">
-              <input
-                type="text"
-                value={searchEmail}
-                onChange={(e) => setSearchEmail(e.target.value)}
-                placeholder="Enter user's name"
-                className="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-600 dark:text-white text-sm"
-                onKeyDown={(e) => e.key === 'Enter' && searchUsers()}
-              />
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Search className="h-4 w-4 text-gray-400" />
             </div>
-            <button
-              onClick={searchUsers}
-              disabled={searching || !searchEmail.trim()}
-              className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center text-sm"
-            >
-              {searching ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-            </button>
+            <input
+              type="text"
+              value={searchEmail}
+              onChange={(e) => setSearchEmail(e.target.value)}
+              placeholder="Start typing a user's name..."
+              className="w-full pl-10 pr-4 py-2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-600 dark:text-white text-sm"
+            />
+            {searching && (
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent" />
+              </div>
+            )}
           </div>
 
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            Note: Search is currently limited to user names only due to privacy restrictions.
+            Search results will appear as you type (minimum 2 characters). Search is by user name only.
           </div>
 
           {searchResults.length > 0 && (
@@ -475,8 +495,8 @@ const FriendsManager: React.FC = () => {
                   onChange={(e) => setSelectedRole(e.target.value as 'viewer' | 'administrator')}
                   className="rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-600 dark:text-white text-sm"
                 >
-                  <option value="viewer">Viewer</option>
-                  <option value="administrator">Administrator</option>
+                  <option value="viewer">Viewer Access</option>
+                  <option value="administrator">Administrator Access</option>
                 </select>
                 <input
                   type="text"
@@ -487,33 +507,44 @@ const FriendsManager: React.FC = () => {
                 />
               </div>
 
-              {searchResults.map(user => (
-                <div key={user.id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-600 rounded-md border border-gray-200 dark:border-gray-500">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-500 flex items-center justify-center mr-3">
-                      {user.profile_photo_url ? (
-                        <img src={user.profile_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                      ) : (
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                          {(user.full_name || 'U').charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {user.full_name || 'No name set'}
+              <div className="bg-white dark:bg-gray-600 rounded-md border border-gray-200 dark:border-gray-500 max-h-60 overflow-y-auto">
+                {searchResults.map(user => (
+                  <div key={user.id} className="flex items-center justify-between p-3 border-b border-gray-100 dark:border-gray-500 last:border-b-0">
+                    <div className="flex items-center flex-1">
+                      <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-500 flex items-center justify-center mr-3">
+                        {user.profile_photo_url ? (
+                          <img src={user.profile_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                            {(user.full_name || 'U').charAt(0).toUpperCase()}
+                          </span>
+                        )}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">User ID: {user.id.slice(0, 8)}...</div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-white">
+                          {user.full_name || 'No name set'}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">ID: {user.id.slice(0, 8)}...</div>
+                      </div>
                     </div>
+                    <button
+                      onClick={() => sendFriendRequest(user.id)}
+                      className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm flex items-center"
+                    >
+                      <UserPlus className="h-3 w-3 mr-1" />
+                      Send Request
+                    </button>
                   </div>
-                  <button
-                    onClick={() => sendFriendRequest(user.id)}
-                    className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
-                  >
-                    Send Request
-                  </button>
-                </div>
-              ))}
+                ))}
+              </div>
+            </div>
+          )}
+
+          {searchEmail.trim().length >= 2 && !searching && searchResults.length === 0 && (
+            <div className="text-center py-4 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-600 rounded-md border border-gray-200 dark:border-gray-500">
+              <Search className="h-6 w-6 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No users found with that name</p>
+              <p className="text-xs">Try a different search term</p>
             </div>
           )}
         </div>
@@ -543,7 +574,7 @@ const FriendsManager: React.FC = () => {
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {request.requester?.full_name || 'No name set'}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">User ID: {request.requester_id.slice(0, 8)}...</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">ID: {request.requester_id.slice(0, 8)}...</div>
                     <div className="flex items-center mt-1">
                       {getRoleIcon(request.role)}
                       <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
@@ -603,7 +634,7 @@ const FriendsManager: React.FC = () => {
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {request.requested?.full_name || 'No name set'}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">User ID: {request.requested_id.slice(0, 8)}...</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">ID: {request.requested_id.slice(0, 8)}...</div>
                     <div className="flex items-center mt-1">
                       {getRoleIcon(request.role)}
                       <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
@@ -649,7 +680,7 @@ const FriendsManager: React.FC = () => {
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {friend.friend.full_name || 'No name set'}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">User ID: {friend.friend_id.slice(0, 8)}...</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">ID: {friend.friend_id.slice(0, 8)}...</div>
                     <div className="flex items-center mt-1">
                       {getRoleIcon(friend.role)}
                       <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
