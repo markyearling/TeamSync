@@ -1,5 +1,5 @@
 import React, { ReactNode, useState, useEffect } from 'react';
-import { Bell, User, Search, Moon, Sun, LogOut } from 'lucide-react';
+import { Bell, User, Search, Moon, Sun, LogOut, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -10,17 +10,38 @@ interface HeaderProps {
   children?: ReactNode;
 }
 
+interface Friend {
+  id: string;
+  friend_id: string;
+  role: 'viewer' | 'administrator';
+  created_at: string;
+  friend: {
+    id: string;
+    full_name?: string;
+    profile_photo_url?: string;
+  };
+}
+
 const Header: React.FC<HeaderProps> = ({ children }) => {
   const { user } = useApp();
   const { theme, toggleTheme } = useTheme();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [loadingFriends, setLoadingFriends] = useState(false);
   const navigate = useNavigate();
   
   const toggleNotifications = () => setNotificationsOpen(!notificationsOpen);
   const toggleUserMenu = () => setUserMenuOpen(!userMenuOpen);
+  const toggleFriends = () => {
+    setFriendsOpen(!friendsOpen);
+    if (!friendsOpen && friends.length === 0) {
+      fetchFriends();
+    }
+  };
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -85,6 +106,68 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     };
   }, []);
 
+  const fetchFriends = async () => {
+    try {
+      setLoadingFriends(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Fetch friends
+      const { data: friendsData, error: friendsError } = await supabase
+        .from('friendships')
+        .select('id, friend_id, role, created_at')
+        .eq('user_id', user.id);
+
+      if (friendsError) throw friendsError;
+
+      // Get user details for friends from user_settings table
+      const friendIds = friendsData?.map(f => f.friend_id) || [];
+      let friendUsers: any[] = [];
+      
+      if (friendIds.length > 0) {
+        const { data: userSettings, error: settingsError } = await supabase
+          .from('user_settings')
+          .select('user_id, full_name, profile_photo_url')
+          .in('user_id', friendIds);
+
+        if (settingsError) throw settingsError;
+
+        friendUsers = friendIds.map(friendId => {
+          const settings = userSettings?.find(s => s.user_id === friendId);
+          
+          return {
+            id: friendId,
+            full_name: settings?.full_name || 'No name set',
+            profile_photo_url: settings?.profile_photo_url
+          };
+        });
+      }
+
+      // Transform friends data and sort alphabetically
+      const transformedFriends = friendsData?.map(friendship => ({
+        ...friendship,
+        friend: friendUsers.find(u => u.id === friendship.friend_id) || {
+          id: friendship.friend_id,
+          full_name: 'No name set',
+          profile_photo_url: undefined
+        }
+      })) || [];
+
+      // Sort friends alphabetically by name
+      transformedFriends.sort((a, b) => {
+        const nameA = a.friend.full_name || 'No name set';
+        const nameB = b.friend.full_name || 'No name set';
+        return nameA.localeCompare(nameB);
+      });
+
+      setFriends(transformedFriends);
+    } catch (error) {
+      console.error('Error fetching friends:', error);
+    } finally {
+      setLoadingFriends(false);
+    }
+  };
+
   const handleClearAllNotifications = () => {
     setNotifications([]);
     setNotificationCount(0);
@@ -102,6 +185,14 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/auth/signin');
+  };
+
+  const getRoleIcon = (role: string) => {
+    return role === 'administrator' ? '👑' : '👁️';
+  };
+
+  const getRoleLabel = (role: string) => {
+    return role === 'administrator' ? 'Admin' : 'Viewer';
   };
 
   return (
@@ -139,6 +230,94 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 <Moon className="h-6 w-6" />
               )}
             </button>
+
+            {/* Friends Dropdown */}
+            <div className="relative">
+              <button
+                type="button"
+                className="relative rounded-full bg-white dark:bg-gray-700 p-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onClick={toggleFriends}
+              >
+                <span className="sr-only">View friends</span>
+                <Users className="h-6 w-6" />
+                {friends.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white">
+                    {friends.length}
+                  </span>
+                )}
+              </button>
+              
+              {friendsOpen && (
+                <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                    <h3 className="text-sm font-medium text-gray-900 dark:text-white">Friends ({friends.length})</h3>
+                    <button
+                      onClick={() => {
+                        setFriendsOpen(false);
+                        navigate('/settings');
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      Manage
+                    </button>
+                  </div>
+                  
+                  <div className="max-h-64 overflow-y-auto">
+                    {loadingFriends ? (
+                      <div className="px-4 py-6 text-center">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                      </div>
+                    ) : friends.length > 0 ? (
+                      friends.map((friend) => (
+                        <div 
+                          key={friend.id} 
+                          className="px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-600 last:border-b-0"
+                        >
+                          <div className="flex items-center">
+                            <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-500 flex items-center justify-center mr-3">
+                              {friend.friend.profile_photo_url ? (
+                                <img 
+                                  src={friend.friend.profile_photo_url} 
+                                  alt="" 
+                                  className="w-8 h-8 rounded-full object-cover" 
+                                />
+                              ) : (
+                                <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                                  {(friend.friend.full_name || 'U').charAt(0).toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {friend.friend.full_name || 'No name set'}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                                <span className="mr-1">{getRoleIcon(friend.role)}</span>
+                                {getRoleLabel(friend.role)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                        <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No friends added yet</p>
+                        <button
+                          onClick={() => {
+                            setFriendsOpen(false);
+                            navigate('/settings');
+                          }}
+                          className="mt-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                        >
+                          Add friends
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {notificationCount > 0 && (
               <div className="relative">
