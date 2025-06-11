@@ -63,35 +63,53 @@ const FriendsManager: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch friends with user settings
+      // Fetch friends
       const { data: friendsData, error: friendsError } = await supabase
         .from('friendships')
-        .select(`
-          id,
-          friend_id,
-          role,
-          created_at,
-          users!friend_id (
-            id,
-            email,
-            user_settings (
-              full_name,
-              profile_photo_url
-            )
-          )
-        `)
+        .select('id, friend_id, role, created_at')
         .eq('user_id', user.id);
 
       if (friendsError) throw friendsError;
 
-      // Transform the data to flatten user_settings
+      // Get user details for friends
+      const friendIds = friendsData?.map(f => f.friend_id) || [];
+      let friendUsers: any[] = [];
+      
+      if (friendIds.length > 0) {
+        // Get auth users
+        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+        if (authError) throw authError;
+
+        // Get user settings for friends
+        const { data: userSettings, error: settingsError } = await supabase
+          .from('user_settings')
+          .select('user_id, full_name, profile_photo_url')
+          .in('user_id', friendIds);
+
+        if (settingsError) throw settingsError;
+
+        // Combine auth users with their settings
+        friendUsers = friendIds.map(friendId => {
+          const authUser = authUsers.users.find(u => u.id === friendId);
+          const settings = userSettings?.find(s => s.user_id === friendId);
+          
+          return {
+            id: friendId,
+            email: authUser?.email || '',
+            full_name: settings?.full_name,
+            profile_photo_url: settings?.profile_photo_url
+          };
+        });
+      }
+
+      // Transform friends data
       const transformedFriends = friendsData?.map(friendship => ({
         ...friendship,
-        friend: {
-          id: friendship.users.id,
-          email: friendship.users.email,
-          full_name: friendship.users.user_settings?.[0]?.full_name,
-          profile_photo_url: friendship.users.user_settings?.[0]?.profile_photo_url
+        friend: friendUsers.find(u => u.id === friendship.friend_id) || {
+          id: friendship.friend_id,
+          email: '',
+          full_name: undefined,
+          profile_photo_url: undefined
         }
       })) || [];
 
@@ -100,36 +118,43 @@ const FriendsManager: React.FC = () => {
       // Fetch incoming friend requests
       const { data: incomingData, error: incomingError } = await supabase
         .from('friend_requests')
-        .select(`
-          id,
-          requester_id,
-          requested_id,
-          status,
-          role,
-          message,
-          created_at,
-          users!requester_id (
-            id,
-            email,
-            user_settings (
-              full_name,
-              profile_photo_url
-            )
-          )
-        `)
+        .select('id, requester_id, requested_id, status, role, message, created_at')
         .eq('requested_id', user.id)
         .eq('status', 'pending');
 
       if (incomingError) throw incomingError;
 
+      // Get user details for incoming requests
+      const requesterIds = incomingData?.map(r => r.requester_id) || [];
+      let requesterUsers: any[] = [];
+
+      if (requesterIds.length > 0) {
+        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+        if (authError) throw authError;
+
+        const { data: userSettings, error: settingsError } = await supabase
+          .from('user_settings')
+          .select('user_id, full_name, profile_photo_url')
+          .in('user_id', requesterIds);
+
+        if (settingsError) throw settingsError;
+
+        requesterUsers = requesterIds.map(requesterId => {
+          const authUser = authUsers.users.find(u => u.id === requesterId);
+          const settings = userSettings?.find(s => s.user_id === requesterId);
+          
+          return {
+            id: requesterId,
+            email: authUser?.email || '',
+            full_name: settings?.full_name,
+            profile_photo_url: settings?.profile_photo_url
+          };
+        });
+      }
+
       const transformedIncoming = incomingData?.map(request => ({
         ...request,
-        requester: {
-          id: request.users.id,
-          email: request.users.email,
-          full_name: request.users.user_settings?.[0]?.full_name,
-          profile_photo_url: request.users.user_settings?.[0]?.profile_photo_url
-        }
+        requester: requesterUsers.find(u => u.id === request.requester_id)
       })) || [];
 
       setIncomingRequests(transformedIncoming);
@@ -137,36 +162,43 @@ const FriendsManager: React.FC = () => {
       // Fetch outgoing friend requests
       const { data: outgoingData, error: outgoingError } = await supabase
         .from('friend_requests')
-        .select(`
-          id,
-          requester_id,
-          requested_id,
-          status,
-          role,
-          message,
-          created_at,
-          users!requested_id (
-            id,
-            email,
-            user_settings (
-              full_name,
-              profile_photo_url
-            )
-          )
-        `)
+        .select('id, requester_id, requested_id, status, role, message, created_at')
         .eq('requester_id', user.id)
         .eq('status', 'pending');
 
       if (outgoingError) throw outgoingError;
 
+      // Get user details for outgoing requests
+      const requestedIds = outgoingData?.map(r => r.requested_id) || [];
+      let requestedUsers: any[] = [];
+
+      if (requestedIds.length > 0) {
+        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+        if (authError) throw authError;
+
+        const { data: userSettings, error: settingsError } = await supabase
+          .from('user_settings')
+          .select('user_id, full_name, profile_photo_url')
+          .in('user_id', requestedIds);
+
+        if (settingsError) throw settingsError;
+
+        requestedUsers = requestedIds.map(requestedId => {
+          const authUser = authUsers.users.find(u => u.id === requestedId);
+          const settings = userSettings?.find(s => s.user_id === requestedId);
+          
+          return {
+            id: requestedId,
+            email: authUser?.email || '',
+            full_name: settings?.full_name,
+            profile_photo_url: settings?.profile_photo_url
+          };
+        });
+      }
+
       const transformedOutgoing = outgoingData?.map(request => ({
         ...request,
-        requested: {
-          id: request.users.id,
-          email: request.users.email,
-          full_name: request.users.user_settings?.[0]?.full_name,
-          profile_photo_url: request.users.user_settings?.[0]?.profile_photo_url
-        }
+        requested: requestedUsers.find(u => u.id === request.requested_id)
       })) || [];
 
       setOutgoingRequests(transformedOutgoing);
@@ -189,43 +221,51 @@ const FriendsManager: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Search for users by email (excluding current user and existing friends)
+      // Get all auth users and filter by email
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      if (authError) throw authError;
+
+      // Filter users by email and exclude current user and existing friends/requests
       const existingFriendIds = friends.map(f => f.friend_id);
       const pendingRequestIds = [
         ...incomingRequests.map(r => r.requester_id),
         ...outgoingRequests.map(r => r.requested_id)
       ];
+      const excludeIds = [user.id, ...existingFriendIds, ...pendingRequestIds];
 
-      const excludeIds = [user.id, ...existingFriendIds, ...pendingRequestIds].filter(id => id);
+      const filteredUsers = authUsers.users.filter(u => 
+        u.email?.toLowerCase().includes(searchEmail.trim().toLowerCase()) &&
+        !excludeIds.includes(u.id)
+      ).slice(0, 10);
 
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select(`
-          id,
-          email,
-          user_settings (
-            full_name,
-            profile_photo_url
-          )
-        `)
-        .ilike('email', `%${searchEmail.trim()}%`)
-        .not('id', 'in', `(${excludeIds.join(',')})`)
-        .limit(10);
+      if (filteredUsers.length === 0) {
+        setError('No users found with that email');
+        setSearchResults([]);
+        return;
+      }
 
-      if (userError) throw userError;
+      // Get user settings for filtered users
+      const userIds = filteredUsers.map(u => u.id);
+      const { data: userSettings, error: settingsError } = await supabase
+        .from('user_settings')
+        .select('user_id, full_name, profile_photo_url')
+        .in('user_id', userIds);
 
-      const transformedUsers = userData?.map(u => ({
-        id: u.id,
-        email: u.email,
-        full_name: u.user_settings?.[0]?.full_name,
-        profile_photo_url: u.user_settings?.[0]?.profile_photo_url
-      })) || [];
+      if (settingsError) throw settingsError;
+
+      // Combine auth users with their settings
+      const transformedUsers = filteredUsers.map(authUser => {
+        const settings = userSettings?.find(s => s.user_id === authUser.id);
+        return {
+          id: authUser.id,
+          email: authUser.email || '',
+          full_name: settings?.full_name,
+          profile_photo_url: settings?.profile_photo_url
+        };
+      });
 
       setSearchResults(transformedUsers);
 
-      if (transformedUsers.length === 0) {
-        setError('No users found with that email');
-      }
     } catch (err) {
       console.error('Error searching users:', err);
       setError('Failed to search users');
