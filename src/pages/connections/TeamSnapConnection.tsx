@@ -40,6 +40,7 @@ const TeamSnapConnection: React.FC = () => {
   const [editingName, setEditingName] = useState('');
   const [showMappingModal, setShowMappingModal] = useState<string | null>(null);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
+  const [refreshingTeam, setRefreshingTeam] = useState<string | null>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { profiles } = useProfiles();
@@ -195,6 +196,7 @@ const TeamSnapConnection: React.FC = () => {
     try {
       setError(null);
       setSuccess(null);
+      setRefreshingTeam(teamId);
       
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
@@ -210,21 +212,15 @@ const TeamSnapConnection: React.FC = () => {
         .update({ sync_status: 'pending' })
         .eq('id', teamId);
 
-      // For now, we'll just update the sync status since we need the access token
-      // In a real implementation, you'd need to store and retrieve the access token
-      await supabase
-        .from('platform_teams')
-        .update({
-          sync_status: 'success',
-          last_synced: new Date().toISOString()
-        })
-        .eq('id', teamId);
+      // Sync events using the TeamSnap service
+      const totalEvents = await teamSnap.syncEventsForTeam(teamId);
 
-      setSuccess(`Team refreshed successfully. Note: Full event sync requires re-authentication.`);
+      setSuccess(`Team refreshed successfully! Synced ${totalEvents} events for ${team.mapped_profiles.length} profile(s).`);
       fetchTeams();
     } catch (err) {
       console.error('Error refreshing team:', err);
-      setError('Failed to refresh team');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to refresh team';
+      setError(errorMessage);
       
       // Update team sync status to error
       if (teamId) {
@@ -236,6 +232,8 @@ const TeamSnapConnection: React.FC = () => {
           })
           .eq('id', teamId);
       }
+    } finally {
+      setRefreshingTeam(null);
     }
   };
 
@@ -339,11 +337,21 @@ const TeamSnapConnection: React.FC = () => {
           );
 
         if (error) throw error;
+
+        // Auto-sync events for the newly mapped profiles
+        try {
+          const totalEvents = await teamSnap.syncEventsForTeam(showMappingModal);
+          setSuccess(`Team mapping updated successfully! Synced ${totalEvents} events for ${selectedProfiles.length} profile(s).`);
+        } catch (syncError) {
+          console.error('Error syncing events after mapping:', syncError);
+          setSuccess('Team mapping updated successfully. Use the refresh button to sync events.');
+        }
+      } else {
+        setSuccess('Team mapping updated successfully.');
       }
 
       setShowMappingModal(null);
       setSelectedProfiles([]);
-      setSuccess('Team mapping updated successfully. Use the refresh button to sync events for the mapped profiles.');
       fetchTeams();
     } catch (err) {
       console.error('Error saving team mapping:', err);
@@ -621,7 +629,7 @@ const TeamSnapConnection: React.FC = () => {
                               {team.sync_status === 'success' ? (
                                 <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
                               ) : team.sync_status === 'error' ? (
-                                <AlertCircle className="h-4 w-4 text-red-500 mr-1" />
+                                <AlertTriangle className="h-4 w-4 text-red-500 mr-1" />
                               ) : (
                                 <RefreshCw className="h-4 w-4 text-yellow-500 mr-1" />
                               )}
@@ -643,10 +651,11 @@ const TeamSnapConnection: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleRefresh(team.id)}
-                            className="p-2 text-gray-400 hover:text-gray-500"
-                            title="Refresh team"
+                            disabled={refreshingTeam === team.id || !team.mapped_profiles || team.mapped_profiles.length === 0}
+                            className="p-2 text-gray-400 hover:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Refresh team events"
                           >
-                            <RefreshCw className="h-4 w-4" />
+                            <RefreshCw className={`h-4 w-4 ${refreshingTeam === team.id ? 'animate-spin' : ''}`} />
                           </button>
                           <button
                             onClick={() => handleDelete(team.id)}
@@ -688,7 +697,7 @@ const TeamSnapConnection: React.FC = () => {
 
             <div className="p-6">
               <p className="text-sm text-gray-600 mb-4">
-                Select which children's profiles this team should be associated with. Events will only appear in the calendars of mapped profiles.
+                Select which children's profiles this team should be associated with. Events will be automatically synced for mapped profiles.
               </p>
 
               {profiles && profiles.length > 0 ? (
@@ -751,7 +760,7 @@ const TeamSnapConnection: React.FC = () => {
                 onClick={handleSaveMapping}
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700"
               >
-                Save Mapping
+                Save & Sync Events
               </button>
             </div>
           </div>

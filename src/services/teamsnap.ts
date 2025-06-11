@@ -94,6 +94,9 @@ export class TeamSnapService {
 
       console.log('Token exchange successful');
 
+      // Store the access token securely for later use
+      await this.storeAccessToken(tokenData.access_token, tokenData.refresh_token);
+
       // Clean up
       localStorage.removeItem('teamsnap_code_verifier');
 
@@ -105,9 +108,64 @@ export class TeamSnapService {
     }
   }
 
+  private async storeAccessToken(accessToken: string, refreshToken?: string): Promise<void> {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('No authenticated user');
+
+      // Store tokens in user_settings table (you might want a separate tokens table for better security)
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          teamsnap_access_token: accessToken,
+          teamsnap_refresh_token: refreshToken,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id'
+        });
+
+      if (error) {
+        console.error('Error storing access token:', error);
+        // Don't throw here, continue with sync
+      }
+    } catch (error) {
+      console.error('Error storing access token:', error);
+    }
+  }
+
+  private async getStoredAccessToken(): Promise<string | null> {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('No authenticated user');
+
+      const { data: settings, error } = await supabase
+        .from('user_settings')
+        .select('teamsnap_access_token')
+        .eq('user_id', user.id)
+        .single();
+
+      if (error || !settings?.teamsnap_access_token) {
+        return null;
+      }
+
+      return settings.teamsnap_access_token;
+    } catch (error) {
+      console.error('Error retrieving access token:', error);
+      return null;
+    }
+  }
+
   private async request(endpoint: string, options: RequestInit = {}): Promise<any> {
+    // Try to use stored access token if current one is null
     if (!this.accessToken) {
-      throw new Error('Not authenticated');
+      this.accessToken = await this.getStoredAccessToken();
+    }
+
+    if (!this.accessToken) {
+      throw new Error('Not authenticated - please reconnect to TeamSnap');
     }
 
     const url = endpoint.startsWith('http') ? endpoint : `${TEAMSNAP_API_URL}${endpoint}`;
@@ -131,12 +189,39 @@ export class TeamSnapService {
         statusText: response.statusText,
         response: errorText
       });
+      
+      // If unauthorized, clear the stored token
+      if (response.status === 401) {
+        this.accessToken = null;
+        await this.clearStoredTokens();
+        throw new Error('Authentication expired - please reconnect to TeamSnap');
+      }
+      
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
     console.log(`API response from ${url}:`, data);
     return data;
+  }
+
+  private async clearStoredTokens(): Promise<void> {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
+      await supabase
+        .from('user_settings')
+        .update({
+          teamsnap_access_token: null,
+          teamsnap_refresh_token: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id);
+    } catch (error) {
+      console.error('Error clearing stored tokens:', error);
+    }
   }
 
   async getUserId(): Promise<string> {
@@ -390,6 +475,59 @@ export class TeamSnapService {
       return eventsToInsert.length;
     } catch (error) {
       console.error('Error syncing events for team and profile:', error);
+      throw error;
+    }
+  }
+
+  // Method to sync events for all mapped profiles of a team
+  async syncEventsForTeam(teamId: string): Promise<number> {
+    try {
+      console.log(`Syncing events for team ${teamId}`);
+      
+      // Get all profile mappings for this team
+      const { data: profileMappings, error: mappingError } = await supabase
+        .from('profile_teams')
+        .select('profile_id')
+        .eq('platform_team_id', teamId);
+
+      if (mappingError) {
+        throw mappingError;
+      }
+
+      if (!profileMappings || profileMappings.length === 0) {
+        throw new Error('No profiles mapped to this team');
+      }
+
+      let totalEvents = 0;
+      
+      // Sync events for each mapped profile
+      for (const mapping of profileMappings) {
+        const eventCount = await this.syncEventsForTeamAndProfile(teamId, mapping.profile_id);
+        totalEvents += eventCount;
+      }
+
+      // Update team sync status
+      await supabase
+        .from('platform_teams')
+        .update({
+          sync_status: 'success',
+          last_synced: new Date().toISOString()
+        })
+        .eq('id', teamId);
+
+      return totalEvents;
+    } catch (error) {
+      console.error('Error syncing events for team:', error);
+      
+      // Update team sync status to error
+      await supabase
+        .from('platform_teams')
+        .update({
+          sync_status: 'error',
+          last_synced: new Date().toISOString()
+        })
+        .eq('id', teamId);
+      
       throw error;
     }
   }
