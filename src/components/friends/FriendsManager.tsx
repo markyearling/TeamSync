@@ -230,7 +230,9 @@ const FriendsManager: React.FC = () => {
         return;
       }
 
-      console.log('Searching for users with name:', searchEmail.trim());
+      console.log('=== SEARCH DEBUG INFO ===');
+      console.log('Search term:', searchEmail.trim());
+      console.log('Current user ID:', currentUserId);
 
       // Search for users by looking in user_settings table where we can match name patterns
       const { data: userSettings, error: settingsError } = await supabase
@@ -240,12 +242,16 @@ const FriendsManager: React.FC = () => {
         .not('user_id', 'eq', currentUserId) // Exclude current user
         .limit(10);
 
-      if (settingsError) throw settingsError;
+      if (settingsError) {
+        console.error('Search error:', settingsError);
+        throw settingsError;
+      }
 
-      console.log('Raw search results:', userSettings);
+      console.log('Raw search results from database:', userSettings);
+      console.log('Number of results:', userSettings?.length || 0);
 
       if (!userSettings || userSettings.length === 0) {
-        console.log('No users found in search');
+        console.log('No users found in database search');
         setSearchResults([]);
         return;
       }
@@ -255,28 +261,32 @@ const FriendsManager: React.FC = () => {
       const pendingIncomingIds = incomingRequests.map(r => r.requester_id);
       const pendingOutgoingIds = outgoingRequests.map(r => r.requested_id);
       
-      console.log('Current user ID:', currentUserId);
+      console.log('=== FILTERING DEBUG INFO ===');
       console.log('Existing friend IDs:', existingFriendIds);
-      console.log('Pending incoming IDs:', pendingIncomingIds);
-      console.log('Pending outgoing IDs:', pendingOutgoingIds);
+      console.log('Pending incoming request IDs:', pendingIncomingIds);
+      console.log('Pending outgoing request IDs:', pendingOutgoingIds);
 
       // Filter out existing friends and pending requests
       const filteredUsers = userSettings.filter(u => {
+        const isCurrentUser = u.user_id === currentUserId;
         const isExistingFriend = existingFriendIds.includes(u.user_id);
         const hasPendingIncoming = pendingIncomingIds.includes(u.user_id);
         const hasPendingOutgoing = pendingOutgoingIds.includes(u.user_id);
         
-        console.log(`User ${u.user_id} (${u.full_name}):`);
-        console.log(`  - Is existing friend: ${isExistingFriend}`);
-        console.log(`  - Has pending incoming: ${hasPendingIncoming}`);
-        console.log(`  - Has pending outgoing: ${hasPendingOutgoing}`);
+        console.log(`--- User: ${u.full_name} (${u.user_id}) ---`);
+        console.log(`  Is current user: ${isCurrentUser}`);
+        console.log(`  Is existing friend: ${isExistingFriend}`);
+        console.log(`  Has pending incoming: ${hasPendingIncoming}`);
+        console.log(`  Has pending outgoing: ${hasPendingOutgoing}`);
         
-        const shouldInclude = !isExistingFriend && !hasPendingIncoming && !hasPendingOutgoing;
-        console.log(`  - Should include: ${shouldInclude}`);
+        const shouldInclude = !isCurrentUser && !isExistingFriend && !hasPendingIncoming && !hasPendingOutgoing;
+        console.log(`  Should include: ${shouldInclude}`);
         
         return shouldInclude;
       });
 
+      console.log('=== FINAL RESULTS ===');
+      console.log('Filtered users count:', filteredUsers.length);
       console.log('Filtered users:', filteredUsers);
 
       // Transform to expected format
@@ -287,12 +297,19 @@ const FriendsManager: React.FC = () => {
         profile_photo_url: settings.profile_photo_url
       }));
 
-      console.log('Final transformed users:', transformedUsers);
+      console.log('Final transformed users for display:', transformedUsers);
       setSearchResults(transformedUsers);
+
+      // Show success message if we found results
+      if (transformedUsers.length > 0) {
+        console.log(`✅ Found ${transformedUsers.length} user(s) matching "${searchEmail.trim()}"`);
+      } else {
+        console.log(`❌ No available users found for "${searchEmail.trim()}" after filtering`);
+      }
 
     } catch (err) {
       console.error('Error searching users:', err);
-      setError('Failed to search users');
+      setError(`Failed to search users: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setSearching(false);
     }
@@ -508,6 +525,11 @@ const FriendsManager: React.FC = () => {
               </div>
 
               <div className="bg-white dark:bg-gray-600 rounded-md border border-gray-200 dark:border-gray-500 max-h-60 overflow-y-auto">
+                <div className="p-2 bg-green-50 dark:bg-green-900/50 border-b border-green-200 dark:border-green-800">
+                  <p className="text-xs text-green-700 dark:text-green-300">
+                    ✅ Found {searchResults.length} user(s) matching "{searchEmail.trim()}"
+                  </p>
+                </div>
                 {searchResults.map(user => (
                   <div key={user.id} className="flex items-center justify-between p-3 border-b border-gray-100 dark:border-gray-500 last:border-b-0">
                     <div className="flex items-center flex-1">
@@ -543,8 +565,8 @@ const FriendsManager: React.FC = () => {
           {searchEmail.trim().length >= 2 && !searching && searchResults.length === 0 && (
             <div className="text-center py-4 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-600 rounded-md border border-gray-200 dark:border-gray-500">
               <Search className="h-6 w-6 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No users found with that name</p>
-              <p className="text-xs">Try a different search term</p>
+              <p className="text-sm">No available users found for "{searchEmail.trim()}"</p>
+              <p className="text-xs">They may already be your friend, have a pending request, or don't exist</p>
             </div>
           )}
         </div>
