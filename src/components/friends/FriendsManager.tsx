@@ -71,16 +71,12 @@ const FriendsManager: React.FC = () => {
 
       if (friendsError) throw friendsError;
 
-      // Get user details for friends
+      // Get user details for friends from user_settings table
       const friendIds = friendsData?.map(f => f.friend_id) || [];
       let friendUsers: any[] = [];
       
       if (friendIds.length > 0) {
-        // Get auth users
-        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-        if (authError) throw authError;
-
-        // Get user settings for friends
+        // Get user settings for friends - this contains the user info we need
         const { data: userSettings, error: settingsError } = await supabase
           .from('user_settings')
           .select('user_id, full_name, profile_photo_url')
@@ -88,14 +84,14 @@ const FriendsManager: React.FC = () => {
 
         if (settingsError) throw settingsError;
 
-        // Combine auth users with their settings
+        // For each friend, we need to get their email from auth.users
+        // Since we can't use admin.listUsers(), we'll work with what we have
         friendUsers = friendIds.map(friendId => {
-          const authUser = authUsers.users.find(u => u.id === friendId);
           const settings = userSettings?.find(s => s.user_id === friendId);
           
           return {
             id: friendId,
-            email: authUser?.email || '',
+            email: 'Email not available', // We can't get email without admin access
             full_name: settings?.full_name,
             profile_photo_url: settings?.profile_photo_url
           };
@@ -107,7 +103,7 @@ const FriendsManager: React.FC = () => {
         ...friendship,
         friend: friendUsers.find(u => u.id === friendship.friend_id) || {
           id: friendship.friend_id,
-          email: '',
+          email: 'Email not available',
           full_name: undefined,
           profile_photo_url: undefined
         }
@@ -129,9 +125,6 @@ const FriendsManager: React.FC = () => {
       let requesterUsers: any[] = [];
 
       if (requesterIds.length > 0) {
-        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-        if (authError) throw authError;
-
         const { data: userSettings, error: settingsError } = await supabase
           .from('user_settings')
           .select('user_id, full_name, profile_photo_url')
@@ -140,12 +133,11 @@ const FriendsManager: React.FC = () => {
         if (settingsError) throw settingsError;
 
         requesterUsers = requesterIds.map(requesterId => {
-          const authUser = authUsers.users.find(u => u.id === requesterId);
           const settings = userSettings?.find(s => s.user_id === requesterId);
           
           return {
             id: requesterId,
-            email: authUser?.email || '',
+            email: 'Email not available',
             full_name: settings?.full_name,
             profile_photo_url: settings?.profile_photo_url
           };
@@ -173,9 +165,6 @@ const FriendsManager: React.FC = () => {
       let requestedUsers: any[] = [];
 
       if (requestedIds.length > 0) {
-        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-        if (authError) throw authError;
-
         const { data: userSettings, error: settingsError } = await supabase
           .from('user_settings')
           .select('user_id, full_name, profile_photo_url')
@@ -184,12 +173,11 @@ const FriendsManager: React.FC = () => {
         if (settingsError) throw settingsError;
 
         requestedUsers = requestedIds.map(requestedId => {
-          const authUser = authUsers.users.find(u => u.id === requestedId);
           const settings = userSettings?.find(s => s.user_id === requestedId);
           
           return {
             id: requestedId,
-            email: authUser?.email || '',
+            email: 'Email not available',
             full_name: settings?.full_name,
             profile_photo_url: settings?.profile_photo_url
           };
@@ -221,11 +209,24 @@ const FriendsManager: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get all auth users and filter by email
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      if (authError) throw authError;
+      // Search for users by looking in user_settings table where we can match email patterns
+      // This is a workaround since we can't use admin.listUsers()
+      // We'll search by full_name instead since we can't access emails directly
+      const { data: userSettings, error: settingsError } = await supabase
+        .from('user_settings')
+        .select('user_id, full_name, profile_photo_url')
+        .ilike('full_name', `%${searchEmail.trim()}%`)
+        .limit(10);
 
-      // Filter users by email and exclude current user and existing friends/requests
+      if (settingsError) throw settingsError;
+
+      if (!userSettings || userSettings.length === 0) {
+        setError('No users found. Note: Search is currently limited to user names only.');
+        setSearchResults([]);
+        return;
+      }
+
+      // Filter out current user and existing friends/requests
       const existingFriendIds = friends.map(f => f.friend_id);
       const pendingRequestIds = [
         ...incomingRequests.map(r => r.requester_id),
@@ -233,36 +234,23 @@ const FriendsManager: React.FC = () => {
       ];
       const excludeIds = [user.id, ...existingFriendIds, ...pendingRequestIds];
 
-      const filteredUsers = authUsers.users.filter(u => 
-        u.email?.toLowerCase().includes(searchEmail.trim().toLowerCase()) &&
-        !excludeIds.includes(u.id)
-      ).slice(0, 10);
+      const filteredUsers = userSettings.filter(u => 
+        !excludeIds.includes(u.user_id)
+      );
 
       if (filteredUsers.length === 0) {
-        setError('No users found with that email');
+        setError('No new users found with that name');
         setSearchResults([]);
         return;
       }
 
-      // Get user settings for filtered users
-      const userIds = filteredUsers.map(u => u.id);
-      const { data: userSettings, error: settingsError } = await supabase
-        .from('user_settings')
-        .select('user_id, full_name, profile_photo_url')
-        .in('user_id', userIds);
-
-      if (settingsError) throw settingsError;
-
-      // Combine auth users with their settings
-      const transformedUsers = filteredUsers.map(authUser => {
-        const settings = userSettings?.find(s => s.user_id === authUser.id);
-        return {
-          id: authUser.id,
-          email: authUser.email || '',
-          full_name: settings?.full_name,
-          profile_photo_url: settings?.profile_photo_url
-        };
-      });
+      // Transform to expected format
+      const transformedUsers = filteredUsers.map(settings => ({
+        id: settings.user_id,
+        email: 'Email not available', // We can't get email without admin access
+        full_name: settings.full_name,
+        profile_photo_url: settings.profile_photo_url
+      }));
 
       setSearchResults(transformedUsers);
 
@@ -444,10 +432,10 @@ const FriendsManager: React.FC = () => {
           <div className="flex space-x-2">
             <div className="flex-1">
               <input
-                type="email"
+                type="text"
                 value={searchEmail}
                 onChange={(e) => setSearchEmail(e.target.value)}
-                placeholder="Enter email address"
+                placeholder="Enter user's name"
                 className="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-600 dark:text-white text-sm"
                 onKeyDown={(e) => e.key === 'Enter' && searchUsers()}
               />
@@ -463,6 +451,10 @@ const FriendsManager: React.FC = () => {
                 <Search className="h-4 w-4" />
               )}
             </button>
+          </div>
+
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Note: Search is currently limited to user names only due to privacy restrictions.
           </div>
 
           {searchResults.length > 0 && (
@@ -493,7 +485,7 @@ const FriendsManager: React.FC = () => {
                         <img src={user.profile_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                       ) : (
                         <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                          {(user.full_name || user.email).charAt(0).toUpperCase()}
+                          {(user.full_name || 'U').charAt(0).toUpperCase()}
                         </span>
                       )}
                     </div>
@@ -501,7 +493,7 @@ const FriendsManager: React.FC = () => {
                       <div className="text-sm font-medium text-gray-900 dark:text-white">
                         {user.full_name || 'No name set'}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">User ID: {user.id.slice(0, 8)}...</div>
                     </div>
                   </div>
                   <button
@@ -533,7 +525,7 @@ const FriendsManager: React.FC = () => {
                       <img src={request.requester.profile_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                        {(request.requester?.full_name || request.requester?.email || '').charAt(0).toUpperCase()}
+                        {(request.requester?.full_name || 'U').charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
@@ -541,7 +533,7 @@ const FriendsManager: React.FC = () => {
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {request.requester?.full_name || 'No name set'}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{request.requester?.email}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">User ID: {request.requester_id.slice(0, 8)}...</div>
                     <div className="flex items-center mt-1">
                       {getRoleIcon(request.role)}
                       <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
@@ -593,7 +585,7 @@ const FriendsManager: React.FC = () => {
                       <img src={request.requested.profile_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                        {(request.requested?.full_name || request.requested?.email || '').charAt(0).toUpperCase()}
+                        {(request.requested?.full_name || 'U').charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
@@ -601,7 +593,7 @@ const FriendsManager: React.FC = () => {
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {request.requested?.full_name || 'No name set'}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{request.requested?.email}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">User ID: {request.requested_id.slice(0, 8)}...</div>
                     <div className="flex items-center mt-1">
                       {getRoleIcon(request.role)}
                       <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
@@ -639,7 +631,7 @@ const FriendsManager: React.FC = () => {
                       <img src={friend.friend.profile_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                        {(friend.friend.full_name || friend.friend.email).charAt(0).toUpperCase()}
+                        {(friend.friend.full_name || 'U').charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
@@ -647,7 +639,7 @@ const FriendsManager: React.FC = () => {
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {friend.friend.full_name || 'No name set'}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{friend.friend.email}</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">User ID: {friend.friend_id.slice(0, 8)}...</div>
                     <div className="flex items-center mt-1">
                       {getRoleIcon(friend.role)}
                       <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
@@ -670,7 +662,7 @@ const FriendsManager: React.FC = () => {
           <div className="text-center py-6 text-gray-500 dark:text-gray-400">
             <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No friends added yet</p>
-            <p className="text-xs">Search for users by email to send friend requests</p>
+            <p className="text-xs">Search for users by name to send friend requests</p>
           </div>
         )}
       </div>
