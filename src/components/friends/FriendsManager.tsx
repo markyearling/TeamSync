@@ -209,6 +209,8 @@ const FriendsManager: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      console.log('Searching for users with name:', searchEmail.trim());
+
       // Search for users by looking in user_settings table where we can match email patterns
       // This is a workaround since we can't use admin.listUsers()
       // We'll search by full_name instead since we can't access emails directly
@@ -220,26 +222,33 @@ const FriendsManager: React.FC = () => {
 
       if (settingsError) throw settingsError;
 
+      console.log('Raw search results:', userSettings);
+
       if (!userSettings || userSettings.length === 0) {
-        setError('No users found. Note: Search is currently limited to user names only.');
+        setError('No users found with that name.');
         setSearchResults([]);
         return;
       }
 
-      // Filter out current user and existing friends/requests
+      // Get current user's existing connections to filter them out
       const existingFriendIds = friends.map(f => f.friend_id);
-      const pendingRequestIds = [
-        ...incomingRequests.map(r => r.requester_id),
-        ...outgoingRequests.map(r => r.requested_id)
-      ];
-      const excludeIds = [user.id, ...existingFriendIds, ...pendingRequestIds];
+      const pendingIncomingIds = incomingRequests.map(r => r.requester_id);
+      const pendingOutgoingIds = outgoingRequests.map(r => r.requested_id);
+      const excludeIds = [user.id, ...existingFriendIds, ...pendingIncomingIds, ...pendingOutgoingIds];
 
-      const filteredUsers = userSettings.filter(u => 
-        !excludeIds.includes(u.user_id)
-      );
+      console.log('Excluding user IDs:', excludeIds);
+
+      // Filter out current user and existing friends/requests
+      const filteredUsers = userSettings.filter(u => {
+        const shouldExclude = excludeIds.includes(u.user_id);
+        console.log(`User ${u.user_id} (${u.full_name}): shouldExclude = ${shouldExclude}`);
+        return !shouldExclude;
+      });
+
+      console.log('Filtered users:', filteredUsers);
 
       if (filteredUsers.length === 0) {
-        setError('No new users found with that name');
+        setError('No new users found with that name. They may already be your friend or have a pending request.');
         setSearchResults([]);
         return;
       }
@@ -252,6 +261,7 @@ const FriendsManager: React.FC = () => {
         profile_photo_url: settings.profile_photo_url
       }));
 
+      console.log('Final transformed users:', transformedUsers);
       setSearchResults(transformedUsers);
 
     } catch (err) {
