@@ -71,7 +71,7 @@ const FriendsManager: React.FC = () => {
           friend_id,
           role,
           created_at,
-          users!friendships_friend_id_fkey (
+          users!friend_id (
             id,
             email,
             user_settings (
@@ -108,7 +108,7 @@ const FriendsManager: React.FC = () => {
           role,
           message,
           created_at,
-          users!friend_requests_requester_id_fkey (
+          users!requester_id (
             id,
             email,
             user_settings (
@@ -145,7 +145,7 @@ const FriendsManager: React.FC = () => {
           role,
           message,
           created_at,
-          users!friend_requests_requested_id_fkey (
+          users!requested_id (
             id,
             email,
             user_settings (
