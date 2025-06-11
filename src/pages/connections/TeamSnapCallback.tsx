@@ -30,12 +30,16 @@ const TeamSnapCallback: React.FC = () => {
         
         // Wait a moment to show success message before redirecting
         setTimeout(() => {
-          navigate('/connections', { 
-            state: { 
-              teamSnapConnected: true,
-              showSuccessMessage: true 
-            }
-          });
+          setStatus('success');
+          // Redirect to TeamSnap connections page instead of general connections
+          setTimeout(() => {
+            navigate('/connections/teamsnap', { 
+              state: { 
+                teamSnapConnected: true,
+                showSuccessMessage: true 
+              }
+            });
+          }, 1500);
         }, 2000);
       } catch (err) {
         setError('Failed to complete authentication');
@@ -54,10 +58,10 @@ const TeamSnapCallback: React.FC = () => {
             <h2 className="text-xl font-semibold text-red-600 mb-2">Authentication Error</h2>
             <p className="text-gray-600 mb-4">{error}</p>
             <button
-              onClick={() => navigate('/connections')}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              onClick={() => navigate('/connections/teamsnap')}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700"
             >
-              Return to Connections
+              Return to TeamSnap
             </button>
           </div>
         </div>
@@ -71,7 +75,7 @@ const TeamSnapCallback: React.FC = () => {
         <div className="bg-white rounded-lg shadow-md p-6 text-center">
           {status === 'loading' ? (
             <>
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+              <Loader2 className="h-8 w-8 animate-spin text-purple-600 mx-auto mb-4" />
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Connecting to TeamSnap</h2>
               <p className="text-gray-600">Please wait while we complete the connection...</p>
             </>
@@ -90,8 +94,8 @@ const TeamSnapCallback: React.FC = () => {
           ) : (
             <>
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Successfully Connected!</h2>
-              <p className="text-gray-600">Your TeamSnap account has been connected. Redirecting...</p>
+              <h2 className="text-xl font-semibold text-gray-900 mb-2">Teams Synced Successfully!</h2>
+              <p className="text-gray-600">Redirecting to manage your teams...</p>
             </>
           )}
         </div>

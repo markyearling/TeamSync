@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Users, 
   AlertCircle, 
@@ -41,6 +41,7 @@ const TeamSnapConnection: React.FC = () => {
   const [showMappingModal, setShowMappingModal] = useState<string | null>(null);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
   const navigate = useNavigate();
+  const location = useLocation();
   const { profiles } = useProfiles();
 
   const teamSnap = new TeamSnapService({
@@ -68,7 +69,16 @@ const TeamSnapConnection: React.FC = () => {
 
   useEffect(() => {
     checkConnectionStatus();
-  }, []);
+    
+    // Show success message if redirected from callback
+    if (location.state?.teamSnapConnected) {
+      setSuccess('TeamSnap connected successfully! Your teams have been imported.');
+      // Clear the state
+      window.history.replaceState({}, document.title);
+      // Hide the message after 5 seconds
+      setTimeout(() => setSuccess(null), 5000);
+    }
+  }, [location]);
 
   const checkConnectionStatus = async () => {
     try {
@@ -243,6 +253,11 @@ const TeamSnapConnection: React.FC = () => {
 
       setTeams(teams.filter(team => team.id !== teamId));
       setSuccess('Team removed successfully');
+      
+      // If no teams left, set as disconnected
+      if (teams.length === 1) {
+        setIsConnected(false);
+      }
     } catch (err) {
       console.error('Error deleting team:', err);
       setError('Failed to remove team');
@@ -393,18 +408,34 @@ const TeamSnapConnection: React.FC = () => {
 
           {error && (
             <div className="px-6 py-4 bg-red-50 border-b border-red-200">
-              <div className="flex items-center text-red-700">
-                <AlertCircle className="h-5 w-5 mr-2" />
-                {error}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center text-red-700">
+                  <AlertCircle className="h-5 w-5 mr-2" />
+                  {error}
+                </div>
+                <button 
+                  onClick={() => setError(null)}
+                  className="text-red-400 hover:text-red-500"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
             </div>
           )}
 
           {success && (
             <div className="px-6 py-4 bg-green-50 border-b border-green-200">
-              <div className="flex items-center text-green-700">
-                <CheckCircle className="h-5 w-5 mr-2" />
-                {success}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center text-green-700">
+                  <CheckCircle className="h-5 w-5 mr-2" />
+                  {success}
+                </div>
+                <button 
+                  onClick={() => setSuccess(null)}
+                  className="text-green-400 hover:text-green-500"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
             </div>
           )}
