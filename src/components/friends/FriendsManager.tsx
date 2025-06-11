@@ -63,7 +63,7 @@ const FriendsManager: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Fetch friends
+      // Fetch friends with user settings
       const { data: friendsData, error: friendsError } = await supabase
         .from('friendships')
         .select(`
@@ -71,7 +71,7 @@ const FriendsManager: React.FC = () => {
           friend_id,
           role,
           created_at,
-          friend:users!friendships_friend_id_fkey (
+          users!friendships_friend_id_fkey (
             id,
             email,
             user_settings (
@@ -88,10 +88,10 @@ const FriendsManager: React.FC = () => {
       const transformedFriends = friendsData?.map(friendship => ({
         ...friendship,
         friend: {
-          id: friendship.friend.id,
-          email: friendship.friend.email,
-          full_name: friendship.friend.user_settings?.[0]?.full_name,
-          profile_photo_url: friendship.friend.user_settings?.[0]?.profile_photo_url
+          id: friendship.users.id,
+          email: friendship.users.email,
+          full_name: friendship.users.user_settings?.[0]?.full_name,
+          profile_photo_url: friendship.users.user_settings?.[0]?.profile_photo_url
         }
       })) || [];
 
@@ -108,7 +108,7 @@ const FriendsManager: React.FC = () => {
           role,
           message,
           created_at,
-          requester:users!friend_requests_requester_id_fkey (
+          users!friend_requests_requester_id_fkey (
             id,
             email,
             user_settings (
@@ -125,10 +125,10 @@ const FriendsManager: React.FC = () => {
       const transformedIncoming = incomingData?.map(request => ({
         ...request,
         requester: {
-          id: request.requester.id,
-          email: request.requester.email,
-          full_name: request.requester.user_settings?.[0]?.full_name,
-          profile_photo_url: request.requester.user_settings?.[0]?.profile_photo_url
+          id: request.users.id,
+          email: request.users.email,
+          full_name: request.users.user_settings?.[0]?.full_name,
+          profile_photo_url: request.users.user_settings?.[0]?.profile_photo_url
         }
       })) || [];
 
@@ -145,7 +145,7 @@ const FriendsManager: React.FC = () => {
           role,
           message,
           created_at,
-          requested:users!friend_requests_requested_id_fkey (
+          users!friend_requests_requested_id_fkey (
             id,
             email,
             user_settings (
@@ -162,10 +162,10 @@ const FriendsManager: React.FC = () => {
       const transformedOutgoing = outgoingData?.map(request => ({
         ...request,
         requested: {
-          id: request.requested.id,
-          email: request.requested.email,
-          full_name: request.requested.user_settings?.[0]?.full_name,
-          profile_photo_url: request.requested.user_settings?.[0]?.profile_photo_url
+          id: request.users.id,
+          email: request.users.email,
+          full_name: request.users.user_settings?.[0]?.full_name,
+          profile_photo_url: request.users.user_settings?.[0]?.profile_photo_url
         }
       })) || [];
 
@@ -196,6 +196,8 @@ const FriendsManager: React.FC = () => {
         ...outgoingRequests.map(r => r.requested_id)
       ];
 
+      const excludeIds = [user.id, ...existingFriendIds, ...pendingRequestIds].filter(id => id);
+
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select(`
@@ -207,8 +209,7 @@ const FriendsManager: React.FC = () => {
           )
         `)
         .ilike('email', `%${searchEmail.trim()}%`)
-        .neq('id', user.id)
-        .not('id', 'in', `(${[...existingFriendIds, ...pendingRequestIds].join(',')})`)
+        .not('id', 'in', `(${excludeIds.join(',')})`)
         .limit(10);
 
       if (userError) throw userError;
