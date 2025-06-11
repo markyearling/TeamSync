@@ -144,21 +144,45 @@ export class TeamSnapService {
       console.log('Step 1: Fetching user ID from /me endpoint');
       const meResponse = await this.request('/me');
 
-       console.log('The mResponse is: ', meResponse.data);
-      // Parse the user ID from the data array structure
-      if (!meResponse.data || !Array.isArray(meResponse.data)) {
-        throw new Error('Invalid /me response structure - missing data array');
-      }
-
-      // Find the id field in the data array
-      const idField = meResponse.data.find((field: any) => field.name === 'id');
-      console.log('idField is: ', idField, ' and ifField.alue is: ', idField.value);
+      console.log('The meResponse is: ', meResponse);
       
-      if (!idField || !idField.value) {
-        throw new Error('User ID not found in /me response data');
+      // Handle different possible response structures
+      let userId: string | null = null;
+
+      // Check if response has a direct id field
+      if (meResponse.id) {
+        userId = meResponse.id.toString();
+      }
+      // Check if response has data array structure
+      else if (meResponse.data && Array.isArray(meResponse.data)) {
+        const idField = meResponse.data.find((field: any) => field.name === 'id');
+        if (idField && idField.value) {
+          userId = idField.value.toString();
+        }
+      }
+      // Check if response has collection structure
+      else if (meResponse.collection && meResponse.collection.items && Array.isArray(meResponse.collection.items)) {
+        const userItem = meResponse.collection.items[0];
+        if (userItem && userItem.data) {
+          const idField = userItem.data.find((field: any) => field.name === 'id');
+          if (idField && idField.value) {
+            userId = idField.value.toString();
+          }
+        }
+      }
+      // Check if response is an array directly
+      else if (Array.isArray(meResponse)) {
+        const idField = meResponse.find((field: any) => field.name === 'id');
+        if (idField && idField.value) {
+          userId = idField.value.toString();
+        }
       }
 
-      const userId = idField.value.toString();
+      if (!userId) {
+        console.error('Could not extract user ID from response:', meResponse);
+        throw new Error('User ID not found in /me response. Response structure may have changed.');
+      }
+
       console.log('User ID obtained:', userId);
       return userId;
     } catch (error) {
@@ -172,12 +196,31 @@ export class TeamSnapService {
       console.log(`Step 2: Fetching active teams for user ID: ${userId}`);
       const teamsResponse = await this.request(`/teams/active?user_id=${userId}`);
       
-      if (!Array.isArray(teamsResponse)) {
-        throw new Error('Invalid teams response format');
+      // Handle different possible response structures
+      let teams: any[] = [];
+
+      if (Array.isArray(teamsResponse)) {
+        teams = teamsResponse;
+      } else if (teamsResponse.collection && Array.isArray(teamsResponse.collection.items)) {
+        teams = teamsResponse.collection.items.map((item: any) => {
+          // Extract team data from the item structure
+          if (item.data && Array.isArray(item.data)) {
+            const teamObj: any = {};
+            item.data.forEach((field: any) => {
+              if (field.name && field.value !== undefined) {
+                teamObj[field.name] = field.value;
+              }
+            });
+            return teamObj;
+          }
+          return item;
+        });
+      } else if (teamsResponse.data && Array.isArray(teamsResponse.data)) {
+        teams = teamsResponse.data;
       }
 
-      console.log(`Found ${teamsResponse.length} active teams`);
-      return teamsResponse;
+      console.log(`Found ${teams.length} active teams`);
+      return teams;
     } catch (error) {
       console.error('Error fetching active teams:', error);
       throw error;
@@ -189,12 +232,31 @@ export class TeamSnapService {
       console.log(`Step 3: Fetching events for team ID: ${teamId}`);
       const eventsResponse = await this.request(`/events/search?team_id=${teamId}`);
       
-      if (!Array.isArray(eventsResponse)) {
-        throw new Error('Invalid events response format');
+      // Handle different possible response structures
+      let events: any[] = [];
+
+      if (Array.isArray(eventsResponse)) {
+        events = eventsResponse;
+      } else if (eventsResponse.collection && Array.isArray(eventsResponse.collection.items)) {
+        events = eventsResponse.collection.items.map((item: any) => {
+          // Extract event data from the item structure
+          if (item.data && Array.isArray(item.data)) {
+            const eventObj: any = {};
+            item.data.forEach((field: any) => {
+              if (field.name && field.value !== undefined) {
+                eventObj[field.name] = field.value;
+              }
+            });
+            return eventObj;
+          }
+          return item;
+        });
+      } else if (eventsResponse.data && Array.isArray(eventsResponse.data)) {
+        events = eventsResponse.data;
       }
 
-      console.log(`Found ${eventsResponse.length} events for team ${teamId}`);
-      return eventsResponse;
+      console.log(`Found ${events.length} events for team ${teamId}`);
+      return events;
     } catch (error) {
       console.error('Error fetching team events:', error);
       throw error;
