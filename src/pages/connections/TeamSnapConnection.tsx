@@ -55,12 +55,8 @@ const TeamSnapConnection: React.FC = () => {
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="px-6 py-8 border-b border-gray-200">
             <div className="flex items-center">
-              <div className="h-12 w-12 flex-shrink-0">
-                <img 
-                  src="https://images.teamsnap.com/teamsnap-logo.svg" 
-                  alt="TeamSnap" 
-                  className="h-full w-full object-contain"
-                />
+              <div className="h-12 w-12 flex-shrink-0 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Users className="h-6 w-6 text-purple-600" />
               </div>
               <div className="ml-4">
                 <h1 className="text-2xl font-bold text-gray-900">Connect to TeamSnap</h1>
@@ -132,7 +128,10 @@ const TeamSnapConnection: React.FC = () => {
                     Connecting...
                   </>
                 ) : (
-                  'Connect TeamSnap Account'
+                  <>
+                    <Users className="h-5 w-5 mr-2" />
+                    Connect TeamSnap Account
+                  </>
                 )}
               </button>
             </div>
