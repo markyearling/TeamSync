@@ -143,7 +143,8 @@ export class TeamSnapService {
     try {
       console.log('Step 1: Fetching user ID from /me endpoint');
       const meResponse = await this.request('/me');
-      
+
+       console.log('The mResponse is: ', mResponse.data);
       // Parse the user ID from the data array structure
       if (!meResponse.data || !Array.isArray(meResponse.data)) {
         throw new Error('Invalid /me response structure - missing data array');
