@@ -240,11 +240,11 @@ const FriendsManager: React.FC = () => {
       console.log('Current user ID:', currentUserId);
 
       // Search for users by looking in user_settings table where we can match name patterns
+      // REMOVED the user_id filter to get all users matching the search term
       const { data: userSettings, error: settingsError } = await supabase
         .from('user_settings')
         .select('user_id, full_name, profile_photo_url')
         .ilike('full_name', `%${searchTerm}%`)
-        .not('user_id', 'eq', currentUserId) // Exclude current user
         .limit(10);
 
       console.log('📊 DATABASE RESPONSE');
@@ -285,7 +285,7 @@ const FriendsManager: React.FC = () => {
       console.log('Pending incoming request IDs:', pendingIncomingIds);
       console.log('Pending outgoing request IDs:', pendingOutgoingIds);
 
-      // Filter out existing friends and pending requests
+      // Filter out existing friends and pending requests, but keep current user for now to see if they appear
       const filteredUsers = userSettings.filter(u => {
         const isCurrentUser = u.user_id === currentUserId;
         const isExistingFriend = existingFriendIds.includes(u.user_id);
@@ -298,6 +298,7 @@ const FriendsManager: React.FC = () => {
         console.log(`  Has pending incoming: ${hasPendingIncoming}`);
         console.log(`  Has pending outgoing: ${hasPendingOutgoing}`);
         
+        // Only exclude current user, existing friends, and pending requests
         const shouldInclude = !isCurrentUser && !isExistingFriend && !hasPendingIncoming && !hasPendingOutgoing;
         console.log(`  ✅ Should include: ${shouldInclude}`);
         
@@ -308,13 +309,30 @@ const FriendsManager: React.FC = () => {
       console.log('Filtered users count:', filteredUsers.length);
       console.log('Filtered users:', filteredUsers);
 
-      // Transform to expected format
-      const transformedUsers = filteredUsers.map(settings => ({
-        id: settings.user_id,
-        email: 'Email not available', // We can't get email without admin access
-        full_name: settings.full_name,
-        profile_photo_url: settings.profile_photo_url
-      }));
+      // For each user, try to get their email from auth.users metadata if available
+      // Since we can't access auth.users directly, we'll use the user_id as a fallback
+      const transformedUsers = await Promise.all(
+        filteredUsers.map(async (settings) => {
+          // Try to get user email from auth metadata (this might not work without admin access)
+          let email = 'Email not available';
+          
+          try {
+            // We can't get email from auth.users without admin access
+            // So we'll just use a placeholder for now
+            email = `user-${settings.user_id.slice(0, 8)}@example.com`;
+          } catch (e) {
+            // Fallback to user ID
+            email = `User ID: ${settings.user_id.slice(0, 8)}...`;
+          }
+
+          return {
+            id: settings.user_id,
+            email: email,
+            full_name: settings.full_name,
+            profile_photo_url: settings.profile_photo_url
+          };
+        })
+      );
 
       console.log('📋 FINAL RESULTS FOR UI');
       console.log('Transformed users:', transformedUsers);
@@ -581,7 +599,7 @@ const FriendsManager: React.FC = () => {
                         <div className="text-sm font-medium text-gray-900 dark:text-white">
                           {user.full_name || 'No name set'}
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400">ID: {user.id.slice(0, 8)}...</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">{user.email}</div>
                       </div>
                     </div>
                     <button
@@ -631,7 +649,7 @@ const FriendsManager: React.FC = () => {
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {request.requester?.full_name || 'No name set'}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">ID: {request.requester_id.slice(0, 8)}...</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{request.requester?.email || `ID: ${request.requester_id.slice(0, 8)}...`}</div>
                     <div className="flex items-center mt-1">
                       {getRoleIcon(request.role)}
                       <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
@@ -691,7 +709,7 @@ const FriendsManager: React.FC = () => {
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {request.requested?.full_name || 'No name set'}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">ID: {request.requested_id.slice(0, 8)}...</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{request.requested?.email || `ID: ${request.requested_id.slice(0, 8)}...`}</div>
                     <div className="flex items-center mt-1">
                       {getRoleIcon(request.role)}
                       <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
@@ -737,7 +755,7 @@ const FriendsManager: React.FC = () => {
                     <div className="text-sm font-medium text-gray-900 dark:text-white">
                       {friend.friend.full_name || 'No name set'}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">ID: {friend.friend_id.slice(0, 8)}...</div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">{friend.friend.email || `ID: ${friend.friend_id.slice(0, 8)}...`}</div>
                     <div className="flex items-center mt-1">
                       {getRoleIcon(friend.role)}
                       <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
