@@ -54,3 +54,41 @@ export interface UserSettings {
   created_at: string;
   updated_at: string;
 }
+
+export interface Friend {
+  id: string;
+  user_id: string;
+  friend_id: string;
+  role: 'viewer' | 'administrator';
+  created_at: string;
+  updated_at: string;
+  friend: {
+    id: string;
+    email: string;
+    full_name?: string;
+    profile_photo_url?: string;
+  };
+}
+
+export interface FriendRequest {
+  id: string;
+  requester_id: string;
+  requested_id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  role: 'viewer' | 'administrator';
+  message?: string;
+  created_at: string;
+  updated_at: string;
+  requester?: {
+    id: string;
+    email: string;
+    full_name?: string;
+    profile_photo_url?: string;
+  };
+  requested?: {
+    id: string;
+    email: string;
+    full_name?: string;
+    profile_photo_url?: string;
+  };
+}
