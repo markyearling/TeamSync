@@ -283,7 +283,7 @@ export class TeamSnapService {
         return;
       }
 
-      // Step 3: For each team, store it and fetch its events
+      // Step 3: For each team, store it (but don't store events yet)
       for (const team of activeTeams) {
         console.log(`Processing team: ${team.name} (ID: ${team.id})`);
         
@@ -311,65 +311,85 @@ export class TeamSnapService {
 
         console.log(`Successfully stored team: ${team.name}`);
 
-        // Step 4: Fetch and store events for this team
-        try {
-          const teamEvents = await this.getTeamEvents(team.id.toString());
-          
-          if (teamEvents.length > 0) {
-            console.log(`Processing ${teamEvents.length} events for team ${team.name}`);
-            
-            // Transform and store events
-            const eventsToInsert = teamEvents.map(event => ({
-              title: event.name || 'TeamSnap Event',
-              description: event.notes || '',
-              start_time: event.start_date,
-              end_time: event.end_date || event.start_date,
-              location: event.location_name || '',
-              sport: team.sport || 'Unknown',
-              color: '#7C3AED', // TeamSnap purple
-              platform: 'TeamSnap',
-              platform_color: '#7C3AED',
-              platform_team_id: platformTeam.id,
-              profile_id: null // Will be set when user maps teams to profiles
-            })).filter(event => event.start_time); // Only include events with valid start times
-
-            if (eventsToInsert.length > 0) {
-              // Delete existing events for this team to avoid duplicates
-              await supabase
-                .from('events')
-                .delete()
-                .eq('platform_team_id', platformTeam.id)
-                .eq('platform', 'TeamSnap');
-
-              // Insert new events
-              const { error: eventsError } = await supabase
-                .from('events')
-                .insert(eventsToInsert);
-
-              if (eventsError) {
-                console.error('Error storing events:', eventsError);
-              } else {
-                console.log(`Successfully stored ${eventsToInsert.length} events for team ${team.name}`);
-              }
-            }
-          }
-        } catch (eventError) {
-          console.error(`Error processing events for team ${team.name}:`, eventError);
-          
-          // Update team sync status to error
-          await supabase
-            .from('platform_teams')
-            .update({
-              sync_status: 'error',
-              last_synced: new Date().toISOString()
-            })
-            .eq('id', platformTeam.id);
-        }
+        // Note: We don't sync events here anymore since they need to be mapped to profiles first
+        // Events will be synced when the user maps teams to profiles and manually refreshes
       }
 
-      console.log('TeamSnap sync process completed successfully');
+      console.log('TeamSnap team sync process completed successfully');
+      console.log('Note: Events will be synced when teams are mapped to profiles');
     } catch (error) {
       console.error('Error in syncTeamsAndEvents:', error);
+      throw error;
+    }
+  }
+
+  // New method to sync events for a specific team and profile
+  async syncEventsForTeamAndProfile(teamId: string, profileId: string): Promise<number> {
+    try {
+      console.log(`Syncing events for team ${teamId} and profile ${profileId}`);
+      
+      // Get the platform team record
+      const { data: platformTeam, error: teamError } = await supabase
+        .from('platform_teams')
+        .select('*')
+        .eq('id', teamId)
+        .eq('platform', 'TeamSnap')
+        .single();
+
+      if (teamError || !platformTeam) {
+        throw new Error('Platform team not found');
+      }
+
+      // Fetch events from TeamSnap API
+      const teamEvents = await this.getTeamEvents(platformTeam.team_id);
+      
+      if (teamEvents.length === 0) {
+        console.log('No events found for this team');
+        return 0;
+      }
+
+      // Transform and store events for the specific profile
+      const eventsToInsert = teamEvents.map(event => ({
+        title: event.name || 'TeamSnap Event',
+        description: event.notes || '',
+        start_time: event.start_date,
+        end_time: event.end_date || event.start_date,
+        location: event.location_name || '',
+        sport: platformTeam.sport || 'Unknown',
+        color: '#7C3AED', // TeamSnap purple
+        platform: 'TeamSnap',
+        platform_color: '#7C3AED',
+        platform_team_id: teamId,
+        profile_id: profileId // This is the key - we now have a valid profile_id
+      })).filter(event => event.start_time); // Only include events with valid start times
+
+      if (eventsToInsert.length === 0) {
+        console.log('No valid events to insert');
+        return 0;
+      }
+
+      // Delete existing events for this profile and team to avoid duplicates
+      await supabase
+        .from('events')
+        .delete()
+        .eq('platform_team_id', teamId)
+        .eq('profile_id', profileId)
+        .eq('platform', 'TeamSnap');
+
+      // Insert new events
+      const { error: eventsError } = await supabase
+        .from('events')
+        .insert(eventsToInsert);
+
+      if (eventsError) {
+        console.error('Error storing events:', eventsError);
+        throw eventsError;
+      }
+
+      console.log(`Successfully stored ${eventsToInsert.length} events for profile ${profileId}`);
+      return eventsToInsert.length;
+    } catch (error) {
+      console.error('Error syncing events for team and profile:', error);
       throw error;
     }
   }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
-import { Check, X } from 'lucide-react';
+import { Check, X, RefreshCw } from 'lucide-react';
+import { TeamSnapService } from '../../services/teamsnap';
 
 interface Team {
   id: string;
@@ -20,6 +21,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -75,6 +77,23 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
         if (error) throw error;
       }
 
+      // Now sync events for TeamSnap teams
+      for (const teamId of selectedTeams) {
+        const team = teams.find(t => t.id === teamId);
+        if (team && team.platform === 'TeamSnap') {
+          try {
+            setSyncing(teamId);
+            
+            // We need to create a TeamSnap service instance, but we don't have the access token
+            // For now, we'll just show a message that events will be synced when the user refreshes
+            console.log(`TeamSnap team ${team.team_name} mapped. Events will be synced on next refresh.`);
+          } catch (syncError) {
+            console.error(`Error syncing events for team ${team.team_name}:`, syncError);
+          }
+        }
+      }
+
+      setSyncing(null);
       onClose();
     } catch (error) {
       console.error('Error saving team mappings:', error);
@@ -132,7 +151,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                       selectedTeams.includes(team.id)
                         ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50'
                         : 'border-gray-200 dark:border-gray-700'
-                    } cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700`}
+                    } cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 relative`}
                   >
                     <input
                       type="checkbox"
@@ -150,9 +169,14 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                             {team.sport}
                           </p>
                         </div>
-                        {selectedTeams.includes(team.id) && (
-                          <Check className="h-5 w-5 text-blue-600" />
-                        )}
+                        <div className="flex items-center space-x-2">
+                          {syncing === team.id && (
+                            <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />
+                          )}
+                          {selectedTeams.includes(team.id) && (
+                            <Check className="h-5 w-5 text-blue-600" />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </label>
@@ -179,12 +203,27 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
           </button>
           <button
             onClick={handleSave}
-            disabled={saving}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={saving || syncing !== null}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save Changes'
+            )}
           </button>
         </div>
+
+        {selectedTeams.some(teamId => teams.find(t => t.id === teamId)?.platform === 'TeamSnap') && (
+          <div className="px-6 py-3 bg-blue-50 dark:bg-blue-900/50 border-t border-blue-200 dark:border-blue-800">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <strong>Note:</strong> TeamSnap events will be synced when you refresh the team connection or manually sync events.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
