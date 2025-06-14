@@ -89,7 +89,7 @@ const SignIn: React.FC = () => {
           />
           <div className="mt-4 text-center">
             <Link 
-              to="/auth/reset-password" 
+              to="/auth/forgot-password" 
               className="text-sm font-medium text-blue-600 hover:text-blue-500"
             >
               Forgot your password?
