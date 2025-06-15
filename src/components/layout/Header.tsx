@@ -3,7 +3,7 @@ import { Bell, User, Search, Moon, Sun, LogOut, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
-import NotificationDropdown from '../notifications/NotificationDropdown';
+import NotificationCenter from '../notifications/NotificationCenter';
 import { supabase } from '../../lib/supabase';
 
 interface HeaderProps {
@@ -29,7 +29,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
-  const [notifications, setNotifications] = useState<any[]>([]);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
   const navigate = useNavigate();
@@ -44,50 +43,22 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        // Get user's profiles
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('user_id', (await supabase.auth.getUser()).data.user?.id);
-
-        if (!profiles?.length) return;
-
-        const profileIds = profiles.map(p => p.id);
-
-        // Get events that were created or updated in the last 24 hours
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-
-        const { data: recentEvents } = await supabase
-          .from('events')
-          .select('*')
-          .in('profile_id', profileIds)
-          .or(`created_at.gt.${yesterday.toISOString()},updated_at.gt.${yesterday.toISOString()}`);
-
-        if (recentEvents) {
-          const newNotifications = recentEvents.map(event => ({
-            id: event.id,
-            title: event.title,
-            type: event.created_at > event.updated_at ? 'new_event' : 'schedule_change',
-            time: new Date(event.created_at > event.updated_at ? event.created_at : event.updated_at),
-            read: false
-          }));
-
-          setNotifications(newNotifications);
-          setNotificationCount(newNotifications.length);
+    fetchNotificationCount();
+    
+    // Set up real-time subscription for notifications
+    const notificationsSubscription = supabase
+      .channel('header-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friend_requests'
+        },
+        () => {
+          fetchNotificationCount();
         }
-      } catch (error) {
-        console.error('Error fetching notifications:', error);
-      }
-    };
-
-    fetchNotifications();
-
-    // Subscribe to realtime changes
-    const eventsSubscription = supabase
-      .channel('events-changes')
+      )
       .on(
         'postgres_changes',
         {
@@ -95,16 +66,63 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
           schema: 'public',
           table: 'events'
         },
-        (payload) => {
-          fetchNotifications(); // Refresh notifications when events change
+        () => {
+          fetchNotificationCount();
         }
       )
       .subscribe();
 
     return () => {
-      eventsSubscription.unsubscribe();
+      notificationsSubscription.unsubscribe();
     };
   }, []);
+
+  const fetchNotificationCount = async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError || !user) return;
+
+      let count = 0;
+
+      // Count pending friend requests
+      const { count: friendRequestCount, error: friendRequestError } = await supabase
+        .from('friend_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('requested_id', user.id)
+        .eq('status', 'pending');
+
+      if (!friendRequestError && friendRequestCount) {
+        count += friendRequestCount;
+      }
+
+      // Count recent events (created in last 24 hours)
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (profiles && profiles.length > 0) {
+        const profileIds = profiles.map(p => p.id);
+
+        const { count: eventCount, error: eventError } = await supabase
+          .from('events')
+          .select('*', { count: 'exact', head: true })
+          .in('profile_id', profileIds)
+          .gte('created_at', yesterday.toISOString());
+
+        if (!eventError && eventCount) {
+          count += eventCount;
+        }
+      }
+
+      setNotificationCount(count);
+    } catch (error) {
+      console.error('Error fetching notification count:', error);
+    }
+  };
 
   const fetchFriends = async () => {
     try {
@@ -168,20 +186,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     }
   };
 
-  const handleClearAllNotifications = () => {
-    setNotifications([]);
-    setNotificationCount(0);
-    setNotificationsOpen(false);
-  };
-
-  const handleClearNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-    setNotificationCount(prev => prev - 1);
-    if (notificationCount === 1) {
-      setNotificationsOpen(false);
-    }
-  };
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/auth/signin');
@@ -230,6 +234,27 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 <Moon className="h-6 w-6" />
               )}
             </button>
+
+            {/* Notifications */}
+            <div className="relative">
+              <button
+                type="button"
+                className="relative rounded-full bg-white dark:bg-gray-700 p-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onClick={toggleNotifications}
+              >
+                <span className="sr-only">View notifications</span>
+                <Bell className="h-6 w-6" />
+                {notificationCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </span>
+                )}
+              </button>
+              
+              {notificationsOpen && (
+                <NotificationCenter onClose={() => setNotificationsOpen(false)} />
+              )}
+            </div>
 
             {/* Friends Dropdown */}
             <div className="relative">
@@ -318,30 +343,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 </div>
               )}
             </div>
-
-            {notificationCount > 0 && (
-              <div className="relative">
-                <button
-                  type="button"
-                  className="relative rounded-full bg-white dark:bg-gray-700 p-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onClick={toggleNotifications}
-                >
-                  <span className="sr-only">View notifications</span>
-                  <Bell className="h-6 w-6" />
-                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
-                    {notificationCount}
-                  </span>
-                </button>
-                {notificationsOpen && (
-                  <NotificationDropdown 
-                    notifications={notifications} 
-                    onClose={() => setNotificationsOpen(false)}
-                    onClearAll={handleClearAllNotifications}
-                    onClearOne={handleClearNotification}
-                  />
-                )}
-              </div>
-            )}
             
             <div className="relative">
               <button
