@@ -89,31 +89,18 @@ const FriendsManager: React.FC = () => {
 
       if (friendsError) throw friendsError;
 
-      // Get user details for friends from user_settings table
+      // Get user details for friends from searchable_users view
       const friendIds = friendsData?.map(f => f.friend_id) || [];
       let friendUsers: any[] = [];
       
       if (friendIds.length > 0) {
-        // Get user settings for friends - this contains the user info we need
-        const { data: userSettings, error: settingsError } = await supabase
-          .from('user_settings')
-          .select('user_id, full_name, profile_photo_url')
-          .in('user_id', friendIds);
+        const { data: userDetails, error: detailsError } = await supabase
+          .from('searchable_users')
+          .select('id, email, full_name, profile_photo_url')
+          .in('id', friendIds);
 
-        if (settingsError) throw settingsError;
-
-        // For each friend, we need to get their email from auth.users
-        // Since we can't use admin.listUsers(), we'll work with what we have
-        friendUsers = friendIds.map(friendId => {
-          const settings = userSettings?.find(s => s.user_id === friendId);
-          
-          return {
-            id: friendId,
-            email: 'Email not available', // We can't get email without admin access
-            full_name: settings?.full_name,
-            profile_photo_url: settings?.profile_photo_url
-          };
-        });
+        if (detailsError) throw detailsError;
+        friendUsers = userDetails || [];
       }
 
       // Transform friends data
@@ -143,23 +130,13 @@ const FriendsManager: React.FC = () => {
       let requesterUsers: any[] = [];
 
       if (requesterIds.length > 0) {
-        const { data: userSettings, error: settingsError } = await supabase
-          .from('user_settings')
-          .select('user_id, full_name, profile_photo_url')
-          .in('user_id', requesterIds);
+        const { data: userDetails, error: detailsError } = await supabase
+          .from('searchable_users')
+          .select('id, email, full_name, profile_photo_url')
+          .in('id', requesterIds);
 
-        if (settingsError) throw settingsError;
-
-        requesterUsers = requesterIds.map(requesterId => {
-          const settings = userSettings?.find(s => s.user_id === requesterId);
-          
-          return {
-            id: requesterId,
-            email: 'Email not available',
-            full_name: settings?.full_name,
-            profile_photo_url: settings?.profile_photo_url
-          };
-        });
+        if (detailsError) throw detailsError;
+        requesterUsers = userDetails || [];
       }
 
       const transformedIncoming = incomingData?.map(request => ({
@@ -183,23 +160,13 @@ const FriendsManager: React.FC = () => {
       let requestedUsers: any[] = [];
 
       if (requestedIds.length > 0) {
-        const { data: userSettings, error: settingsError } = await supabase
-          .from('user_settings')
-          .select('user_id, full_name, profile_photo_url')
-          .in('user_id', requestedIds);
+        const { data: userDetails, error: detailsError } = await supabase
+          .from('searchable_users')
+          .select('id, email, full_name, profile_photo_url')
+          .in('id', requestedIds);
 
-        if (settingsError) throw settingsError;
-
-        requestedUsers = requestedIds.map(requestedId => {
-          const settings = userSettings?.find(s => s.user_id === requestedId);
-          
-          return {
-            id: requestedId,
-            email: 'Email not available',
-            full_name: settings?.full_name,
-            profile_photo_url: settings?.profile_photo_url
-          };
-        });
+        if (detailsError) throw detailsError;
+        requestedUsers = userDetails || [];
       }
 
       const transformedOutgoing = outgoingData?.map(request => ({
@@ -239,41 +206,40 @@ const FriendsManager: React.FC = () => {
       console.log('Search term:', searchTerm);
       console.log('Current user ID:', currentUserId);
 
-      // Search for users by looking in user_settings table where we can match name patterns
-      // REMOVED the user_id filter to get all users matching the search term
-      const { data: userSettings, error: settingsError } = await supabase
-        .from('user_settings')
-        .select('user_id, full_name, profile_photo_url')
-        .ilike('full_name', `%${searchTerm}%`)
+      // Search in the searchable_users view
+      const { data: searchData, error: searchError } = await supabase
+        .from('searchable_users')
+        .select('id, email, full_name, profile_photo_url')
+        .or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
         .limit(10);
 
       console.log('📊 DATABASE RESPONSE');
-      console.log('Error:', settingsError);
-      console.log('Data:', userSettings);
-      console.log('Data length:', userSettings?.length || 0);
+      console.log('Error:', searchError);
+      console.log('Data:', searchData);
+      console.log('Data length:', searchData?.length || 0);
 
-      if (settingsError) {
-        console.error('❌ Search error:', settingsError);
-        setSearchDebugInfo(`Database error: ${settingsError.message}`);
-        throw settingsError;
+      if (searchError) {
+        console.error('❌ Search error:', searchError);
+        setSearchDebugInfo(`Database error: ${searchError.message}`);
+        throw searchError;
       }
 
-      if (!userSettings) {
+      if (!searchData) {
         console.log('❌ No data returned from database');
         setSearchDebugInfo('No data returned from database');
         setSearchResults([]);
         return;
       }
 
-      if (userSettings.length === 0) {
+      if (searchData.length === 0) {
         console.log('❌ Empty results from database');
-        setSearchDebugInfo(`No users found in database with name containing "${searchTerm}"`);
+        setSearchDebugInfo(`No users found matching "${searchTerm}"`);
         setSearchResults([]);
         return;
       }
 
-      console.log('✅ Found users in database:', userSettings.length);
-      setSearchDebugInfo(`Found ${userSettings.length} users in database`);
+      console.log('✅ Found users in database:', searchData.length);
+      setSearchDebugInfo(`Found ${searchData.length} users in database`);
 
       // Get current user's existing connections to filter them out
       const existingFriendIds = friends.map(f => f.friend_id);
@@ -285,14 +251,14 @@ const FriendsManager: React.FC = () => {
       console.log('Pending incoming request IDs:', pendingIncomingIds);
       console.log('Pending outgoing request IDs:', pendingOutgoingIds);
 
-      // Filter out existing friends and pending requests, but keep current user for now to see if they appear
-      const filteredUsers = userSettings.filter(u => {
-        const isCurrentUser = u.user_id === currentUserId;
-        const isExistingFriend = existingFriendIds.includes(u.user_id);
-        const hasPendingIncoming = pendingIncomingIds.includes(u.user_id);
-        const hasPendingOutgoing = pendingOutgoingIds.includes(u.user_id);
+      // Filter out current user, existing friends and pending requests
+      const filteredUsers = searchData.filter(u => {
+        const isCurrentUser = u.id === currentUserId;
+        const isExistingFriend = existingFriendIds.includes(u.id);
+        const hasPendingIncoming = pendingIncomingIds.includes(u.id);
+        const hasPendingOutgoing = pendingOutgoingIds.includes(u.id);
         
-        console.log(`--- Checking user: ${u.full_name} (${u.user_id}) ---`);
+        console.log(`--- Checking user: ${u.full_name || u.email} (${u.id}) ---`);
         console.log(`  Is current user: ${isCurrentUser}`);
         console.log(`  Is existing friend: ${isExistingFriend}`);
         console.log(`  Has pending incoming: ${hasPendingIncoming}`);
@@ -309,44 +275,15 @@ const FriendsManager: React.FC = () => {
       console.log('Filtered users count:', filteredUsers.length);
       console.log('Filtered users:', filteredUsers);
 
-      // For each user, try to get their email from auth.users metadata if available
-      // Since we can't access auth.users directly, we'll use the user_id as a fallback
-      const transformedUsers = await Promise.all(
-        filteredUsers.map(async (settings) => {
-          // Try to get user email from auth metadata (this might not work without admin access)
-          let email = 'Email not available';
-          
-          try {
-            // We can't get email from auth.users without admin access
-            // So we'll just use a placeholder for now
-            email = `user-${settings.user_id.slice(0, 8)}@example.com`;
-          } catch (e) {
-            // Fallback to user ID
-            email = `User ID: ${settings.user_id.slice(0, 8)}...`;
-          }
-
-          return {
-            id: settings.user_id,
-            email: email,
-            full_name: settings.full_name,
-            profile_photo_url: settings.profile_photo_url
-          };
-        })
-      );
-
-      console.log('📋 FINAL RESULTS FOR UI');
-      console.log('Transformed users:', transformedUsers);
-      console.log('Setting search results...');
-
-      setSearchResults(transformedUsers);
+      setSearchResults(filteredUsers);
 
       // Update debug info
-      if (transformedUsers.length > 0) {
-        setSearchDebugInfo(`✅ Found ${transformedUsers.length} available user(s) for "${searchTerm}"`);
-        console.log(`✅ SUCCESS: Found ${transformedUsers.length} user(s) matching "${searchTerm}"`);
+      if (filteredUsers.length > 0) {
+        setSearchDebugInfo(`✅ Found ${filteredUsers.length} available user(s) for "${searchTerm}"`);
+        console.log(`✅ SUCCESS: Found ${filteredUsers.length} user(s) matching "${searchTerm}"`);
       } else {
-        setSearchDebugInfo(`❌ No available users found for "${searchTerm}" after filtering (found ${userSettings.length} in database but all were filtered out)`);
-        console.log(`❌ NO RESULTS: Found ${userSettings.length} users in database but all were filtered out`);
+        setSearchDebugInfo(`❌ No available users found for "${searchTerm}" after filtering (found ${searchData.length} in database but all were filtered out)`);
+        console.log(`❌ NO RESULTS: Found ${searchData.length} users in database but all were filtered out`);
       }
 
     } catch (err) {
@@ -536,7 +473,7 @@ const FriendsManager: React.FC = () => {
               type="text"
               value={searchEmail}
               onChange={(e) => setSearchEmail(e.target.value)}
-              placeholder="Start typing a user's name..."
+              placeholder="Search by name or email..."
               className="w-full pl-10 pr-4 py-2 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-600 dark:text-white text-sm"
             />
             {searching && (
@@ -554,7 +491,7 @@ const FriendsManager: React.FC = () => {
           )}
 
           <div className="text-xs text-gray-500 dark:text-gray-400">
-            Search results will appear as you type (minimum 2 characters). Search is by user name only.
+            Search for users by name or email address (minimum 2 characters).
           </div>
 
           {searchResults.length > 0 && (
@@ -591,7 +528,7 @@ const FriendsManager: React.FC = () => {
                           <img src={user.profile_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                         ) : (
                           <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                            {(user.full_name || 'U').charAt(0).toUpperCase()}
+                            {(user.full_name || user.email).charAt(0).toUpperCase()}
                           </span>
                         )}
                       </div>
@@ -641,7 +578,7 @@ const FriendsManager: React.FC = () => {
                       <img src={request.requester.profile_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                        {(request.requester?.full_name || 'U').charAt(0).toUpperCase()}
+                        {(request.requester?.full_name || request.requester?.email || 'U').charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
@@ -701,7 +638,7 @@ const FriendsManager: React.FC = () => {
                       <img src={request.requested.profile_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                        {(request.requested?.full_name || 'U').charAt(0).toUpperCase()}
+                        {(request.requested?.full_name || request.requested?.email || 'U').charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
@@ -747,7 +684,7 @@ const FriendsManager: React.FC = () => {
                       <img src={friend.friend.profile_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
                     ) : (
                       <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                        {(friend.friend.full_name || 'U').charAt(0).toUpperCase()}
+                        {(friend.friend.full_name || friend.friend.email || 'U').charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
@@ -778,7 +715,7 @@ const FriendsManager: React.FC = () => {
           <div className="text-center py-6 text-gray-500 dark:text-gray-400">
             <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No friends added yet</p>
-            <p className="text-xs">Search for users by name to send friend requests</p>
+            <p className="text-xs">Search for users by name or email to send friend requests</p>
           </div>
         )}
       </div>
