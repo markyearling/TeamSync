@@ -45,7 +45,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   useEffect(() => {
     fetchNotificationCount();
     
-    // Set up real-time subscription for notifications
+    // Set up real-time subscription for notifications count
     const notificationsSubscription = supabase
       .channel('header-notifications')
       .on(
@@ -53,18 +53,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         {
           event: '*',
           schema: 'public',
-          table: 'friend_requests'
-        },
-        () => {
-          fetchNotificationCount();
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'events'
+          table: 'notifications'
         },
         () => {
           fetchNotificationCount();
@@ -82,43 +71,16 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) return;
 
-      let count = 0;
-
-      // Count pending friend requests
-      const { count: friendRequestCount, error: friendRequestError } = await supabase
-        .from('friend_requests')
+      // Count unread notifications
+      const { count, error: countError } = await supabase
+        .from('notifications')
         .select('*', { count: 'exact', head: true })
-        .eq('requested_id', user.id)
-        .eq('status', 'pending');
+        .eq('user_id', user.id)
+        .eq('read', false);
 
-      if (!friendRequestError && friendRequestCount) {
-        count += friendRequestCount;
+      if (!countError) {
+        setNotificationCount(count || 0);
       }
-
-      // Count recent events (created in last 24 hours)
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id);
-
-      if (profiles && profiles.length > 0) {
-        const profileIds = profiles.map(p => p.id);
-
-        const { count: eventCount, error: eventError } = await supabase
-          .from('events')
-          .select('*', { count: 'exact', head: true })
-          .in('profile_id', profileIds)
-          .gte('created_at', yesterday.toISOString());
-
-        if (!eventError && eventCount) {
-          count += eventCount;
-        }
-      }
-
-      setNotificationCount(count);
     } catch (error) {
       console.error('Error fetching notification count:', error);
     }

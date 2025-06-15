@@ -4,12 +4,14 @@ import { supabase } from '../../lib/supabase';
 
 interface Notification {
   id: string;
+  user_id: string;
   type: 'friend_request' | 'schedule_change' | 'new_event' | 'message';
   title: string;
   message: string;
   read: boolean;
+  data: any;
   created_at: string;
-  data?: any; // Additional data for the notification
+  updated_at: string;
 }
 
 interface NotificationCenterProps {
@@ -24,39 +26,71 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
   useEffect(() => {
     fetchNotifications();
     
-    // Set up real-time subscription for friend requests
+    // Set up real-time subscription for notifications
+    const notificationsSubscription = supabase
+      .channel('notifications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications'
+        },
+        (payload) => {
+          console.log('Notification change:', payload);
+          fetchNotifications();
+        }
+      )
+      .subscribe();
+
+    // Set up subscription for friend requests to create notifications
     const friendRequestsSubscription = supabase
       .channel('friend-requests-notifications')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'friend_requests'
         },
-        () => {
-          fetchNotifications();
+        async (payload) => {
+          console.log('New friend request:', payload);
+          await createFriendRequestNotification(payload.new);
         }
       )
       .subscribe();
 
-    // Set up real-time subscription for events
+    // Set up subscription for events to create notifications
     const eventsSubscription = supabase
       .channel('events-notifications')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
           schema: 'public',
           table: 'events'
         },
-        () => {
-          fetchNotifications();
+        async (payload) => {
+          console.log('New event:', payload);
+          await createEventNotification(payload.new, 'new_event');
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'events'
+        },
+        async (payload) => {
+          console.log('Updated event:', payload);
+          await createEventNotification(payload.new, 'schedule_change');
         }
       )
       .subscribe();
 
     return () => {
+      notificationsSubscription.unsubscribe();
       friendRequestsSubscription.unsubscribe();
       eventsSubscription.unsubscribe();
     };
@@ -68,96 +102,15 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
       if (userError) throw userError;
       if (!user) return;
 
-      const notifications: Notification[] = [];
-
-      // Fetch friend requests (incoming)
-      const { data: friendRequests, error: friendRequestsError } = await supabase
-        .from('friend_requests')
-        .select(`
-          id,
-          requester_id,
-          message,
-          created_at,
-          user_settings!friend_requests_requester_id_fkey(full_name, profile_photo_url)
-        `)
-        .eq('requested_id', user.id)
-        .eq('status', 'pending')
+      const { data: notificationsData, error: notificationsError } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (friendRequestsError) {
-        console.error('Error fetching friend requests:', friendRequestsError);
-      } else if (friendRequests) {
-        friendRequests.forEach(request => {
-          const requesterName = request.user_settings?.full_name || 'Someone';
-          notifications.push({
-            id: `friend_request_${request.id}`,
-            type: 'friend_request',
-            title: 'New Friend Request',
-            message: `${requesterName} wants to be your friend${request.message ? `: "${request.message}"` : ''}`,
-            read: false,
-            created_at: request.created_at,
-            data: {
-              friend_request_id: request.id,
-              requester_id: request.requester_id,
-              requester_name: requesterName,
-              requester_photo: request.user_settings?.profile_photo_url
-            }
-          });
-        });
-      }
+      if (notificationsError) throw notificationsError;
 
-      // Fetch recent events (created in last 24 hours)
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', user.id);
-
-      if (!profilesError && profiles) {
-        const profileIds = profiles.map(p => p.id);
-
-        const { data: recentEvents, error: eventsError } = await supabase
-          .from('events')
-          .select(`
-            id,
-            title,
-            start_time,
-            created_at,
-            updated_at,
-            platform,
-            profiles!inner(name)
-          `)
-          .in('profile_id', profileIds)
-          .gte('created_at', yesterday.toISOString())
-          .order('created_at', { ascending: false });
-
-        if (!eventsError && recentEvents) {
-          recentEvents.forEach(event => {
-            const isNew = new Date(event.created_at) > new Date(event.updated_at);
-            notifications.push({
-              id: `event_${event.id}`,
-              type: isNew ? 'new_event' : 'schedule_change',
-              title: isNew ? 'New Event Added' : 'Schedule Updated',
-              message: `${event.title} for ${event.profiles.name}`,
-              read: false,
-              created_at: event.created_at,
-              data: {
-                event_id: event.id,
-                child_name: event.profiles.name,
-                event_title: event.title,
-                start_time: event.start_time
-              }
-            });
-          });
-        }
-      }
-
-      // Sort notifications by creation date
-      notifications.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-      setNotifications(notifications);
+      setNotifications(notificationsData || []);
     } catch (err) {
       console.error('Error fetching notifications:', err);
       setError('Failed to load notifications');
@@ -166,10 +119,94 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
     }
   };
 
-  const handleFriendRequestAction = async (notificationId: string, action: 'accept' | 'decline') => {
+  const createFriendRequestNotification = async (friendRequest: any) => {
     try {
-      const notification = notifications.find(n => n.id === notificationId);
-      if (!notification || notification.type !== 'friend_request') return;
+      // Get requester info
+      const { data: requesterSettings, error: requesterError } = await supabase
+        .from('user_settings')
+        .select('full_name, profile_photo_url')
+        .eq('user_id', friendRequest.requester_id)
+        .single();
+
+      if (requesterError) {
+        console.error('Error fetching requester info:', requesterError);
+        return;
+      }
+
+      const requesterName = requesterSettings?.full_name || 'Someone';
+
+      // Create notification
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: friendRequest.requested_id,
+          type: 'friend_request',
+          title: 'New Friend Request',
+          message: `${requesterName} wants to be your friend${friendRequest.message ? `: "${friendRequest.message}"` : ''}`,
+          data: {
+            friend_request_id: friendRequest.id,
+            requester_id: friendRequest.requester_id,
+            requester_name: requesterName,
+            requester_photo: requesterSettings?.profile_photo_url
+          }
+        });
+
+      if (notificationError) {
+        console.error('Error creating friend request notification:', notificationError);
+      }
+    } catch (err) {
+      console.error('Error in createFriendRequestNotification:', err);
+    }
+  };
+
+  const createEventNotification = async (event: any, type: 'new_event' | 'schedule_change') => {
+    try {
+      // Get profile info to find the user
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('user_id, name')
+        .eq('id', event.profile_id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile info:', profileError);
+        return;
+      }
+
+      // Don't create notification for events older than 1 hour
+      const eventCreated = new Date(event.created_at);
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      if (eventCreated < oneHourAgo) {
+        return;
+      }
+
+      // Create notification
+      const { error: notificationError } = await supabase
+        .from('notifications')
+        .insert({
+          user_id: profile.user_id,
+          type,
+          title: type === 'new_event' ? 'New Event Added' : 'Schedule Updated',
+          message: `${event.title} for ${profile.name}`,
+          data: {
+            event_id: event.id,
+            child_name: profile.name,
+            event_title: event.title,
+            start_time: event.start_time
+          }
+        });
+
+      if (notificationError) {
+        console.error('Error creating event notification:', notificationError);
+      }
+    } catch (err) {
+      console.error('Error in createEventNotification:', err);
+    }
+  };
+
+  const handleFriendRequestAction = async (notification: Notification, action: 'accept' | 'decline') => {
+    try {
+      if (notification.type !== 'friend_request') return;
 
       const friendRequestId = notification.data.friend_request_id;
 
@@ -194,46 +231,97 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
             {
               user_id: user.id,
               friend_id: requestData.requester_id,
-              role: requestData.role
+              role: 'viewer' // Default role for the friend
             },
             {
               user_id: requestData.requester_id,
               friend_id: user.id,
-              role: 'viewer' // The requester gets viewer access by default
+              role: 'viewer' // Default role for the requester
             }
           ]);
 
         if (friendshipError) throw friendshipError;
       }
 
-      // Remove the notification from the list
-      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+      // Delete the notification after processing
+      await deleteNotification(notification.id);
     } catch (err) {
       console.error('Error handling friend request:', err);
       setError('Failed to process friend request');
     }
   };
 
-  const markAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(n => 
-        n.id === notificationId ? { ...n, read: true } : n
-      )
-    );
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('id', notificationId);
+
+      if (error) throw error;
+
+      setNotifications(prev => 
+        prev.map(n => 
+          n.id === notificationId ? { ...n, read: true } : n
+        )
+      );
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(n => ({ ...n, read: true }))
-    );
+  const markAllAsRead = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('user_id', user.id)
+        .eq('read', false);
+
+      if (error) throw error;
+
+      setNotifications(prev => 
+        prev.map(n => ({ ...n, read: true }))
+      );
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err);
+    }
   };
 
-  const deleteNotification = (notificationId: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+  const deleteNotification = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) throw error;
+
+      setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+    }
   };
 
-  const clearAllNotifications = () => {
-    setNotifications([]);
+  const clearAllNotifications = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setNotifications([]);
+    } catch (err) {
+      console.error('Error clearing all notifications:', err);
+    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -322,9 +410,10 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
           notifications.map((notification) => (
             <div 
               key={notification.id} 
-              className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-600 last:border-b-0 ${
+              className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-600 last:border-b-0 cursor-pointer ${
                 !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
               }`}
+              onClick={() => !notification.read && markAsRead(notification.id)}
             >
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 pt-0.5">
@@ -345,16 +434,13 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
                     </div>
                     <div className="flex items-center space-x-1 ml-2">
                       {!notification.read && (
-                        <button
-                          onClick={() => markAsRead(notification.id)}
-                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                          title="Mark as read"
-                        >
-                          <Check className="h-4 w-4" />
-                        </button>
+                        <div className="w-2 h-2 bg-blue-500 rounded-full" title="Unread"></div>
                       )}
                       <button
-                        onClick={() => deleteNotification(notification.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteNotification(notification.id);
+                        }}
                         className="text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400"
                         title="Delete"
                       >
@@ -367,13 +453,19 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
                   {notification.type === 'friend_request' && (
                     <div className="flex space-x-2 mt-3">
                       <button
-                        onClick={() => handleFriendRequestAction(notification.id, 'accept')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFriendRequestAction(notification, 'accept');
+                        }}
                         className="flex-1 px-3 py-1.5 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
                       >
                         Accept
                       </button>
                       <button
-                        onClick={() => handleFriendRequestAction(notification.id, 'decline')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleFriendRequestAction(notification, 'decline');
+                        }}
                         className="flex-1 px-3 py-1.5 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500"
                       >
                         Decline
