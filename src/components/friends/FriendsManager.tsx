@@ -10,7 +10,9 @@ import {
   Eye,
   Trash2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  Edit2,
+  Save
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -47,7 +49,6 @@ const FriendsManager: React.FC = () => {
   const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
   const [searchEmail, setSearchEmail] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
-  const [selectedRole, setSelectedRole] = useState<'viewer' | 'administrator'>('viewer');
   const [requestMessage, setRequestMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
@@ -55,6 +56,8 @@ const FriendsManager: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [searchDebugInfo, setSearchDebugInfo] = useState<string>('');
+  const [editingFriend, setEditingFriend] = useState<string | null>(null);
+  const [editingRole, setEditingRole] = useState<'viewer' | 'administrator'>('viewer');
 
   useEffect(() => {
     fetchFriendsData();
@@ -354,7 +357,7 @@ const FriendsManager: React.FC = () => {
         .insert({
           requester_id: user.id,
           requested_id: userId,
-          role: selectedRole,
+          role: 'viewer', // Default to viewer, can be changed later
           message: requestMessage.trim() || null
         });
 
@@ -467,6 +470,35 @@ const FriendsManager: React.FC = () => {
     }
   };
 
+  const updateFriendRole = async (friendshipId: string, newRole: 'viewer' | 'administrator') => {
+    try {
+      setError(null);
+      const { error } = await supabase
+        .from('friendships')
+        .update({ role: newRole })
+        .eq('id', friendshipId);
+
+      if (error) throw error;
+
+      setSuccess(`Friend access level updated to ${newRole}`);
+      setEditingFriend(null);
+      fetchFriendsData();
+    } catch (err) {
+      console.error('Error updating friend role:', err);
+      setError('Failed to update friend access level');
+    }
+  };
+
+  const startEditingRole = (friendshipId: string, currentRole: 'viewer' | 'administrator') => {
+    setEditingFriend(friendshipId);
+    setEditingRole(currentRole);
+  };
+
+  const cancelEditingRole = () => {
+    setEditingFriend(null);
+    setEditingRole('viewer');
+  };
+
   const getRoleIcon = (role: string) => {
     return role === 'administrator' ? (
       <Shield className="h-4 w-4 text-orange-500" />
@@ -477,6 +509,12 @@ const FriendsManager: React.FC = () => {
 
   const getRoleLabel = (role: string) => {
     return role === 'administrator' ? 'Administrator' : 'Viewer';
+  };
+
+  const getAccessLevelDescription = (role: string) => {
+    return role === 'administrator' 
+      ? 'Can view and manage all schedules and events'
+      : 'Can view schedules and events only';
   };
 
   if (loading) {
@@ -542,21 +580,13 @@ const FriendsManager: React.FC = () => {
 
           {searchResults.length > 0 && (
             <div className="space-y-2">
-              <div className="flex space-x-2">
-                <select
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value as 'viewer' | 'administrator')}
-                  className="rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-600 dark:text-white text-sm"
-                >
-                  <option value="viewer">Viewer Access</option>
-                  <option value="administrator">Administrator Access</option>
-                </select>
+              <div>
                 <input
                   type="text"
                   value={requestMessage}
                   onChange={(e) => setRequestMessage(e.target.value)}
-                  placeholder="Optional message"
-                  className="flex-1 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-600 dark:text-white text-sm"
+                  placeholder="Optional message with your friend request"
+                  className="w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-600 dark:text-white text-sm"
                 />
               </div>
 
@@ -633,14 +663,11 @@ const FriendsManager: React.FC = () => {
                       {request.requester?.full_name || 'No name set'}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{request.requester?.email || `ID: ${request.requester_id.slice(0, 8)}...`}</div>
-                    <div className="flex items-center mt-1">
-                      {getRoleIcon(request.role)}
-                      <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
-                        Requesting {getRoleLabel(request.role)} access
-                      </span>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      Wants to be your friend
                     </div>
                     {request.message && (
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 italic">
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 italic bg-white dark:bg-gray-700 p-2 rounded">
                         "{request.message}"
                       </div>
                     )}
@@ -693,11 +720,8 @@ const FriendsManager: React.FC = () => {
                       {request.requested?.full_name || 'No name set'}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{request.requested?.email || `ID: ${request.requested_id.slice(0, 8)}...`}</div>
-                    <div className="flex items-center mt-1">
-                      {getRoleIcon(request.role)}
-                      <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
-                        {getRoleLabel(request.role)} access requested
-                      </span>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      Friend request sent
                     </div>
                   </div>
                 </div>
@@ -714,7 +738,7 @@ const FriendsManager: React.FC = () => {
         </div>
       )}
 
-      {/* Friends List */}
+      {/* Friends List with Access Level Management */}
       <div>
         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center">
           <Users className="h-4 w-4 mr-2" />
@@ -739,12 +763,55 @@ const FriendsManager: React.FC = () => {
                       {friend.friend.full_name || 'No name set'}
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{friend.friend.email || `ID: ${friend.friend_id.slice(0, 8)}...`}</div>
-                    <div className="flex items-center mt-1">
-                      {getRoleIcon(friend.role)}
-                      <span className="text-xs text-gray-600 dark:text-gray-400 ml-1">
-                        {getRoleLabel(friend.role)}
-                      </span>
-                    </div>
+                    
+                    {/* Access Level Management */}
+                    {editingFriend === friend.id ? (
+                      <div className="mt-2 flex items-center space-x-2">
+                        <select
+                          value={editingRole}
+                          onChange={(e) => setEditingRole(e.target.value as 'viewer' | 'administrator')}
+                          className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-600 dark:text-white"
+                        >
+                          <option value="viewer">Viewer</option>
+                          <option value="administrator">Administrator</option>
+                        </select>
+                        <button
+                          onClick={() => updateFriendRole(friend.id, editingRole)}
+                          className="p-1 text-green-600 hover:text-green-700"
+                          title="Save"
+                        >
+                          <Save className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={cancelEditingRole}
+                          className="p-1 text-gray-400 hover:text-gray-500"
+                          title="Cancel"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="mt-1 flex items-center justify-between">
+                        <div className="flex items-center">
+                          {getRoleIcon(friend.role)}
+                          <div className="ml-1">
+                            <span className="text-xs text-gray-600 dark:text-gray-400">
+                              {getRoleLabel(friend.role)}
+                            </span>
+                            <div className="text-xs text-gray-500 dark:text-gray-500">
+                              {getAccessLevelDescription(friend.role)}
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => startEditingRole(friend.id, friend.role)}
+                          className="p-1 text-gray-400 hover:text-blue-500"
+                          title="Edit access level"
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button
