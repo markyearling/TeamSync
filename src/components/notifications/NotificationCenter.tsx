@@ -1,15 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Bell, 
-  X, 
-  Check, 
-  UserPlus, 
-  Calendar, 
-  MessageSquare,
-  Clock,
-  Trash2,
-  MarkAsRead
-} from 'lucide-react';
+import { Bell, X, Check, UserPlus, Calendar, MessageSquare, Clock, Trash2, BookMarked as MarkAsRead } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface Notification {
