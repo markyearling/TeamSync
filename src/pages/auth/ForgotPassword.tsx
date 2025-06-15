@@ -15,8 +15,11 @@ const ForgotPassword: React.FC = () => {
     setError(null);
 
     try {
+      // Use the current origin, which will be the Netlify URL in production
+      const redirectUrl = `${window.location.origin}/auth/reset-password`;
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: redirectUrl,
       });
 
       if (error) throw error;
