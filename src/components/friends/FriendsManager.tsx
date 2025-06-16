@@ -350,15 +350,27 @@ const FriendsManager: React.FC = () => {
       if (!user) return;
 
       // Check if a request already exists before attempting to insert
-      const { data: existingRequest, error: checkError } = await supabase
-        .from('friend_requests')
-        .select('id')
-        .eq('requester_id', user.id)
-        .eq('requested_id', userId)
-        .single();
+      let existingRequest = null;
+      try {
+        const { data, error: checkError } = await supabase
+          .from('friend_requests')
+          .select('id')
+          .eq('requester_id', user.id)
+          .eq('requested_id', userId)
+          .single();
 
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
-        throw checkError;
+        if (checkError && checkError.code !== 'PGRST116') {
+          // PGRST116 means no rows found, which is expected when no duplicate exists
+          throw checkError;
+        }
+
+        existingRequest = data;
+      } catch (innerError: any) {
+        // Only re-throw if it's not the expected "no rows found" error
+        if (innerError.code !== 'PGRST116') {
+          throw innerError;
+        }
+        // PGRST116 means no existing request found, which is what we want
       }
 
       if (existingRequest) {
