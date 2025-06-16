@@ -59,11 +59,137 @@ const FriendsManager: React.FC = () => {
   const [editingFriend, setEditingFriend] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState<'viewer' | 'administrator'>('viewer');
 
+  const searchUsers = useCallback(async () => {
+    if (!searchEmail.trim() || searchEmail.trim().length < 2) {
+      setSearchResults([]);
+      setSearchDebugInfo('');
+      return;
+    }
+
+    setSearching(true);
+    setError(null);
+    setSearchDebugInfo('');
+
+    try {
+      if (!currentUserId) {
+        setError('User not authenticated');
+        return;
+      }
+
+      const searchTerm = searchEmail.trim();
+      console.log('🔍 STARTING SEARCH');
+      console.log('Search term:', searchTerm);
+      console.log('Current user ID:', currentUserId);
+
+      // Search for users by looking in user_settings table where we can match name patterns
+      // Search by full_name only since we can't access auth.users table
+      const { data: userSettings, error: settingsError } = await supabase
+        .from('user_settings')
+        .select('user_id, full_name, profile_photo_url')
+        .ilike('full_name', `%${searchTerm}%`)
+        .limit(10);
+
+      console.log('📊 DATABASE RESPONSE');
+      console.log('Error:', settingsError);
+      console.log('Data:', userSettings);
+      console.log('Data length:', userSettings?.length || 0);
+
+      if (settingsError) {
+        console.error('❌ Search error:', settingsError);
+        setSearchDebugInfo(`Database error: ${settingsError.message}`);
+        throw settingsError;
+      }
+
+      if (!userSettings) {
+        console.log('❌ No data returned from database');
+        setSearchDebugInfo('No data returned from database');
+        setSearchResults([]);
+        return;
+      }
+
+      if (userSettings.length === 0) {
+        console.log('❌ Empty results from database');
+        setSearchDebugInfo(`No users found in database with name containing "${searchTerm}"`);
+        setSearchResults([]);
+        return;
+      }
+
+      console.log('✅ Found users in database:', userSettings.length);
+      setSearchDebugInfo(`Found ${userSettings.length} users in database`);
+
+      // Get current user's existing connections to filter them out
+      const existingFriendIds = friends.map(f => f.friend_id);
+      const pendingIncomingIds = incomingRequests.map(r => r.requester_id);
+      const pendingOutgoingIds = outgoingRequests.map(r => r.requested_id);
+      
+      console.log('🔍 FILTERING LOGIC');
+      console.log('Existing friend IDs:', existingFriendIds);
+      console.log('Pending incoming request IDs:', pendingIncomingIds);
+      console.log('Pending outgoing request IDs:', pendingOutgoingIds);
+
+      // Filter out existing friends and pending requests, but keep current user for now to see if they appear
+      const filteredUsers = userSettings.filter(u => {
+        const isCurrentUser = u.user_id === currentUserId;
+        const isExistingFriend = existingFriendIds.includes(u.user_id);
+        const hasPendingIncoming = pendingIncomingIds.includes(u.user_id);
+        const hasPendingOutgoing = pendingOutgoingIds.includes(u.user_id);
+        
+        console.log(`--- Checking user: ${u.full_name} (${u.user_id}) ---`);
+        console.log(`  Is current user: ${isCurrentUser}`);
+        console.log(`  Is existing friend: ${isExistingFriend}`);
+        console.log(`  Has pending incoming: ${hasPendingIncoming}`);
+        console.log(`  Has pending outgoing: ${hasPendingOutgoing}`);
+        
+        // Only exclude current user, existing friends, and pending requests
+        const shouldInclude = !isCurrentUser && !isExistingFriend && !hasPendingIncoming && !hasPendingOutgoing;
+        console.log(`  ✅ Should include: ${shouldInclude}`);
+        
+        return shouldInclude;
+      });
+
+      console.log('🎯 FINAL FILTERING RESULTS');
+      console.log('Filtered users count:', filteredUsers.length);
+      console.log('Filtered users:', filteredUsers);
+
+      // Transform users for display
+      const transformedUsers = filteredUsers.map((settings) => ({
+        id: settings.user_id,
+        email: 'Search by name only', // Can't get email from auth.users
+        full_name: settings.full_name,
+        profile_photo_url: settings.profile_photo_url
+      }));
+
+      console.log('📋 FINAL RESULTS FOR UI');
+      console.log('Transformed users:', transformedUsers);
+      console.log('Setting search results...');
+
+      setSearchResults(transformedUsers);
+
+      // Update debug info
+      if (transformedUsers.length > 0) {
+        setSearchDebugInfo(`✅ Found ${transformedUsers.length} available user(s) for "${searchTerm}"`);
+        console.log(`✅ SUCCESS: Found ${transformedUsers.length} user(s) matching "${searchTerm}"`);
+      } else {
+        setSearchDebugInfo(`❌ No available users found for "${searchTerm}" after filtering (found ${userSettings.length} in database but all were filtered out)`);
+        console.log(`❌ NO RESULTS: Found ${userSettings.length} users in database but all were filtered out`);
+      }
+
+    } catch (err) {
+      console.error('💥 Error searching users:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to search users: ${errorMessage}`);
+      setSearchDebugInfo(`Error: ${errorMessage}`);
+    } finally {
+      setSearching(false);
+      console.log('🏁 SEARCH COMPLETE');
+    }
+  }, [searchEmail, currentUserId, friends, incomingRequests, outgoingRequests]);
+
   useEffect(() => {
     fetchFriendsData();
   }, []);
 
-  // Debounced search effect - now includes searchUsers in dependency array
+  // Debounced search effect
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchEmail.trim().length >= 2) {
@@ -75,7 +201,7 @@ const FriendsManager: React.FC = () => {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchEmail, searchUsers]); // Added searchUsers to dependency array
+  }, [searchEmail, searchUsers]);
 
   const fetchFriendsData = async () => {
     try {
@@ -219,132 +345,6 @@ const FriendsManager: React.FC = () => {
       setLoading(false);
     }
   };
-
-  const searchUsers = useCallback(async () => {
-    if (!searchEmail.trim() || searchEmail.trim().length < 2) {
-      setSearchResults([]);
-      setSearchDebugInfo('');
-      return;
-    }
-
-    setSearching(true);
-    setError(null);
-    setSearchDebugInfo('');
-
-    try {
-      if (!currentUserId) {
-        setError('User not authenticated');
-        return;
-      }
-
-      const searchTerm = searchEmail.trim();
-      console.log('🔍 STARTING SEARCH');
-      console.log('Search term:', searchTerm);
-      console.log('Current user ID:', currentUserId);
-
-      // Search for users by looking in user_settings table where we can match name patterns
-      // Search by full_name only since we can't access auth.users table
-      const { data: userSettings, error: settingsError } = await supabase
-        .from('user_settings')
-        .select('user_id, full_name, profile_photo_url')
-        .ilike('full_name', `%${searchTerm}%`)
-        .limit(10);
-
-      console.log('📊 DATABASE RESPONSE');
-      console.log('Error:', settingsError);
-      console.log('Data:', userSettings);
-      console.log('Data length:', userSettings?.length || 0);
-
-      if (settingsError) {
-        console.error('❌ Search error:', settingsError);
-        setSearchDebugInfo(`Database error: ${settingsError.message}`);
-        throw settingsError;
-      }
-
-      if (!userSettings) {
-        console.log('❌ No data returned from database');
-        setSearchDebugInfo('No data returned from database');
-        setSearchResults([]);
-        return;
-      }
-
-      if (userSettings.length === 0) {
-        console.log('❌ Empty results from database');
-        setSearchDebugInfo(`No users found in database with name containing "${searchTerm}"`);
-        setSearchResults([]);
-        return;
-      }
-
-      console.log('✅ Found users in database:', userSettings.length);
-      setSearchDebugInfo(`Found ${userSettings.length} users in database`);
-
-      // Get current user's existing connections to filter them out
-      const existingFriendIds = friends.map(f => f.friend_id);
-      const pendingIncomingIds = incomingRequests.map(r => r.requester_id);
-      const pendingOutgoingIds = outgoingRequests.map(r => r.requested_id);
-      
-      console.log('🔍 FILTERING LOGIC');
-      console.log('Existing friend IDs:', existingFriendIds);
-      console.log('Pending incoming request IDs:', pendingIncomingIds);
-      console.log('Pending outgoing request IDs:', pendingOutgoingIds);
-
-      // Filter out existing friends and pending requests, but keep current user for now to see if they appear
-      const filteredUsers = userSettings.filter(u => {
-        const isCurrentUser = u.user_id === currentUserId;
-        const isExistingFriend = existingFriendIds.includes(u.user_id);
-        const hasPendingIncoming = pendingIncomingIds.includes(u.user_id);
-        const hasPendingOutgoing = pendingOutgoingIds.includes(u.user_id);
-        
-        console.log(`--- Checking user: ${u.full_name} (${u.user_id}) ---`);
-        console.log(`  Is current user: ${isCurrentUser}`);
-        console.log(`  Is existing friend: ${isExistingFriend}`);
-        console.log(`  Has pending incoming: ${hasPendingIncoming}`);
-        console.log(`  Has pending outgoing: ${hasPendingOutgoing}`);
-        
-        // Only exclude current user, existing friends, and pending requests
-        const shouldInclude = !isCurrentUser && !isExistingFriend && !hasPendingIncoming && !hasPendingOutgoing;
-        console.log(`  ✅ Should include: ${shouldInclude}`);
-        
-        return shouldInclude;
-      });
-
-      console.log('🎯 FINAL FILTERING RESULTS');
-      console.log('Filtered users count:', filteredUsers.length);
-      console.log('Filtered users:', filteredUsers);
-
-      // Transform users for display
-      const transformedUsers = filteredUsers.map((settings) => ({
-        id: settings.user_id,
-        email: 'Search by name only', // Can't get email from auth.users
-        full_name: settings.full_name,
-        profile_photo_url: settings.profile_photo_url
-      }));
-
-      console.log('📋 FINAL RESULTS FOR UI');
-      console.log('Transformed users:', transformedUsers);
-      console.log('Setting search results...');
-
-      setSearchResults(transformedUsers);
-
-      // Update debug info
-      if (transformedUsers.length > 0) {
-        setSearchDebugInfo(`✅ Found ${transformedUsers.length} available user(s) for "${searchTerm}"`);
-        console.log(`✅ SUCCESS: Found ${transformedUsers.length} user(s) matching "${searchTerm}"`);
-      } else {
-        setSearchDebugInfo(`❌ No available users found for "${searchTerm}" after filtering (found ${userSettings.length} in database but all were filtered out)`);
-        console.log(`❌ NO RESULTS: Found ${userSettings.length} users in database but all were filtered out`);
-      }
-
-    } catch (err) {
-      console.error('💥 Error searching users:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(`Failed to search users: ${errorMessage}`);
-      setSearchDebugInfo(`Error: ${errorMessage}`);
-    } finally {
-      setSearching(false);
-      console.log('🏁 SEARCH COMPLETE');
-    }
-  }, [searchEmail, currentUserId, friends, incomingRequests, outgoingRequests]);
 
   const sendFriendRequest = async (userId: string) => {
     try {
