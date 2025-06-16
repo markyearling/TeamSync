@@ -63,7 +63,7 @@ const FriendsManager: React.FC = () => {
     fetchFriendsData();
   }, []);
 
-  // Debounced search effect
+  // Debounced search effect - now includes searchUsers in dependency array
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchEmail.trim().length >= 2) {
@@ -75,7 +75,7 @@ const FriendsManager: React.FC = () => {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchEmail]);
+  }, [searchEmail, searchUsers]); // Added searchUsers to dependency array
 
   const fetchFriendsData = async () => {
     try {
@@ -352,6 +352,23 @@ const FriendsManager: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Check if a request already exists before attempting to insert
+      const { data: existingRequest, error: checkError } = await supabase
+        .from('friend_requests')
+        .select('id')
+        .eq('requester_id', user.id)
+        .eq('requested_id', userId)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
+        throw checkError;
+      }
+
+      if (existingRequest) {
+        setError('Friend request already exists');
+        return;
+      }
+
       const { error } = await supabase
         .from('friend_requests')
         .insert({
@@ -371,7 +388,12 @@ const FriendsManager: React.FC = () => {
       fetchFriendsData();
     } catch (err) {
       console.error('Error sending friend request:', err);
-      setError('Failed to send friend request');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      if (errorMessage.includes('duplicate key value violates unique constraint')) {
+        setError('Friend request already exists');
+      } else {
+        setError('Failed to send friend request');
+      }
     }
   };
 
