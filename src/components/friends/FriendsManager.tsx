@@ -223,7 +223,6 @@ const FriendsManager: React.FC = () => {
       let friendUsers: any[] = [];
       
       if (friendIds.length > 0) {
-        // Get user settings for friends - this contains the user info we need
         const { data: userSettings, error: settingsError } = await supabase
           .from('user_settings')
           .select('user_id, full_name, profile_photo_url')
@@ -231,8 +230,6 @@ const FriendsManager: React.FC = () => {
 
         if (settingsError) throw settingsError;
 
-        // For each friend, we need to get their email from auth.users
-        // Since we can't use admin.listUsers(), we'll work with what we have
         friendUsers = friendIds.map(friendId => {
           const settings = userSettings?.find(s => s.user_id === friendId);
           
@@ -421,12 +418,12 @@ const FriendsManager: React.FC = () => {
             {
               user_id: requestData.requested_id,
               friend_id: requestData.requester_id,
-              role: requestData.role
+              role: 'viewer' // Default role for the friend
             },
             {
               user_id: requestData.requester_id,
               friend_id: requestData.requested_id,
-              role: 'viewer' // The requester gets viewer access by default
+              role: 'viewer' // Default role for the requester
             }
           ]);
 
