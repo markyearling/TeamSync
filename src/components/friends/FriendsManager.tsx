@@ -12,7 +12,8 @@ import {
   Clock,
   AlertCircle,
   Edit2,
-  Save
+  Save,
+  MessageCircle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -26,7 +27,7 @@ interface User {
 interface Friend {
   id: string;
   friend_id: string;
-  role: 'viewer' | 'administrator';
+  role: 'none' | 'viewer' | 'administrator';
   created_at: string;
   friend: User;
 }
@@ -36,7 +37,7 @@ interface FriendRequest {
   requester_id: string;
   requested_id: string;
   status: 'pending' | 'accepted' | 'declined';
-  role: 'viewer' | 'administrator';
+  role: 'none' | 'viewer' | 'administrator';
   message?: string;
   created_at: string;
   requester?: User;
@@ -57,7 +58,7 @@ const FriendsManager: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [searchDebugInfo, setSearchDebugInfo] = useState<string>('');
   const [editingFriend, setEditingFriend] = useState<string | null>(null);
-  const [editingRole, setEditingRole] = useState<'viewer' | 'administrator'>('viewer');
+  const [editingRole, setEditingRole] = useState<'none' | 'viewer' | 'administrator'>('none');
 
   const searchUsers = useCallback(async () => {
     if (!searchEmail.trim() || searchEmail.trim().length < 2) {
@@ -383,7 +384,7 @@ const FriendsManager: React.FC = () => {
         .insert({
           requester_id: user.id,
           requested_id: userId,
-          role: 'viewer', // Default to viewer, can be changed later
+          role: 'none', // Default to none - basic friendship
           message: requestMessage.trim() || null
         });
 
@@ -423,19 +424,19 @@ const FriendsManager: React.FC = () => {
       if (updateError) throw updateError;
 
       if (status === 'accepted') {
-        // Create friendship records for both users
+        // Create friendship records for both users with 'none' role (basic friendship)
         const { error: friendshipError } = await supabase
           .from('friendships')
           .insert([
             {
               user_id: requestData.requested_id,
               friend_id: requestData.requester_id,
-              role: 'viewer' // Default role for the friend
+              role: 'none' // Default role for the friend
             },
             {
               user_id: requestData.requester_id,
               friend_id: requestData.requested_id,
-              role: 'viewer' // Default role for the requester
+              role: 'none' // Default role for the requester
             }
           ]);
 
@@ -501,7 +502,7 @@ const FriendsManager: React.FC = () => {
     }
   };
 
-  const updateFriendRole = async (friendshipId: string, newRole: 'viewer' | 'administrator') => {
+  const updateFriendRole = async (friendshipId: string, newRole: 'none' | 'viewer' | 'administrator') => {
     try {
       setError(null);
       const { error } = await supabase
@@ -511,7 +512,7 @@ const FriendsManager: React.FC = () => {
 
       if (error) throw error;
 
-      setSuccess(`Friend access level updated to ${newRole}`);
+      setSuccess(`Friend access level updated to ${getRoleLabel(newRole)}`);
       setEditingFriend(null);
       fetchFriendsData();
     } catch (err) {
@@ -520,32 +521,50 @@ const FriendsManager: React.FC = () => {
     }
   };
 
-  const startEditingRole = (friendshipId: string, currentRole: 'viewer' | 'administrator') => {
+  const startEditingRole = (friendshipId: string, currentRole: 'none' | 'viewer' | 'administrator') => {
     setEditingFriend(friendshipId);
     setEditingRole(currentRole);
   };
 
   const cancelEditingRole = () => {
     setEditingFriend(null);
-    setEditingRole('viewer');
+    setEditingRole('none');
   };
 
   const getRoleIcon = (role: string) => {
-    return role === 'administrator' ? (
-      <Shield className="h-4 w-4 text-orange-500" />
-    ) : (
-      <Eye className="h-4 w-4 text-blue-500" />
-    );
+    switch (role) {
+      case 'administrator':
+        return <Shield className="h-4 w-4 text-red-500" />;
+      case 'viewer':
+        return <Eye className="h-4 w-4 text-blue-500" />;
+      case 'none':
+      default:
+        return <MessageCircle className="h-4 w-4 text-green-500" />;
+    }
   };
 
   const getRoleLabel = (role: string) => {
-    return role === 'administrator' ? 'Administrator' : 'Viewer';
+    switch (role) {
+      case 'administrator':
+        return 'Administrator';
+      case 'viewer':
+        return 'Viewer';
+      case 'none':
+      default:
+        return 'Friend';
+    }
   };
 
   const getAccessLevelDescription = (role: string) => {
-    return role === 'administrator' 
-      ? 'Can view and manage all schedules and events'
-      : 'Can view schedules and events only';
+    switch (role) {
+      case 'administrator':
+        return 'Can view and manage all schedules, events, and profiles';
+      case 'viewer':
+        return 'Can view schedules and events in dashboard and calendar';
+      case 'none':
+      default:
+        return 'Can chat and send messages only';
+    }
   };
 
   if (loading) {
@@ -800,11 +819,12 @@ const FriendsManager: React.FC = () => {
                       <div className="mt-2 flex items-center space-x-2">
                         <select
                           value={editingRole}
-                          onChange={(e) => setEditingRole(e.target.value as 'viewer' | 'administrator')}
+                          onChange={(e) => setEditingRole(e.target.value as 'none' | 'viewer' | 'administrator')}
                           className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-600 dark:text-white"
                         >
-                          <option value="viewer">Viewer</option>
-                          <option value="administrator">Administrator</option>
+                          <option value="none">Friend (Chat only)</option>
+                          <option value="viewer">Viewer (View schedules)</option>
+                          <option value="administrator">Administrator (Full access)</option>
                         </select>
                         <button
                           onClick={() => updateFriendRole(friend.id, editingRole)}
