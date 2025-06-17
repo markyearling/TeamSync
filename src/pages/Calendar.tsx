@@ -95,14 +95,7 @@ const Calendar: React.FC = () => {
       // Get all friendships where current user is the friend and has viewer or admin role
       const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
-        .select(`
-          id,
-          user_id,
-          friend_id,
-          role,
-          user:users!friendships_user_id_fkey(id),
-          user_settings!friendships_user_id_fkey(full_name, profile_photo_url)
-        `)
+        .select('id, user_id, friend_id, role')
         .eq('friend_id', userId)
         .in('role', ['viewer', 'administrator']);
 
@@ -115,8 +108,19 @@ const Calendar: React.FC = () => {
         return;
       }
 
-      // Get all profiles for friends who have given access
+      // Get user settings for the friends who granted access
       const friendUserIds = friendships.map(f => f.user_id);
+      const { data: userSettings, error: userSettingsError } = await supabase
+        .from('user_settings')
+        .select('user_id, full_name, profile_photo_url')
+        .in('user_id', friendUserIds);
+
+      if (userSettingsError) {
+        console.error('Error fetching user settings:', userSettingsError);
+        return;
+      }
+
+      // Get all profiles for friends who have given access
       const { data: friendProfiles, error: profilesError } = await supabase
         .from('profiles')
         .select(`
@@ -142,7 +146,7 @@ const Calendar: React.FC = () => {
       // Transform friend profiles to match our Child interface
       const transformedFriendProfiles = friendProfiles.map(profile => {
         const friendship = friendships.find(f => f.user_id === profile.user_id);
-        const userSettings = friendship?.user_settings;
+        const userSetting = userSettings?.find(us => us.user_id === profile.user_id);
         
         return {
           ...profile,
@@ -151,8 +155,8 @@ const Calendar: React.FC = () => {
             color: sport.color
           })) || [],
           eventCount: 0,
-          ownerName: userSettings?.full_name || 'Friend',
-          ownerPhoto: userSettings?.profile_photo_url,
+          ownerName: userSetting?.full_name || 'Friend',
+          ownerPhoto: userSetting?.profile_photo_url,
           accessRole: friendship?.role
         };
       });
