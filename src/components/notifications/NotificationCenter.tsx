@@ -33,19 +33,21 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
     }
 
     // Set up real-time subscription for notifications
-    const { data: { user } } = supabase.auth.getUser().then(({ data }) => {
-      if (data.user) {
-        console.log('Setting up notifications subscription for user:', data.user.id);
+    const setupSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        console.log('Setting up notifications subscription for user:', user.id);
         
         subscriptionRef.current = supabase
-          .channel(`notifications:user_id=eq.${data.user.id}`)
+          .channel(`notifications:user_id=eq.${user.id}`)
           .on(
             'postgres_changes',
             {
               event: '*',
               schema: 'public',
               table: 'notifications',
-              filter: `user_id=eq.${data.user.id}`
+              filter: `user_id=eq.${user.id}`
             },
             (payload) => {
               console.log('Notification change received:', payload);
@@ -71,7 +73,9 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
             console.log('Notifications subscription status:', status);
           });
       }
-    });
+    };
+
+    setupSubscription();
 
     return () => {
       if (subscriptionRef.current) {
