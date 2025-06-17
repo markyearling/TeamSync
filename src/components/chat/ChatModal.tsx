@@ -48,6 +48,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const [currentUserInfo, setCurrentUserInfo] = useState<any>(null);
   const [showEmoticons, setShowEmoticons] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const emoticonRef = useRef<HTMLDivElement>(null);
   const subscriptionRef = useRef<any>(null);
@@ -60,6 +61,22 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     'Gestures': ['👍', '👎', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👋', '🤚', '🖐️', '✋'],
     'Hearts': ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️'],
     'Objects': ['🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🥅', '⛳']
+  };
+
+  // Auto-scroll to bottom function
+  const scrollToBottom = (behavior: 'smooth' | 'auto' = 'smooth') => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+    }
+  };
+
+  // Force scroll to bottom (for initial load and new messages)
+  const forceScrollToBottom = () => {
+    setTimeout(() => {
+      if (messagesContainerRef.current) {
+        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+      }
+    }, 100);
   };
 
   useEffect(() => {
@@ -88,9 +105,19 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     };
   }, [friend.friend_id]);
 
+  // Scroll to bottom whenever messages change
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      forceScrollToBottom();
+    }
   }, [messages]);
+
+  // Scroll to bottom when modal first opens and messages are loaded
+  useEffect(() => {
+    if (!loading && messages.length > 0) {
+      forceScrollToBottom();
+    }
+  }, [loading]);
 
   useEffect(() => {
     if (!conversation || !currentUserId) return;
@@ -139,7 +166,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
             }
             
             console.log('Adding new message to state');
-            return [...prev, messageWithSender];
+            const newMessages = [...prev, messageWithSender];
+            
+            // Auto-scroll to bottom when new message arrives
+            setTimeout(() => forceScrollToBottom(), 50);
+            
+            return newMessages;
           });
 
           // Mark message as read if it's not from current user and modal is open
@@ -356,7 +388,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         if (exists) {
           return prev;
         }
-        return [...prev, messageWithSender];
+        const newMessages = [...prev, messageWithSender];
+        
+        // Auto-scroll to bottom when sending message
+        setTimeout(() => forceScrollToBottom(), 50);
+        
+        return newMessages;
       });
 
     } catch (error) {
@@ -396,10 +433,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     } catch (error) {
       console.error('Error marking conversation as read:', error);
     }
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -474,7 +507,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div 
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto p-4 space-y-4"
+          style={{ scrollBehavior: 'smooth' }}
+        >
           {loading ? (
             <div className="flex items-center justify-center h-full">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
