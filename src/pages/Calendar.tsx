@@ -21,6 +21,8 @@ type ViewType = 'month' | 'week' | 'day' | 'agenda';
 const Calendar: React.FC = () => {
   const { profiles } = useProfiles();
   const [events, setEvents] = useState<Event[]>([]);
+  const [friendsEvents, setFriendsEvents] = useState<Event[]>([]);
+  const [friendsProfiles, setFriendsProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<ViewType>('month');
@@ -28,42 +30,56 @@ const Calendar: React.FC = () => {
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['game', 'practice', 'tournament', 'other']);
+  const [showFriendsEvents, setShowFriendsEvents] = useState(true);
 
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        if (profiles.length === 0) {
-          setEvents([]);
-          setLoading(false);
-          return;
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) return;
+
+        // Fetch user's own events
+        if (profiles.length > 0) {
+          const profileIds = selectedProfiles.length > 0 
+            ? selectedProfiles.filter(id => profiles.some(p => p.id === id))
+            : profiles.map(profile => profile.id);
+
+          if (profileIds.length > 0) {
+            const { data: eventData, error } = await supabase
+              .from('events')
+              .select('*')
+              .in('profile_id', profileIds)
+              .order('start_time', { ascending: true });
+
+            if (error) throw error;
+
+            const formattedEvents = eventData.map(event => {
+              const profile = profiles.find(p => p.id === event.profile_id);
+              return {
+                ...event,
+                id: event.id,
+                startTime: new Date(event.start_time),
+                endTime: new Date(event.end_time),
+                child: profile!,
+                platformIcon: CalendarIcon,
+                isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
+                isOwnEvent: true
+              };
+            });
+
+            setEvents(formattedEvents);
+          }
         }
 
-        const profileIds = selectedProfiles.length > 0 
-          ? selectedProfiles 
-          : profiles.map(profile => profile.id);
+        // Fetch friends' events if enabled
+        if (showFriendsEvents) {
+          await fetchFriendsEvents(user.id);
+        } else {
+          setFriendsEvents([]);
+          setFriendsProfiles([]);
+        }
 
-        const { data: eventData, error } = await supabase
-          .from('events')
-          .select('*')
-          .in('profile_id', profileIds)
-          .order('start_time', { ascending: true });
-
-        if (error) throw error;
-
-        const formattedEvents = eventData.map(event => {
-          const profile = profiles.find(p => p.id === event.profile_id);
-          return {
-            ...event,
-            id: event.id,
-            startTime: new Date(event.start_time),
-            endTime: new Date(event.end_time),
-            child: profile!,
-            platformIcon: CalendarIcon,
-            isToday: new Date(event.start_time).toDateString() === new Date().toDateString()
-          };
-        });
-
-        setEvents(formattedEvents);
       } catch (error) {
         console.error('Error fetching events:', error);
       } finally {
@@ -72,12 +88,123 @@ const Calendar: React.FC = () => {
     };
 
     fetchEvents();
-  }, [profiles, selectedProfiles]);
+  }, [profiles, selectedProfiles, showFriendsEvents]);
+
+  const fetchFriendsEvents = async (userId: string) => {
+    try {
+      // Get all friendships where current user is the friend and has viewer or admin role
+      const { data: friendships, error: friendshipsError } = await supabase
+        .from('friendships')
+        .select(`
+          id,
+          user_id,
+          friend_id,
+          role,
+          user:users!friendships_user_id_fkey(id),
+          user_settings!friendships_user_id_fkey(full_name, profile_photo_url)
+        `)
+        .eq('friend_id', userId)
+        .in('role', ['viewer', 'administrator']);
+
+      if (friendshipsError) {
+        console.error('Error fetching friendships:', friendshipsError);
+        return;
+      }
+
+      if (!friendships || friendships.length === 0) {
+        return;
+      }
+
+      // Get all profiles for friends who have given access
+      const friendUserIds = friendships.map(f => f.user_id);
+      const { data: friendProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          name,
+          age,
+          color,
+          photo_url,
+          user_id,
+          profile_sports(sport, color)
+        `)
+        .in('user_id', friendUserIds);
+
+      if (profilesError) {
+        console.error('Error fetching friend profiles:', profilesError);
+        return;
+      }
+
+      if (!friendProfiles || friendProfiles.length === 0) {
+        return;
+      }
+
+      // Transform friend profiles to match our Child interface
+      const transformedFriendProfiles = friendProfiles.map(profile => {
+        const friendship = friendships.find(f => f.user_id === profile.user_id);
+        const userSettings = friendship?.user_settings;
+        
+        return {
+          ...profile,
+          sports: profile.profile_sports?.map(sport => ({
+            name: sport.sport,
+            color: sport.color
+          })) || [],
+          eventCount: 0,
+          ownerName: userSettings?.full_name || 'Friend',
+          ownerPhoto: userSettings?.profile_photo_url,
+          accessRole: friendship?.role
+        };
+      });
+
+      setFriendsProfiles(transformedFriendProfiles);
+
+      // Filter friend profiles if specific ones are selected
+      const friendProfileIds = selectedProfiles.length > 0
+        ? selectedProfiles.filter(id => transformedFriendProfiles.some(p => p.id === id))
+        : transformedFriendProfiles.map(p => p.id);
+
+      // Get events for friend profiles
+      if (friendProfileIds.length > 0) {
+        const { data: friendEventData, error: eventsError } = await supabase
+          .from('events')
+          .select('*')
+          .in('profile_id', friendProfileIds)
+          .order('start_time', { ascending: true });
+
+        if (eventsError) {
+          console.error('Error fetching friend events:', eventsError);
+          return;
+        }
+
+        const formattedFriendEvents = friendEventData.map(event => {
+          const profile = transformedFriendProfiles.find(p => p.id === event.profile_id);
+          return {
+            ...event,
+            id: event.id,
+            startTime: new Date(event.start_time),
+            endTime: new Date(event.end_time),
+            child: profile!,
+            platformIcon: CalendarIcon,
+            isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
+            isOwnEvent: false,
+            ownerName: profile?.ownerName
+          };
+        });
+
+        setFriendsEvents(formattedFriendEvents);
+      }
+
+    } catch (error) {
+      console.error('Error fetching friends events:', error);
+    }
+  };
 
   useEffect(() => {
-    // Initialize selected profiles with all profiles
-    setSelectedProfiles(profiles.map(profile => profile.id));
-  }, [profiles]);
+    // Initialize selected profiles with all profiles (own + friends)
+    const allAvailableProfiles = [...profiles.map(p => p.id), ...friendsProfiles.map(p => p.id)];
+    setSelectedProfiles(allAvailableProfiles);
+  }, [profiles, friendsProfiles]);
   
   const navigatePrevious = () => {
     const newDate = new Date(currentDate);
@@ -142,8 +269,9 @@ const Calendar: React.FC = () => {
   };
 
   const renderView = () => {
-    // Filter events based on selected filters
-    const filteredEvents = events.filter(event => {
+    // Combine and filter events based on selected filters
+    const allEvents = [...events, ...friendsEvents];
+    const filteredEvents = allEvents.filter(event => {
       if (selectedPlatforms.length > 0 && !selectedPlatforms.includes(event.platform)) {
         return false;
       }
@@ -161,6 +289,12 @@ const Calendar: React.FC = () => {
         return <AgendaView currentDate={currentDate} events={filteredEvents} />;
     }
   };
+
+  // Combine all profiles for filter display
+  const allProfiles = [
+    ...profiles.map(p => ({ ...p, isOwnProfile: true })),
+    ...friendsProfiles.map(p => ({ ...p, isOwnProfile: false }))
+  ];
 
   if (loading) {
     return (
@@ -253,11 +387,11 @@ const Calendar: React.FC = () => {
       </div>
       
       {filterOpen && (
-        <div className="bg-white p-4 rounded-lg shadow-md mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white p-4 rounded-lg shadow-md mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Children</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Your Children</h3>
             <div className="space-y-2">
-              {profiles.map(profile => (
+              {allProfiles.filter(p => p.isOwnProfile).map(profile => (
                 <div key={profile.id} className="flex items-center">
                   <input 
                     id={`child-${profile.id}`} 
@@ -286,11 +420,63 @@ const Calendar: React.FC = () => {
               ))}
             </div>
           </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Friends' Children</h3>
+            <div className="space-y-2">
+              <div className="flex items-center mb-2">
+                <input 
+                  id="show-friends-events" 
+                  type="checkbox" 
+                  checked={showFriendsEvents}
+                  onChange={(e) => setShowFriendsEvents(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label 
+                  htmlFor="show-friends-events" 
+                  className="ml-2 text-sm font-medium text-gray-700"
+                >
+                  Show friends' events
+                </label>
+              </div>
+              {showFriendsEvents && allProfiles.filter(p => !p.isOwnProfile).map(profile => (
+                <div key={profile.id} className="flex items-center">
+                  <input 
+                    id={`friend-child-${profile.id}`} 
+                    type="checkbox" 
+                    checked={selectedProfiles.includes(profile.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedProfiles([...selectedProfiles, profile.id]);
+                      } else {
+                        setSelectedProfiles(selectedProfiles.filter(id => id !== profile.id));
+                      }
+                    }}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <label 
+                    htmlFor={`friend-child-${profile.id}`} 
+                    className="ml-2 text-sm text-gray-700 flex items-center"
+                  >
+                    <span 
+                      className="w-3 h-3 rounded-full mr-1.5"
+                      style={{ backgroundColor: profile.color }}
+                    ></span>
+                    {profile.name}
+                    <span className="ml-1 text-xs text-blue-600">({profile.ownerName})</span>
+                  </label>
+                </div>
+              ))}
+              {!showFriendsEvents && (
+                <p className="text-xs text-gray-500">Enable to see friends' children</p>
+              )}
+            </div>
+          </div>
           
           <div>
             <h3 className="text-sm font-medium text-gray-700 mb-2">Platforms</h3>
             <div className="space-y-2">
-              {['SportsEngine', 'TeamSnap', 'Manual'].map(platform => (
+              {['SportsEngine', 'TeamSnap', 'Playmetrics', 'Manual'].map(platform => (
                 <div key={platform} className="flex items-center">
                   <input 
                     id={`platform-${platform}`} 

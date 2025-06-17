@@ -9,6 +9,9 @@ export interface Child {
   eventCount: number;
   photo_url?: string;
   notes?: string;
+  ownerName?: string; // For friends' children
+  ownerPhoto?: string; // For friends' children
+  accessRole?: 'viewer' | 'administrator'; // For friends' children
 }
 
 export interface Platform {
@@ -34,6 +37,8 @@ export interface Event {
   platformColor: string;
   platformIcon: LucideIcon;
   isToday: boolean;
+  isOwnEvent?: boolean; // To distinguish between own and friends' events
+  ownerName?: string; // For friends' events
 }
 
 export interface UserSettings {
