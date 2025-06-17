@@ -104,8 +104,8 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events }) => {
             <div className="mt-1 max-h-[80px] overflow-y-auto space-y-1">
               {dayEvents.slice(0, 3).map((event, eventIndex) => (
                 <div 
-                  key={eventIndex}
-                  className="text-xs px-1 py-0.5 rounded truncate flex items-center cursor-pointer"
+                  key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}-${eventIndex}`}
+                  className="text-xs px-1 py-0.5 rounded truncate flex items-center cursor-pointer relative"
                   style={{ 
                     backgroundColor: event.color + '20',
                     color: event.color 
@@ -113,10 +113,13 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events }) => {
                   onClick={() => setSelectedEvent(event)}
                 >
                   <span 
-                    className="w-1.5 h-1.5 rounded-full mr-1"
+                    className="w-1.5 h-1.5 rounded-full mr-1 flex-shrink-0"
                     style={{ backgroundColor: event.child.color }}
                   ></span>
-                  {event.title}
+                  <span className="truncate flex-1">{event.title}</span>
+                  {!event.isOwnEvent && (
+                    <span className="ml-1 text-xs opacity-75">👥</span>
+                  )}
                 </div>
               ))}
               {dayEvents.length > 3 && (

@@ -92,6 +92,8 @@ const Calendar: React.FC = () => {
 
   const fetchFriendsEvents = async (userId: string) => {
     try {
+      console.log('Fetching friends events for user:', userId);
+      
       // Get all friendships where current user is the friend and has viewer or admin role
       const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
@@ -104,7 +106,10 @@ const Calendar: React.FC = () => {
         return;
       }
 
+      console.log('Found friendships:', friendships);
+
       if (!friendships || friendships.length === 0) {
+        console.log('No friendships with viewer/admin access found');
         return;
       }
 
@@ -119,6 +124,8 @@ const Calendar: React.FC = () => {
         console.error('Error fetching user settings:', userSettingsError);
         return;
       }
+
+      console.log('Found user settings:', userSettings);
 
       // Get all profiles for friends who have given access
       const { data: friendProfiles, error: profilesError } = await supabase
@@ -139,7 +146,10 @@ const Calendar: React.FC = () => {
         return;
       }
 
+      console.log('Found friend profiles:', friendProfiles);
+
       if (!friendProfiles || friendProfiles.length === 0) {
+        console.log('No friend profiles found');
         return;
       }
 
@@ -162,11 +172,14 @@ const Calendar: React.FC = () => {
       });
 
       setFriendsProfiles(transformedFriendProfiles);
+      console.log('Set friends profiles:', transformedFriendProfiles);
 
       // Filter friend profiles if specific ones are selected
       const friendProfileIds = selectedProfiles.length > 0
         ? selectedProfiles.filter(id => transformedFriendProfiles.some(p => p.id === id))
         : transformedFriendProfiles.map(p => p.id);
+
+      console.log('Friend profile IDs to fetch events for:', friendProfileIds);
 
       // Get events for friend profiles
       if (friendProfileIds.length > 0) {
@@ -180,6 +193,8 @@ const Calendar: React.FC = () => {
           console.error('Error fetching friend events:', eventsError);
           return;
         }
+
+        console.log('Found friend events:', friendEventData);
 
         const formattedFriendEvents = friendEventData.map(event => {
           const profile = transformedFriendProfiles.find(p => p.id === event.profile_id);
@@ -197,6 +212,7 @@ const Calendar: React.FC = () => {
         });
 
         setFriendsEvents(formattedFriendEvents);
+        console.log('Set friends events:', formattedFriendEvents);
       }
 
     } catch (error) {
@@ -275,12 +291,16 @@ const Calendar: React.FC = () => {
   const renderView = () => {
     // Combine and filter events based on selected filters
     const allEvents = [...events, ...friendsEvents];
+    console.log('All events for calendar view:', allEvents.length, 'own:', events.length, 'friends:', friendsEvents.length);
+    
     const filteredEvents = allEvents.filter(event => {
       if (selectedPlatforms.length > 0 && !selectedPlatforms.includes(event.platform)) {
         return false;
       }
       return true;
     });
+
+    console.log('Filtered events:', filteredEvents.length);
 
     switch (view) {
       case 'month':

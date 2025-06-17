@@ -91,7 +91,7 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events }) => {
               
               return (
                 <div
-                  key={eventIndex}
+                  key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}-${eventIndex}`}
                   className="absolute left-2 right-2 rounded overflow-hidden shadow-sm cursor-pointer"
                   style={{
                     top: `${startHour * 48}px`,
@@ -107,9 +107,12 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events }) => {
                         className="w-3 h-3 rounded-full mr-2"
                         style={{ backgroundColor: event.child.color }}
                       ></span>
-                      <span className="text-sm font-medium" style={{ color: event.color }}>
+                      <span className="text-sm font-medium flex-1 truncate" style={{ color: event.color }}>
                         {event.title}
                       </span>
+                      {!event.isOwnEvent && (
+                        <span className="ml-1 text-xs opacity-75">👥</span>
+                      )}
                     </div>
                     <div className="text-gray-600 text-xs mt-1">
                       {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
@@ -118,12 +121,22 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events }) => {
                     {duration > 0.75 && event.location && (
                       <div className="text-gray-600 text-xs mt-1 flex items-center">
                         <MapPin className="h-3 w-3 mr-1" />
-                        {event.location}
+                        <span className="truncate">{event.location}</span>
                       </div>
                     )}
                     {duration > 1.5 && (
                       <div className="mt-1 text-xs text-gray-600">
-                        {event.description}
+                        <div className="flex items-center">
+                          <span className="truncate">
+                            {event.child.name}
+                            {!event.isOwnEvent && event.ownerName && (
+                              <span className="text-blue-600"> ({event.ownerName})</span>
+                            )}
+                          </span>
+                        </div>
+                        {event.description && (
+                          <div className="mt-1 truncate">{event.description}</div>
+                        )}
                       </div>
                     )}
                   </div>

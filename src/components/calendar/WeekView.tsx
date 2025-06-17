@@ -120,7 +120,7 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events }) => {
                     
                     return (
                       <div
-                        key={eventIndex}
+                        key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}-${eventIndex}`}
                         className="absolute left-1 right-1 rounded overflow-hidden text-xs shadow-sm cursor-pointer"
                         style={{
                           top: `${startHour * 48}px`,
@@ -131,8 +131,11 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events }) => {
                         onClick={() => setSelectedEvent(event)}
                       >
                         <div className="p-1 h-full overflow-hidden">
-                          <div className="font-medium" style={{ color: event.color }}>
-                            {event.title}
+                          <div className="font-medium flex items-center" style={{ color: event.color }}>
+                            <span className="truncate flex-1">{event.title}</span>
+                            {!event.isOwnEvent && (
+                              <span className="ml-1 text-xs opacity-75">👥</span>
+                            )}
                           </div>
                           <div className="text-gray-600 text-xs mt-0.5">
                             {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
@@ -144,7 +147,12 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events }) => {
                                 className="w-2 h-2 rounded-full mr-1"
                                 style={{ backgroundColor: event.child.color }}
                               ></span>
-                              {event.child.name}
+                              <span className="truncate">
+                                {event.child.name}
+                                {!event.isOwnEvent && event.ownerName && (
+                                  <span className="text-blue-600"> ({event.ownerName})</span>
+                                )}
+                              </span>
                             </div>
                           )}
                         </div>

@@ -71,7 +71,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
               <div className="space-y-3">
                 {eventsByDate[dateKey].map((event, index) => (
                   <div 
-                    key={index} 
+                    key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}-${index}`}
                     className="bg-white border rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => setSelectedEvent(event)}
                   >
@@ -82,7 +82,12 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
                             className="w-3 h-3 rounded-full mr-2"
                             style={{ backgroundColor: event.child.color }}
                           ></span>
-                          <span className="text-sm text-gray-500">{event.child.name}</span>
+                          <span className="text-sm text-gray-500">
+                            {event.child.name}
+                            {!event.isOwnEvent && event.ownerName && (
+                              <span className="text-blue-600"> ({event.ownerName})</span>
+                            )}
+                          </span>
                           <span 
                             className="ml-2 text-xs px-2 py-0.5 rounded-full"
                             style={{ 
@@ -92,6 +97,11 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
                           >
                             {event.platform}
                           </span>
+                          {!event.isOwnEvent && (
+                            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                              👥 Friend's Event
+                            </span>
+                          )}
                         </div>
                         
                         <h4 className="text-base font-medium text-gray-900">{event.title}</h4>
