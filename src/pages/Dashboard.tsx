@@ -253,7 +253,7 @@ const Dashboard: React.FC = () => {
               .map(event => (
                 <div key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`} className="relative">
                   {!event.isOwnEvent && (
-                    <div className="absolute top-2 right-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                    <div className="absolute top-2 right-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full z-10">
                       {event.ownerName}'s schedule
                     </div>
                   )}
@@ -393,7 +393,7 @@ const Dashboard: React.FC = () => {
             .map(event => (
               <div key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`} className="relative">
                 {!event.isOwnEvent && (
-                  <div className="absolute top-2 right-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                  <div className="absolute top-2 right-2 bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full z-10">
                     {event.ownerName}'s schedule
                   </div>
                 )}

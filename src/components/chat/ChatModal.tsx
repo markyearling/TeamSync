@@ -64,19 +64,17 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   };
 
   // Auto-scroll to bottom function
-  const scrollToBottom = (behavior: 'smooth' | 'auto' = 'smooth') => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior, block: 'end' });
+  const scrollToBottom = (behavior: 'smooth' | 'auto' = 'auto') => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
     }
   };
 
   // Force scroll to bottom (for initial load and new messages)
   const forceScrollToBottom = () => {
     setTimeout(() => {
-      if (messagesContainerRef.current) {
-        messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
-      }
-    }, 100);
+      scrollToBottom('auto');
+    }, 50);
   };
 
   useEffect(() => {
@@ -375,8 +373,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
       console.log('Message sent successfully:', insertedMessage);
 
-      // The real-time subscription will handle adding the message to the UI
-      // But we can also add it optimistically for immediate feedback
+      // Add message optimistically for immediate feedback
       const messageWithSender = {
         ...insertedMessage,
         sender: currentUserInfo
