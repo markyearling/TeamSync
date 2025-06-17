@@ -100,9 +100,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       subscriptionRef.current.unsubscribe();
     }
 
+    console.log('Setting up real-time subscription for conversation:', conversation.id);
+
     // Set up real-time subscription for messages in this conversation
     subscriptionRef.current = supabase
-      .channel(`chat-${conversation.id}-${Date.now()}`) // Unique channel name
+      .channel(`messages:conversation_id=eq.${conversation.id}`)
       .on(
         'postgres_changes',
         {
@@ -124,6 +126,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
           const messageWithSender = {
             ...newMessage,
+            created_at: newMessage.created_at,
             sender: senderSettings
           };
 
@@ -178,6 +181,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       )
       .subscribe((status) => {
         console.log('Chat subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to real-time messages for conversation:', conversation.id);
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Error subscribing to real-time messages');
+        }
       });
 
     return () => {

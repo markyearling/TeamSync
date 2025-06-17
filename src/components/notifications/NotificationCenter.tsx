@@ -33,79 +33,50 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
     }
 
     // Set up real-time subscription for notifications
-    subscriptionRef.current = supabase
-      .channel(`notifications-${Date.now()}`) // Unique channel name
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications'
-        },
-        (payload) => {
-          console.log('Notification change received:', payload);
-          
-          if (payload.eventType === 'INSERT') {
-            // Add new notification to the top of the list
-            const newNotification = payload.new as Notification;
-            setNotifications(prev => [newNotification, ...prev]);
-          } else if (payload.eventType === 'UPDATE') {
-            // Update existing notification
-            const updatedNotification = payload.new as Notification;
-            setNotifications(prev => 
-              prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
-            );
-          } else if (payload.eventType === 'DELETE') {
-            // Remove deleted notification
-            const deletedId = payload.old.id;
-            setNotifications(prev => prev.filter(n => n.id !== deletedId));
-          }
-        }
-      )
-      .subscribe((status) => {
-        console.log('Notifications subscription status:', status);
-      });
-
-    // Set up subscription for friend requests to create notifications
-    const friendRequestsSubscription = supabase
-      .channel(`friend-requests-notifications-${Date.now()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'friend_requests'
-        },
-        async (payload) => {
-          console.log('New friend request detected:', payload);
-          await createFriendRequestNotification(payload.new);
-        }
-      )
-      .subscribe();
-
-    // Set up subscription for messages to create notifications
-    const messagesSubscription = supabase
-      .channel(`messages-notifications-${Date.now()}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages'
-        },
-        async (payload) => {
-          console.log('New message detected:', payload);
-          await createMessageNotification(payload.new);
-        }
-      )
-      .subscribe();
+    const { data: { user } } = supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        console.log('Setting up notifications subscription for user:', data.user.id);
+        
+        subscriptionRef.current = supabase
+          .channel(`notifications:user_id=eq.${data.user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${data.user.id}`
+            },
+            (payload) => {
+              console.log('Notification change received:', payload);
+              
+              if (payload.eventType === 'INSERT') {
+                // Add new notification to the top of the list
+                const newNotification = payload.new as Notification;
+                setNotifications(prev => [newNotification, ...prev]);
+              } else if (payload.eventType === 'UPDATE') {
+                // Update existing notification
+                const updatedNotification = payload.new as Notification;
+                setNotifications(prev => 
+                  prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
+                );
+              } else if (payload.eventType === 'DELETE') {
+                // Remove deleted notification
+                const deletedId = payload.old.id;
+                setNotifications(prev => prev.filter(n => n.id !== deletedId));
+              }
+            }
+          )
+          .subscribe((status) => {
+            console.log('Notifications subscription status:', status);
+          });
+      }
+    });
 
     return () => {
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
       }
-      friendRequestsSubscription.unsubscribe();
-      messagesSubscription.unsubscribe();
     };
   }, []);
 
@@ -129,123 +100,6 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
       setError('Failed to load notifications');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const createFriendRequestNotification = async (friendRequest: any) => {
-    try {
-      // Get current user to check if this notification is for them
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || user.id !== friendRequest.requested_id) {
-        return; // Only create notification for the requested user
-      }
-
-      // Get requester info
-      const { data: requesterSettings, error: requesterError } = await supabase
-        .from('user_settings')
-        .select('full_name, profile_photo_url')
-        .eq('user_id', friendRequest.requester_id)
-        .single();
-
-      if (requesterError) {
-        console.error('Error fetching requester info:', requesterError);
-        return;
-      }
-
-      const requesterName = requesterSettings?.full_name || 'Someone';
-
-      // Create notification
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: friendRequest.requested_id,
-          type: 'friend_request',
-          title: 'New Friend Request',
-          message: `${requesterName} wants to be your friend${friendRequest.message ? `: "${friendRequest.message}"` : ''}`,
-          data: {
-            friend_request_id: friendRequest.id,
-            requester_id: friendRequest.requester_id,
-            requester_name: requesterName,
-            requester_photo: requesterSettings?.profile_photo_url
-          }
-        });
-
-      if (notificationError) {
-        console.error('Error creating friend request notification:', notificationError);
-      }
-    } catch (err) {
-      console.error('Error in createFriendRequestNotification:', err);
-    }
-  };
-
-  const createMessageNotification = async (message: any) => {
-    try {
-      // Get current user to check if this notification is for them
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user || user.id === message.sender_id) {
-        return; // Don't create notification for the sender
-      }
-
-      // Get conversation to find the recipient
-      const { data: conversation, error: conversationError } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('id', message.conversation_id)
-        .single();
-
-      if (conversationError || !conversation) {
-        console.error('Error fetching conversation:', conversationError);
-        return;
-      }
-
-      // Check if current user is part of this conversation
-      const isParticipant = conversation.participant_1_id === user.id || conversation.participant_2_id === user.id;
-      if (!isParticipant) {
-        return; // Only create notification for conversation participants
-      }
-
-      // Get sender info
-      const { data: senderSettings, error: senderError } = await supabase
-        .from('user_settings')
-        .select('full_name, profile_photo_url')
-        .eq('user_id', message.sender_id)
-        .single();
-
-      if (senderError) {
-        console.error('Error fetching sender info:', senderError);
-        return;
-      }
-
-      const senderName = senderSettings?.full_name || 'Someone';
-
-      // Create notification for the recipient (not the sender)
-      const recipientId = conversation.participant_1_id === message.sender_id 
-        ? conversation.participant_2_id 
-        : conversation.participant_1_id;
-
-      if (recipientId === user.id) {
-        const { error: notificationError } = await supabase
-          .from('notifications')
-          .insert({
-            user_id: recipientId,
-            type: 'message',
-            title: 'New Message',
-            message: `${senderName}: ${message.content.length > 50 ? message.content.substring(0, 50) + '...' : message.content}`,
-            data: {
-              message_id: message.id,
-              conversation_id: message.conversation_id,
-              sender_id: message.sender_id,
-              sender_name: senderName,
-              sender_photo: senderSettings?.profile_photo_url
-            }
-          });
-
-        if (notificationError) {
-          console.error('Error creating message notification:', notificationError);
-        }
-      }
-    } catch (err) {
-      console.error('Error in createMessageNotification:', err);
     }
   };
 
