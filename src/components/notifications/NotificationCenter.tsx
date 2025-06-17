@@ -38,7 +38,22 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
         },
         (payload) => {
           console.log('Notification change:', payload);
-          fetchNotifications();
+          
+          if (payload.eventType === 'INSERT') {
+            // Add new notification to the top of the list
+            const newNotification = payload.new as Notification;
+            setNotifications(prev => [newNotification, ...prev]);
+          } else if (payload.eventType === 'UPDATE') {
+            // Update existing notification
+            const updatedNotification = payload.new as Notification;
+            setNotifications(prev => 
+              prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
+            );
+          } else if (payload.eventType === 'DELETE') {
+            // Remove deleted notification
+            const deletedId = payload.old.id;
+            setNotifications(prev => prev.filter(n => n.id !== deletedId));
+          }
         }
       )
       .subscribe();
@@ -231,12 +246,12 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
             {
               user_id: user.id,
               friend_id: requestData.requester_id,
-              role: 'viewer' // Default role for the friend
+              role: 'none' // Default role for the friend
             },
             {
               user_id: requestData.requester_id,
               friend_id: user.id,
-              role: 'viewer' // Default role for the requester
+              role: 'none' // Default role for the requester
             }
           ]);
 

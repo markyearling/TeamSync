@@ -45,6 +45,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const [sending, setSending] = useState(false);
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserInfo, setCurrentUserInfo] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -116,6 +117,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       if (!user) return;
 
       setCurrentUserId(user.id);
+
+      // Get current user info
+      const { data: userSettings } = await supabase
+        .from('user_settings')
+        .select('full_name, profile_photo_url')
+        .eq('user_id', user.id)
+        .single();
+
+      setCurrentUserInfo(userSettings);
 
       // Find or create conversation
       let conversationData = await findOrCreateConversation(user.id, friend.friend_id);
@@ -228,23 +238,49 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
     setSending(true);
     const messageContent = newMessage.trim();
+    
+    // Optimistically add message to UI immediately
+    const optimisticMessage: Message = {
+      id: `temp-${Date.now()}`,
+      conversation_id: conversation.id,
+      sender_id: currentUserId,
+      content: messageContent,
+      read: false,
+      created_at: new Date().toISOString(),
+      sender: currentUserInfo
+    };
+
+    setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage('');
 
     try {
-      const { error } = await supabase
+      const { data: insertedMessage, error } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversation.id,
           sender_id: currentUserId,
           content: messageContent
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
 
-      // The message will be added to the UI via the real-time subscription
+      // Replace optimistic message with real message
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === optimisticMessage.id 
+            ? { ...insertedMessage, sender: currentUserInfo }
+            : msg
+        )
+      );
+
+      // The real-time subscription will handle adding the message for other users
     } catch (error) {
       console.error('Error sending message:', error);
-      // Restore message on error
+      
+      // Remove optimistic message on error and restore input
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
       setNewMessage(messageContent);
     } finally {
       setSending(false);
@@ -436,7 +472,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
                         isCurrentUser
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
-                      }`}
+                      } ${message.id.startsWith('temp-') ? 'opacity-70' : ''}`}
                     >
                       <p className="text-sm">{message.content}</p>
                     </div>
@@ -444,6 +480,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
                       isCurrentUser ? 'text-right' : 'text-left'
                     }`}>
                       {formatTime(message.created_at)}
+                      {message.id.startsWith('temp-') && (
+                        <span className="ml-1 text-gray-400">Sending...</span>
+                      )}
                     </div>
                   </div>
                 </div>
