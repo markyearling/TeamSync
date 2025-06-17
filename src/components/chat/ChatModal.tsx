@@ -50,7 +50,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const emoticonRef = useRef<HTMLDivElement>(null);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const subscriptionRef = useRef<any>(null);
 
   // Popular emoticons organized by category
   const emoticons = {
@@ -81,8 +81,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
+      // Clean up subscription
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
       }
     };
   }, [friend.friend_id]);
@@ -92,11 +93,16 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   }, [messages]);
 
   useEffect(() => {
-    if (!conversation) return;
+    if (!conversation || !currentUserId) return;
 
-    // Set up real-time subscription for new messages
-    const messagesSubscription = supabase
-      .channel(`messages-${conversation.id}`)
+    // Clean up previous subscription
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+    }
+
+    // Set up real-time subscription for messages in this conversation
+    subscriptionRef.current = supabase
+      .channel(`chat-${conversation.id}-${Date.now()}`) // Unique channel name
       .on(
         'postgres_changes',
         {
@@ -106,7 +112,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           filter: `conversation_id=eq.${conversation.id}`
         },
         async (payload) => {
-          console.log('New message received:', payload);
+          console.log('New message received via realtime:', payload);
           const newMessage = payload.new as Message;
           
           // Get sender info
@@ -124,17 +130,18 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           setMessages(prev => {
             // Check if message already exists to prevent duplicates
             const exists = prev.some(msg => msg.id === newMessage.id);
-            if (exists) return prev;
+            if (exists) {
+              console.log('Message already exists, skipping duplicate');
+              return prev;
+            }
             
+            console.log('Adding new message to state');
             return [...prev, messageWithSender];
           });
 
-          // Mark message as read if it's not from current user
+          // Mark message as read if it's not from current user and modal is open
           if (newMessage.sender_id !== currentUserId) {
             await markMessageAsRead(newMessage.id);
-            
-            // Create notification for the message
-            await createMessageNotification(newMessage);
           }
         }
       )
@@ -147,7 +154,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           filter: `conversation_id=eq.${conversation.id}`
         },
         async (payload) => {
-          console.log('Message updated:', payload);
+          console.log('Message updated via realtime:', payload);
           const updatedMessage = payload.new as Message;
           
           // Get sender info
@@ -169,17 +176,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           );
         }
       )
-      .subscribe();
-
-    // Set up periodic refresh as backup for real-time updates
-    refreshIntervalRef.current = setInterval(() => {
-      refreshMessages();
-    }, 5000); // Refresh every 5 seconds
+      .subscribe((status) => {
+        console.log('Chat subscription status:', status);
+      });
 
     return () => {
-      messagesSubscription.unsubscribe();
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
       }
     };
   }, [conversation, currentUserId]);
@@ -214,58 +217,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       console.error('Error initializing chat:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const refreshMessages = async () => {
-    if (!conversation) return;
-    
-    try {
-      const { data: messagesData, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversation.id)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      // Get sender info for each message
-      const messagesWithSenders = await Promise.all(
-        (messagesData || []).map(async (message) => {
-          const { data: senderSettings } = await supabase
-            .from('user_settings')
-            .select('full_name, profile_photo_url')
-            .eq('user_id', message.sender_id)
-            .single();
-
-          return {
-            ...message,
-            sender: senderSettings
-          };
-        })
-      );
-
-      // Only update if there are new messages
-      setMessages(prev => {
-        if (prev.length !== messagesWithSenders.length) {
-          return messagesWithSenders;
-        }
-        
-        // Check if any message content has changed
-        const hasChanges = messagesWithSenders.some((newMsg, index) => {
-          const oldMsg = prev[index];
-          return !oldMsg || oldMsg.id !== newMsg.id || oldMsg.content !== newMsg.content || oldMsg.read !== newMsg.read;
-        });
-        
-        return hasChanges ? messagesWithSenders : prev;
-      });
-
-      // Mark new messages as read
-      if (currentUserId) {
-        await markConversationAsRead(conversation.id, currentUserId);
-      }
-    } catch (error) {
-      console.error('Error refreshing messages:', error);
     }
   };
 
@@ -365,20 +316,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     setSending(true);
     const messageContent = newMessage.trim();
     
-    // Optimistically add message to UI immediately
-    const optimisticMessage: Message = {
-      id: `temp-${Date.now()}`,
-      conversation_id: conversation.id,
-      sender_id: currentUserId,
-      content: messageContent,
-      read: false,
-      created_at: new Date().toISOString(),
-      sender: currentUserInfo
-    };
-
-    setMessages(prev => [...prev, optimisticMessage]);
+    // Clear input immediately for better UX
     setNewMessage('');
-    setShowEmoticons(false); // Close emoticon picker after sending
+    setShowEmoticons(false);
 
     try {
       const { data: insertedMessage, error } = await supabase
@@ -393,21 +333,27 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
       if (error) throw error;
 
-      // Replace optimistic message with real message
-      setMessages(prev => 
-        prev.map(msg => 
-          msg.id === optimisticMessage.id 
-            ? { ...insertedMessage, sender: currentUserInfo }
-            : msg
-        )
-      );
+      console.log('Message sent successfully:', insertedMessage);
 
-      // The real-time subscription will handle adding the message for other users
+      // The real-time subscription will handle adding the message to the UI
+      // But we can also add it optimistically for immediate feedback
+      const messageWithSender = {
+        ...insertedMessage,
+        sender: currentUserInfo
+      };
+
+      setMessages(prev => {
+        // Check if message already exists (from real-time subscription)
+        const exists = prev.some(msg => msg.id === insertedMessage.id);
+        if (exists) {
+          return prev;
+        }
+        return [...prev, messageWithSender];
+      });
+
     } catch (error) {
       console.error('Error sending message:', error);
-      
-      // Remove optimistic message on error and restore input
-      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+      // Restore input on error
       setNewMessage(messageContent);
     } finally {
       setSending(false);
@@ -441,45 +387,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         .eq('read', false);
     } catch (error) {
       console.error('Error marking conversation as read:', error);
-    }
-  };
-
-  const createMessageNotification = async (message: Message) => {
-    try {
-      // Get sender info
-      const { data: senderSettings } = await supabase
-        .from('user_settings')
-        .select('full_name, profile_photo_url')
-        .eq('user_id', message.sender_id)
-        .single();
-
-      const senderName = senderSettings?.full_name || 'Someone';
-
-      // Get recipient ID (the other participant in the conversation)
-      const recipientId = conversation?.participant_1_id === message.sender_id 
-        ? conversation.participant_2_id 
-        : conversation?.participant_1_id;
-
-      if (!recipientId) return;
-
-      // Create notification
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: recipientId,
-          type: 'message',
-          title: 'New Message',
-          message: `${senderName}: ${message.content.length > 50 ? message.content.substring(0, 50) + '...' : message.content}`,
-          data: {
-            message_id: message.id,
-            conversation_id: message.conversation_id,
-            sender_id: message.sender_id,
-            sender_name: senderName,
-            sender_photo: senderSettings?.profile_photo_url
-          }
-        });
-    } catch (error) {
-      console.error('Error creating message notification:', error);
     }
   };
 
@@ -605,7 +512,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
                         isCurrentUser
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
-                      } ${message.id.startsWith('temp-') ? 'opacity-70' : ''}`}
+                      }`}
                     >
                       <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     </div>
@@ -613,9 +520,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
                       isCurrentUser ? 'text-right' : 'text-left'
                     }`}>
                       {formatTime(message.created_at)}
-                      {message.id.startsWith('temp-') && (
-                        <span className="ml-1 text-gray-400">Sending...</span>
-                      )}
                     </div>
                   </div>
                 </div>

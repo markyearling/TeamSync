@@ -22,14 +22,19 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const subscriptionRef = useRef<any>(null);
 
   useEffect(() => {
     fetchNotifications();
     
+    // Clean up previous subscription
+    if (subscriptionRef.current) {
+      subscriptionRef.current.unsubscribe();
+    }
+
     // Set up real-time subscription for notifications
-    const notificationsSubscription = supabase
-      .channel('notifications-realtime')
+    subscriptionRef.current = supabase
+      .channel(`notifications-${Date.now()}`) // Unique channel name
       .on(
         'postgres_changes',
         {
@@ -38,7 +43,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
           table: 'notifications'
         },
         (payload) => {
-          console.log('Notification change:', payload);
+          console.log('Notification change received:', payload);
           
           if (payload.eventType === 'INSERT') {
             // Add new notification to the top of the list
@@ -57,11 +62,13 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Notifications subscription status:', status);
+      });
 
     // Set up subscription for friend requests to create notifications
     const friendRequestsSubscription = supabase
-      .channel('friend-requests-notifications')
+      .channel(`friend-requests-notifications-${Date.now()}`)
       .on(
         'postgres_changes',
         {
@@ -70,53 +77,35 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
           table: 'friend_requests'
         },
         async (payload) => {
-          console.log('New friend request:', payload);
+          console.log('New friend request detected:', payload);
           await createFriendRequestNotification(payload.new);
         }
       )
       .subscribe();
 
-    // Set up subscription for events to create notifications
-    const eventsSubscription = supabase
-      .channel('events-notifications')
+    // Set up subscription for messages to create notifications
+    const messagesSubscription = supabase
+      .channel(`messages-notifications-${Date.now()}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'events'
+          table: 'messages'
         },
         async (payload) => {
-          console.log('New event:', payload);
-          await createEventNotification(payload.new, 'new_event');
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'events'
-        },
-        async (payload) => {
-          console.log('Updated event:', payload);
-          await createEventNotification(payload.new, 'schedule_change');
+          console.log('New message detected:', payload);
+          await createMessageNotification(payload.new);
         }
       )
       .subscribe();
 
-    // Set up periodic refresh as backup for real-time updates
-    refreshIntervalRef.current = setInterval(() => {
-      refreshNotifications();
-    }, 10000); // Refresh every 10 seconds
-
     return () => {
-      notificationsSubscription.unsubscribe();
-      friendRequestsSubscription.unsubscribe();
-      eventsSubscription.unsubscribe();
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current);
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
       }
+      friendRequestsSubscription.unsubscribe();
+      messagesSubscription.unsubscribe();
     };
   }, []);
 
@@ -143,42 +132,14 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
     }
   };
 
-  const refreshNotifications = async () => {
-    try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      if (!user) return;
-
-      const { data: notificationsData, error: notificationsError } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (notificationsError) throw notificationsError;
-
-      // Only update if there are changes
-      setNotifications(prev => {
-        const newData = notificationsData || [];
-        if (prev.length !== newData.length) {
-          return newData;
-        }
-        
-        // Check if any notification has changed
-        const hasChanges = newData.some((newNotif, index) => {
-          const oldNotif = prev[index];
-          return !oldNotif || oldNotif.id !== newNotif.id || oldNotif.read !== newNotif.read;
-        });
-        
-        return hasChanges ? newData : prev;
-      });
-    } catch (err) {
-      console.error('Error refreshing notifications:', err);
-    }
-  };
-
   const createFriendRequestNotification = async (friendRequest: any) => {
     try {
+      // Get current user to check if this notification is for them
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.id !== friendRequest.requested_id) {
+        return; // Only create notification for the requested user
+      }
+
       // Get requester info
       const { data: requesterSettings, error: requesterError } = await supabase
         .from('user_settings')
@@ -217,48 +178,74 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
     }
   };
 
-  const createEventNotification = async (event: any, type: 'new_event' | 'schedule_change') => {
+  const createMessageNotification = async (message: any) => {
     try {
-      // Get profile info to find the user
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('user_id, name')
-        .eq('id', event.profile_id)
+      // Get current user to check if this notification is for them
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || user.id === message.sender_id) {
+        return; // Don't create notification for the sender
+      }
+
+      // Get conversation to find the recipient
+      const { data: conversation, error: conversationError } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('id', message.conversation_id)
         .single();
 
-      if (profileError) {
-        console.error('Error fetching profile info:', profileError);
+      if (conversationError || !conversation) {
+        console.error('Error fetching conversation:', conversationError);
         return;
       }
 
-      // Don't create notification for events older than 1 hour
-      const eventCreated = new Date(event.created_at);
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      if (eventCreated < oneHourAgo) {
+      // Check if current user is part of this conversation
+      const isParticipant = conversation.participant_1_id === user.id || conversation.participant_2_id === user.id;
+      if (!isParticipant) {
+        return; // Only create notification for conversation participants
+      }
+
+      // Get sender info
+      const { data: senderSettings, error: senderError } = await supabase
+        .from('user_settings')
+        .select('full_name, profile_photo_url')
+        .eq('user_id', message.sender_id)
+        .single();
+
+      if (senderError) {
+        console.error('Error fetching sender info:', senderError);
         return;
       }
 
-      // Create notification
-      const { error: notificationError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: profile.user_id,
-          type,
-          title: type === 'new_event' ? 'New Event Added' : 'Schedule Updated',
-          message: `${event.title} for ${profile.name}`,
-          data: {
-            event_id: event.id,
-            child_name: profile.name,
-            event_title: event.title,
-            start_time: event.start_time
-          }
-        });
+      const senderName = senderSettings?.full_name || 'Someone';
 
-      if (notificationError) {
-        console.error('Error creating event notification:', notificationError);
+      // Create notification for the recipient (not the sender)
+      const recipientId = conversation.participant_1_id === message.sender_id 
+        ? conversation.participant_2_id 
+        : conversation.participant_1_id;
+
+      if (recipientId === user.id) {
+        const { error: notificationError } = await supabase
+          .from('notifications')
+          .insert({
+            user_id: recipientId,
+            type: 'message',
+            title: 'New Message',
+            message: `${senderName}: ${message.content.length > 50 ? message.content.substring(0, 50) + '...' : message.content}`,
+            data: {
+              message_id: message.id,
+              conversation_id: message.conversation_id,
+              sender_id: message.sender_id,
+              sender_name: senderName,
+              sender_photo: senderSettings?.profile_photo_url
+            }
+          });
+
+        if (notificationError) {
+          console.error('Error creating message notification:', notificationError);
+        }
       }
     } catch (err) {
-      console.error('Error in createEventNotification:', err);
+      console.error('Error in createMessageNotification:', err);
     }
   };
 
