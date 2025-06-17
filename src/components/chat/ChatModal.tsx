@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, MessageCircle, User } from 'lucide-react';
+import { X, Send, MessageCircle, User, Smile } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface Friend {
@@ -46,8 +46,20 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserInfo, setCurrentUserInfo] = useState<any>(null);
+  const [showEmoticons, setShowEmoticons] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const emoticonRef = useRef<HTMLDivElement>(null);
+
+  // Popular emoticons organized by category
+  const emoticons = {
+    'Smileys': ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙'],
+    'Emotions': ['😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥'],
+    'Reactions': ['😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '🥵', '🥶', '🥴', '😵', '🤯', '🤠', '🥳', '😎', '🤓'],
+    'Gestures': ['👍', '👎', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👋', '🤚', '🖐️', '✋'],
+    'Hearts': ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️'],
+    'Objects': ['🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🥅', '⛳']
+  };
 
   useEffect(() => {
     initializeChat();
@@ -56,6 +68,18 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
+
+    // Close emoticon picker when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emoticonRef.current && !emoticonRef.current.contains(event.target as Node)) {
+        setShowEmoticons(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
   }, [friend.friend_id]);
 
   useEffect(() => {
@@ -252,6 +276,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
     setMessages(prev => [...prev, optimisticMessage]);
     setNewMessage('');
+    setShowEmoticons(false); // Close emoticon picker after sending
 
     try {
       const { data: insertedMessage, error } = await supabase
@@ -285,6 +310,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     } finally {
       setSending(false);
     }
+  };
+
+  const addEmoticon = (emoticon: string) => {
+    setNewMessage(prev => prev + emoticon);
+    setShowEmoticons(false);
+    inputRef.current?.focus();
   };
 
   const markMessageAsRead = async (messageId: string) => {
@@ -474,7 +505,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
                       } ${message.id.startsWith('temp-') ? 'opacity-70' : ''}`}
                     >
-                      <p className="text-sm">{message.content}</p>
+                      <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     </div>
                     <div className={`mt-1 text-xs text-gray-500 dark:text-gray-400 ${
                       isCurrentUser ? 'text-right' : 'text-left'
@@ -498,9 +529,50 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Emoticon Picker */}
+        {showEmoticons && (
+          <div 
+            ref={emoticonRef}
+            className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 max-h-64 overflow-y-auto"
+          >
+            <div className="p-4">
+              {Object.entries(emoticons).map(([category, emojis]) => (
+                <div key={category} className="mb-4">
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    {category}
+                  </h4>
+                  <div className="grid grid-cols-10 gap-2">
+                    {emojis.map((emoji, index) => (
+                      <button
+                        key={index}
+                        onClick={() => addEmoticon(emoji)}
+                        className="text-xl hover:bg-gray-200 dark:hover:bg-gray-600 rounded p-1 transition-colors"
+                        title={emoji}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Message Input */}
         <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex space-x-3">
+            <button
+              onClick={() => setShowEmoticons(!showEmoticons)}
+              className={`p-2 rounded-full transition-colors ${
+                showEmoticons 
+                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
+              }`}
+              title="Add emoticon"
+            >
+              <Smile className="h-5 w-5" />
+            </button>
             <input
               ref={inputRef}
               type="text"
@@ -514,7 +586,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
             <button
               onClick={sendMessage}
               disabled={!newMessage.trim() || sending}
-              className="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {sending ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
