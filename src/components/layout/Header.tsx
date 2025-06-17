@@ -189,6 +189,11 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     setFriendSearchQuery(''); // Reset search when opening chat
   };
 
+  const handleOpenChatFromNotification = (friendId: string, friendInfo: any) => {
+    setSelectedFriend(friendInfo);
+    setNotificationsOpen(false);
+  };
+
   const getRoleIcon = (role: string) => {
     return role === 'administrator' ? '👑' : role === 'viewer' ? '👁️' : '💬';
   };
@@ -251,7 +256,10 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 </button>
                 
                 {notificationsOpen && (
-                  <NotificationCenter onClose={() => setNotificationsOpen(false)} />
+                  <NotificationCenter 
+                    onClose={() => setNotificationsOpen(false)} 
+                    onOpenChat={handleOpenChatFromNotification}
+                  />
                 )}
               </div>
 

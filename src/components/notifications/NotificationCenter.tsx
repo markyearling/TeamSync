@@ -16,9 +16,10 @@ interface Notification {
 
 interface NotificationCenterProps {
   onClose: () => void;
+  onOpenChat?: (friendId: string, friendInfo: any) => void;
 }
 
-const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
+const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpenChat }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -104,6 +105,40 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
       setError('Failed to load notifications');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read if not already read
+    if (!notification.read) {
+      await markAsRead(notification.id);
+    }
+
+    // Handle different notification types
+    if (notification.type === 'message' && onOpenChat) {
+      // Extract sender information from notification data
+      const senderId = notification.data?.sender_id;
+      const senderName = notification.data?.sender_name;
+      const senderPhoto = notification.data?.sender_photo;
+
+      if (senderId) {
+        // Create friend object for chat modal
+        const friendInfo = {
+          id: `friend-${senderId}`, // Create a unique friend ID
+          friend_id: senderId,
+          role: 'none' as const,
+          created_at: new Date().toISOString(),
+          friend: {
+            id: senderId,
+            full_name: senderName || 'Unknown User',
+            profile_photo_url: senderPhoto
+          }
+        };
+
+        // Close notification center and open chat
+        onClose();
+        onOpenChat(senderId, friendInfo);
+      }
     }
   };
 
@@ -316,7 +351,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
               className={`px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-600 last:border-b-0 cursor-pointer ${
                 !notification.read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
               }`}
-              onClick={() => !notification.read && markAsRead(notification.id)}
+              onClick={() => handleNotificationClick(notification)}
             >
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 pt-0.5">
@@ -334,6 +369,11 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                         {getTimeAgo(notification.created_at)}
                       </p>
+                      {notification.type === 'message' && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          Click to open chat
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center space-x-1 ml-2">
                       {!notification.read && (
