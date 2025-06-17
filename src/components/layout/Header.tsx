@@ -54,24 +54,33 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     fetchNotificationCount();
     
     // Set up real-time subscription for notifications count
-    const notificationsSubscription = supabase
-      .channel('header-notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'notifications'
-        },
-        () => {
-          fetchNotificationCount();
-        }
-      )
-      .subscribe();
+    const setupNotificationSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const notificationsSubscription = supabase
+          .channel(`header-notifications:user_id=eq.${user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'notifications',
+              filter: `user_id=eq.${user.id}`
+            },
+            () => {
+              fetchNotificationCount();
+            }
+          )
+          .subscribe();
 
-    return () => {
-      notificationsSubscription.unsubscribe();
+        return () => {
+          notificationsSubscription.unsubscribe();
+        };
+      }
     };
+
+    setupNotificationSubscription();
   }, []);
 
   // Filter friends based on search query
@@ -235,7 +244,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                   <span className="sr-only">View notifications</span>
                   <Bell className="h-6 w-6" />
                   {notificationCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white font-medium">
                       {notificationCount > 99 ? '99+' : notificationCount}
                     </span>
                   )}
