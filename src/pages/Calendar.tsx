@@ -94,12 +94,12 @@ const Calendar: React.FC = () => {
     try {
       console.log('🔍 CALENDAR: Starting friends events fetch for user:', userId);
       
-      // Get all friendships where current user is the user_id (meaning they are friends with someone)
-      // and the friend has granted them viewer or admin access
+      // CORRECTED: Get all friendships where current user is the friend_id 
+      // and has been granted viewer or admin access by the user_id
       const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
         .select('id, user_id, friend_id, role')
-        .eq('user_id', userId)
+        .eq('friend_id', userId)
         .in('role', ['viewer', 'administrator']);
 
       if (friendshipsError) {
@@ -107,16 +107,16 @@ const Calendar: React.FC = () => {
         return;
       }
 
-      console.log('📊 CALENDAR: Found friendships where user has access:', friendships);
+      console.log('📊 CALENDAR: Found friendships where user has been granted access:', friendships);
 
       if (!friendships || friendships.length === 0) {
         console.log('❌ CALENDAR: No friendships with viewer/admin access found');
         return;
       }
 
-      // Get the friend user IDs (the people who granted access to current user)
-      const friendUserIds = friendships.map(f => f.friend_id);
-      console.log('👥 CALENDAR: Friend user IDs who granted access:', friendUserIds);
+      // Get the user IDs who granted access to current user
+      const friendUserIds = friendships.map(f => f.user_id);
+      console.log('👥 CALENDAR: User IDs who granted access to current user:', friendUserIds);
 
       // Get user settings for the friends who granted access
       const { data: userSettings, error: userSettingsError } = await supabase
@@ -159,7 +159,7 @@ const Calendar: React.FC = () => {
 
       // Transform friend profiles to match our Child interface
       const transformedFriendProfiles = friendProfiles.map(profile => {
-        const friendship = friendships.find(f => f.friend_id === profile.user_id);
+        const friendship = friendships.find(f => f.user_id === profile.user_id);
         const userSetting = userSettings?.find(us => us.user_id === profile.user_id);
         
         return {
