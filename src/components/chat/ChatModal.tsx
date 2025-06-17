@@ -134,14 +134,19 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   };
 
   const findOrCreateConversation = async (userId: string, friendId: string): Promise<Conversation> => {
-    // Try to find existing conversation (check both participant orders)
+    // Always put participant IDs in canonical order (smaller UUID first)
+    const participant1 = userId < friendId ? userId : friendId;
+    const participant2 = userId < friendId ? friendId : userId;
+
+    // Try to find existing conversation using canonical ordering
     const { data: existingConversation, error: findError } = await supabase
       .from('conversations')
       .select('*')
-      .or(`and(participant_1_id.eq.${userId},participant_2_id.eq.${friendId}),and(participant_1_id.eq.${friendId},participant_2_id.eq.${userId})`)
-      .single();
+      .eq('participant_1_id', participant1)
+      .eq('participant_2_id', participant2)
+      .maybeSingle();
 
-    if (findError && findError.code !== 'PGRST116') {
+    if (findError) {
       throw findError;
     }
 
@@ -149,22 +154,41 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       return existingConversation;
     }
 
-    // Create new conversation (always put smaller UUID first for consistency)
-    const participant1 = userId < friendId ? userId : friendId;
-    const participant2 = userId < friendId ? friendId : userId;
+    // Try to create new conversation
+    try {
+      const { data: newConversation, error: createError } = await supabase
+        .from('conversations')
+        .insert({
+          participant_1_id: participant1,
+          participant_2_id: participant2
+        })
+        .select()
+        .single();
 
-    const { data: newConversation, error: createError } = await supabase
-      .from('conversations')
-      .insert({
-        participant_1_id: participant1,
-        participant_2_id: participant2
-      })
-      .select()
-      .single();
+      if (createError) throw createError;
 
-    if (createError) throw createError;
+      return newConversation;
+    } catch (createError: any) {
+      // Handle race condition: if conversation was created by another process
+      if (createError.code === '23505') {
+        // Duplicate key constraint violation - conversation was created concurrently
+        // Try to fetch it again
+        const { data: existingConversation, error: refetchError } = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('participant_1_id', participant1)
+          .eq('participant_2_id', participant2)
+          .single();
 
-    return newConversation;
+        if (refetchError) throw refetchError;
+        if (!existingConversation) throw new Error('Conversation not found after concurrent creation');
+
+        return existingConversation;
+      }
+      
+      // Re-throw other errors
+      throw createError;
+    }
   };
 
   const loadMessages = async (conversationId: string) => {
