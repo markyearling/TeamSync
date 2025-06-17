@@ -50,6 +50,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const emoticonRef = useRef<HTMLDivElement>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Popular emoticons organized by category
   const emoticons = {
@@ -77,8 +78,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
+    
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
     };
   }, [friend.friend_id]);
 
@@ -116,7 +121,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
             sender: senderSettings
           };
 
-          setMessages(prev => [...prev, messageWithSender]);
+          setMessages(prev => {
+            // Check if message already exists to prevent duplicates
+            const exists = prev.some(msg => msg.id === newMessage.id);
+            if (exists) return prev;
+            
+            return [...prev, messageWithSender];
+          });
 
           // Mark message as read if it's not from current user
           if (newMessage.sender_id !== currentUserId) {
@@ -127,10 +138,49 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${conversation.id}`
+        },
+        async (payload) => {
+          console.log('Message updated:', payload);
+          const updatedMessage = payload.new as Message;
+          
+          // Get sender info
+          const { data: senderSettings } = await supabase
+            .from('user_settings')
+            .select('full_name, profile_photo_url')
+            .eq('user_id', updatedMessage.sender_id)
+            .single();
+
+          const messageWithSender = {
+            ...updatedMessage,
+            sender: senderSettings
+          };
+
+          setMessages(prev => 
+            prev.map(msg => 
+              msg.id === updatedMessage.id ? messageWithSender : msg
+            )
+          );
+        }
+      )
       .subscribe();
+
+    // Set up periodic refresh as backup for real-time updates
+    refreshIntervalRef.current = setInterval(() => {
+      refreshMessages();
+    }, 5000); // Refresh every 5 seconds
 
     return () => {
       messagesSubscription.unsubscribe();
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
     };
   }, [conversation, currentUserId]);
 
@@ -164,6 +214,58 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       console.error('Error initializing chat:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshMessages = async () => {
+    if (!conversation) return;
+    
+    try {
+      const { data: messagesData, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversation.id)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      // Get sender info for each message
+      const messagesWithSenders = await Promise.all(
+        (messagesData || []).map(async (message) => {
+          const { data: senderSettings } = await supabase
+            .from('user_settings')
+            .select('full_name, profile_photo_url')
+            .eq('user_id', message.sender_id)
+            .single();
+
+          return {
+            ...message,
+            sender: senderSettings
+          };
+        })
+      );
+
+      // Only update if there are new messages
+      setMessages(prev => {
+        if (prev.length !== messagesWithSenders.length) {
+          return messagesWithSenders;
+        }
+        
+        // Check if any message content has changed
+        const hasChanges = messagesWithSenders.some((newMsg, index) => {
+          const oldMsg = prev[index];
+          return !oldMsg || oldMsg.id !== newMsg.id || oldMsg.content !== newMsg.content || oldMsg.read !== newMsg.read;
+        });
+        
+        return hasChanges ? messagesWithSenders : prev;
+      });
+
+      // Mark new messages as read
+      if (currentUserId) {
+        await markConversationAsRead(conversation.id, currentUserId);
+      }
+    } catch (error) {
+      console.error('Error refreshing messages:', error);
     }
   };
 

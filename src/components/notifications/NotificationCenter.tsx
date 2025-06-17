@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, Check, UserPlus, Calendar, MessageSquare, Clock, Trash2, BookMarked as MarkAsRead } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -22,6 +22,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     fetchNotifications();
@@ -104,10 +105,18 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
       )
       .subscribe();
 
+    // Set up periodic refresh as backup for real-time updates
+    refreshIntervalRef.current = setInterval(() => {
+      refreshNotifications();
+    }, 10000); // Refresh every 10 seconds
+
     return () => {
       notificationsSubscription.unsubscribe();
       friendRequestsSubscription.unsubscribe();
       eventsSubscription.unsubscribe();
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+      }
     };
   }, []);
 
@@ -131,6 +140,40 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose }) => {
       setError('Failed to load notifications');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const refreshNotifications = async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
+      const { data: notificationsData, error: notificationsError } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (notificationsError) throw notificationsError;
+
+      // Only update if there are changes
+      setNotifications(prev => {
+        const newData = notificationsData || [];
+        if (prev.length !== newData.length) {
+          return newData;
+        }
+        
+        // Check if any notification has changed
+        const hasChanges = newData.some((newNotif, index) => {
+          const oldNotif = prev[index];
+          return !oldNotif || oldNotif.id !== newNotif.id || oldNotif.read !== newNotif.read;
+        });
+        
+        return hasChanges ? newData : prev;
+      });
+    } catch (err) {
+      console.error('Error refreshing notifications:', err);
     }
   };
 
