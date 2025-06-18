@@ -17,7 +17,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
-  const { profiles } = useProfiles();
+  const { profiles, friendsProfiles } = useProfiles();
   const navigate = useNavigate();
   
   const navigation = [
@@ -106,9 +106,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
         ))}
       </div>
       
+      {/* Own Children */}
       {profiles.length > 0 && (
         <div className="mt-8">
-          <h3 className="px-3 text-sm font-medium text-gray-500 dark:text-gray-400">Children</h3>
+          <h3 className="px-3 text-sm font-medium text-gray-500 dark:text-gray-400">Your Children</h3>
           <div className="mt-1 space-y-1 px-3">
             {profiles.map((child) => (
               <button 
@@ -131,6 +132,47 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                   )}
                 </div>
                 {child.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Friends' Children (Administrator Access) */}
+      {friendsProfiles.length > 0 && (
+        <div className="mt-8">
+          <h3 className="px-3 text-sm font-medium text-gray-500 dark:text-gray-400">Friends' Children</h3>
+          <div className="mt-1 space-y-1 px-3">
+            {friendsProfiles.map((child) => (
+              <button 
+                key={child.id} 
+                onClick={() => handleChildClick(child.id)}
+                className="w-full group flex items-center rounded-md px-2 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white transition-colors"
+              >
+                <div 
+                  className="mr-3 h-6 w-6 rounded-full flex items-center justify-center text-white relative"
+                  style={{ backgroundColor: child.color }}
+                >
+                  {child.photo_url ? (
+                    <img 
+                      src={child.photo_url} 
+                      alt={child.name}
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  ) : (
+                    child.name.charAt(0)
+                  )}
+                  {/* Administrator badge */}
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full flex items-center justify-center">
+                    <span className="text-xs text-white">👑</span>
+                  </div>
+                </div>
+                <div className="flex-1 text-left">
+                  <div className="text-sm">{child.name}</div>
+                  <div className="text-xs text-blue-600 dark:text-blue-400">
+                    {child.ownerName}
+                  </div>
+                </div>
               </button>
             ))}
           </div>

@@ -12,6 +12,7 @@ export interface Child {
   ownerName?: string; // For friends' children
   ownerPhoto?: string; // For friends' children
   accessRole?: 'viewer' | 'administrator'; // For friends' children
+  isOwnProfile?: boolean; // To distinguish between own and friends' profiles
 }
 
 export interface Platform {
@@ -64,9 +65,11 @@ export interface Friend {
   id: string;
   user_id: string;
   friend_id: string;
-  role: 'viewer' | 'administrator';
+  role: 'none' | 'viewer' | 'administrator';
   created_at: string;
   updated_at: string;
+  unreadCount?: number;
+  lastMessageAt?: string;
   friend: {
     id: string;
     email: string;
@@ -80,7 +83,7 @@ export interface FriendRequest {
   requester_id: string;
   requested_id: string;
   status: 'pending' | 'accepted' | 'declined';
-  role: 'viewer' | 'administrator';
+  role: 'none' | 'viewer' | 'administrator';
   message?: string;
   created_at: string;
   updated_at: string;

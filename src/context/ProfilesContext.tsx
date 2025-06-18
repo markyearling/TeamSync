@@ -4,6 +4,8 @@ import { Child } from '../types';
 
 interface ProfilesContextType {
   profiles: Child[];
+  friendsProfiles: Child[];
+  allProfiles: Child[];
   addProfile: (profile: Omit<Child, 'id'>) => Promise<void>;
   updateProfile: (id: string, profile: Partial<Child>) => Promise<void>;
   deleteProfile: (id: string) => Promise<void>;
@@ -28,8 +30,12 @@ interface ProfilesProviderProps {
 
 export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) => {
   const [profiles, setProfiles] = useState<Child[]>([]);
+  const [friendsProfiles, setFriendsProfiles] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Combine own profiles and friends' profiles
+  const allProfiles = [...profiles, ...friendsProfiles];
 
   useEffect(() => {
     let mounted = true;
@@ -45,17 +51,18 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           const subscription = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
               if (session?.user) {
-                fetchProfiles();
+                fetchAllProfiles();
               }
             } else if (event === 'SIGNED_OUT') {
               setProfiles([]);
+              setFriendsProfiles([]);
             }
           });
 
           // Initial fetch only if we have a session
           const { data: { session } } = await supabase.auth.getSession();
           if (session?.user) {
-            await fetchProfiles();
+            await fetchAllProfiles();
           }
 
           return () => {
@@ -82,7 +89,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     };
   }, []);
 
-  const fetchProfiles = async () => {
+  const fetchAllProfiles = async () => {
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError) {
@@ -90,10 +97,91 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       }
       if (!user) {
         setProfiles([]);
+        setFriendsProfiles([]);
         return;
       }
 
-      const { data: profilesData, error: profilesError } = await supabase
+      // Fetch own profiles
+      await fetchOwnProfiles(user.id);
+      
+      // Fetch friends' profiles where user has administrator access
+      await fetchFriendsProfiles(user.id);
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
+      setError(errorMessage);
+      console.error('Error fetching profiles:', err);
+      setProfiles([]);
+      setFriendsProfiles([]);
+    }
+  };
+
+  const fetchOwnProfiles = async (userId: string) => {
+    const { data: profilesData, error: profilesError } = await supabase
+      .from('profiles')
+      .select(`
+        id,
+        name,
+        age,
+        color,
+        photo_url,
+        notes,
+        user_id,
+        profile_sports (
+          sport,
+          color
+        )
+      `)
+      .eq('user_id', userId);
+
+    if (profilesError) throw profilesError;
+
+    const formattedProfiles: Child[] = profilesData?.map(profile => ({
+      id: profile.id,
+      name: profile.name,
+      age: profile.age,
+      color: profile.color,
+      photo_url: profile.photo_url,
+      notes: profile.notes,
+      sports: profile.profile_sports?.map(sport => ({
+        name: sport.sport,
+        color: sport.color
+      })) || [],
+      eventCount: 0,
+      isOwnProfile: true
+    })) || [];
+
+    setProfiles(formattedProfiles);
+  };
+
+  const fetchFriendsProfiles = async (userId: string) => {
+    try {
+      // Get friendships where current user has administrator access to friends
+      const { data: friendships, error: friendshipsError } = await supabase
+        .from('friendships')
+        .select('friend_id, role')
+        .eq('user_id', userId)
+        .eq('role', 'administrator');
+
+      if (friendshipsError) throw friendshipsError;
+
+      if (!friendships || friendships.length === 0) {
+        setFriendsProfiles([]);
+        return;
+      }
+
+      const friendUserIds = friendships.map(f => f.friend_id);
+
+      // Get user settings for friends
+      const { data: userSettings, error: userSettingsError } = await supabase
+        .from('user_settings')
+        .select('user_id, full_name, profile_photo_url')
+        .in('user_id', friendUserIds);
+
+      if (userSettingsError) throw userSettingsError;
+
+      // Get all profiles for friends where user has administrator access
+      const { data: friendProfilesData, error: friendProfilesError } = await supabase
         .from('profiles')
         .select(`
           id,
@@ -102,38 +190,41 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           color,
           photo_url,
           notes,
+          user_id,
           profile_sports (
             sport,
             color
           )
         `)
-        .eq('user_id', user.id);
+        .in('user_id', friendUserIds);
 
-      if (profilesError) {
-        throw profilesError;
-      }
+      if (friendProfilesError) throw friendProfilesError;
 
-      const formattedProfiles: Child[] = profilesData?.map(profile => ({
-        id: profile.id,
-        name: profile.name,
-        age: profile.age,
-        color: profile.color,
-        photo_url: profile.photo_url,
-        notes: profile.notes,
-        sports: profile.profile_sports?.map(sport => ({
-          name: sport.sport,
-          color: sport.color
-        })) || [],
-        eventCount: 0
-      })) || [];
+      const formattedFriendsProfiles: Child[] = friendProfilesData?.map(profile => {
+        const userSetting = userSettings?.find(us => us.user_id === profile.user_id);
+        
+        return {
+          id: profile.id,
+          name: profile.name,
+          age: profile.age,
+          color: profile.color,
+          photo_url: profile.photo_url,
+          notes: profile.notes,
+          sports: profile.profile_sports?.map(sport => ({
+            name: sport.sport,
+            color: sport.color
+          })) || [],
+          eventCount: 0,
+          isOwnProfile: false,
+          ownerName: userSetting?.full_name || 'Friend',
+          ownerPhoto: userSetting?.profile_photo_url
+        };
+      }) || [];
 
-      setProfiles(formattedProfiles);
-      setError(null); // Clear any previous errors on successful fetch
+      setFriendsProfiles(formattedFriendsProfiles);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
-      setError(errorMessage);
-      console.error('Error fetching profiles:', err);
-      setProfiles([]); // Reset profiles on error
+      console.error('Error fetching friends profiles:', err);
+      setFriendsProfiles([]);
     }
   };
 
@@ -152,17 +243,34 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           color,
           photo_url,
           notes,
+          user_id,
           profile_sports (
             sport,
             color
           )
         `)
         .eq('id', id)
-        .eq('user_id', user.id)
         .single();
 
       if (profileError) throw profileError;
       if (!profile) throw new Error('Profile not found');
+
+      // Check if this is a friend's profile
+      const isOwnProfile = profile.user_id === user.id;
+      let ownerName = undefined;
+      let ownerPhoto = undefined;
+
+      if (!isOwnProfile) {
+        // Get owner information
+        const { data: ownerSettings } = await supabase
+          .from('user_settings')
+          .select('full_name, profile_photo_url')
+          .eq('user_id', profile.user_id)
+          .single();
+
+        ownerName = ownerSettings?.full_name || 'Friend';
+        ownerPhoto = ownerSettings?.profile_photo_url;
+      }
 
       return {
         id: profile.id,
@@ -175,7 +283,10 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           name: sport.sport,
           color: sport.color
         })) || [],
-        eventCount: 0
+        eventCount: 0,
+        isOwnProfile,
+        ownerName,
+        ownerPhoto
       };
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to fetch profile');
@@ -219,7 +330,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         if (sportsError) throw sportsError;
       }
 
-      await fetchProfiles();
+      await fetchAllProfiles();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add profile';
       setError(errorMessage);
@@ -242,8 +353,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           photo_url: profile.photo_url,
           notes: profile.notes
         })
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
 
       if (profileError) throw profileError;
 
@@ -270,7 +380,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         }
       }
 
-      await fetchProfiles();
+      await fetchAllProfiles();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update profile';
       setError(errorMessage);
@@ -287,12 +397,13 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       const { error } = await supabase
         .from('profiles')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
 
       if (error) throw error;
 
+      // Update both own profiles and friends profiles
       setProfiles(profiles.filter(p => p.id !== id));
+      setFriendsProfiles(friendsProfiles.filter(p => p.id !== id));
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete profile';
       setError(errorMessage);
@@ -304,6 +415,8 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     <ProfilesContext.Provider
       value={{
         profiles,
+        friendsProfiles,
+        allProfiles,
         addProfile,
         updateProfile,
         deleteProfile,

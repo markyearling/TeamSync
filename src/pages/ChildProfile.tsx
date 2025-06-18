@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AddEventModal from '../components/events/AddEventModal';
 import EventModal from '../components/events/EventModal';
-import { Filter, Calendar, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Filter, Calendar, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users, ChevronLeft, ChevronRight, Crown } from 'lucide-react';
 import { useProfiles } from '../context/ProfilesContext';
 import { Child, Event } from '../types';
 import { supabase } from '../lib/supabase';
@@ -289,13 +289,15 @@ const ChildProfile: React.FC = () => {
     .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
     .slice(0, 5);
 
+  const isFriendProfile = !child.isOwnProfile;
+
   return (
     <div className="space-y-6">
       {/* Profile Header */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <div className="h-20 w-20 rounded-full overflow-hidden flex items-center justify-center">
+            <div className="h-20 w-20 rounded-full overflow-hidden flex items-center justify-center relative">
               {child.photo_url ? (
                 <img 
                   src={child.photo_url} 
@@ -310,9 +312,21 @@ const ChildProfile: React.FC = () => {
                   {child.name.charAt(0)}
                 </div>
               )}
+              {isFriendProfile && (
+                <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
+                  <Crown className="h-3 w-3 text-white" />
+                </div>
+              )}
             </div>
             <div className="ml-6">
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{child.name}</h1>
+              <div className="flex items-center space-x-2">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{child.name}</h1>
+                {isFriendProfile && (
+                  <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
+                    {child.ownerName}'s child
+                  </span>
+                )}
+              </div>
               <div className="flex items-center mt-2 space-x-2">
                 {child.sports.map((sport, index) => (
                   <span
@@ -327,6 +341,17 @@ const ChildProfile: React.FC = () => {
                   </span>
                 ))}
               </div>
+              {isFriendProfile && (
+                <div className="mt-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2">
+                  <div className="flex items-center text-yellow-800 dark:text-yellow-200">
+                    <Crown className="h-4 w-4 mr-2" />
+                    <span className="text-xs font-medium">Administrator Access</span>
+                  </div>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                    You have full management access to this profile
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           <div className="flex space-x-2">
@@ -474,7 +499,9 @@ const ChildProfile: React.FC = () => {
             </div>
             <button
               onClick={() => setShowAddEventModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center"
+              className={`px-4 py-2 text-white rounded-md hover:opacity-90 flex items-center ${
+                isFriendProfile ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'
+              }`}
             >
               <Plus className="h-5 w-5 mr-2" />
               Add Event
@@ -537,7 +564,18 @@ const ChildProfile: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
             <form onSubmit={handleEditSubmit}>
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Edit Profile</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  {isFriendProfile ? (
+                    <div className="flex items-center">
+                      <span>Edit Profile</span>
+                      <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
+                        {child.ownerName}'s child
+                      </span>
+                    </div>
+                  ) : (
+                    "Edit Profile"
+                  )}
+                </h3>
                 <button
                   type="button"
                   onClick={() => setShowEditModal(false)}
@@ -695,6 +733,18 @@ const ChildProfile: React.FC = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   ></textarea>
                 </div>
+
+                {isFriendProfile && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                    <div className="flex items-center text-yellow-800 dark:text-yellow-200 mb-2">
+                      <Crown className="h-5 w-5 mr-2" />
+                      <span className="font-medium">Administrator Access</span>
+                    </div>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                      You are editing {child.ownerName}'s child profile. Any changes you make will be visible to them.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">
@@ -707,7 +757,11 @@ const ChildProfile: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                    isFriendProfile 
+                      ? 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500' 
+                      : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                  }`}
                 >
                   Save Changes
                 </button>
