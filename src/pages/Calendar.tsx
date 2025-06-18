@@ -94,12 +94,12 @@ const Calendar: React.FC = () => {
     try {
       console.log('🔍 CALENDAR: Starting friends events fetch for user:', userId);
       
-      // CORRECTED: Get all friendships where current user is the friend_id 
-      // and has been granted viewer or admin access by the user_id
+      // CORRECTED: Get all friendships where current user is the user_id 
+      // and has granted viewer or admin access to friend_id
       const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
         .select('id, user_id, friend_id, role')
-        .eq('friend_id', userId)
+        .eq('user_id', userId)
         .in('role', ['viewer', 'administrator']);
 
       if (friendshipsError) {
@@ -107,18 +107,18 @@ const Calendar: React.FC = () => {
         return;
       }
 
-      console.log('📊 CALENDAR: Found friendships where user has been granted access:', friendships);
+      console.log('📊 CALENDAR: Found friendships where user has granted access:', friendships);
 
       if (!friendships || friendships.length === 0) {
         console.log('❌ CALENDAR: No friendships with viewer/admin access found');
         return;
       }
 
-      // Get the user IDs who granted access to current user
-      const friendUserIds = friendships.map(f => f.user_id);
-      console.log('👥 CALENDAR: User IDs who granted access to current user:', friendUserIds);
+      // Get the friend IDs who have been granted access by current user
+      const friendUserIds = friendships.map(f => f.friend_id);
+      console.log('👥 CALENDAR: Friend IDs who have been granted access:', friendUserIds);
 
-      // Get user settings for the friends who granted access
+      // Get user settings for the friends who have been granted access
       const { data: userSettings, error: userSettingsError } = await supabase
         .from('user_settings')
         .select('user_id, full_name, profile_photo_url')
@@ -131,7 +131,7 @@ const Calendar: React.FC = () => {
 
       console.log('📋 CALENDAR: Found user settings:', userSettings);
 
-      // Get all profiles for friends who have granted access
+      // Get all profiles for friends who have been granted access
       const { data: friendProfiles, error: profilesError } = await supabase
         .from('profiles')
         .select(`
@@ -159,7 +159,7 @@ const Calendar: React.FC = () => {
 
       // Transform friend profiles to match our Child interface
       const transformedFriendProfiles = friendProfiles.map(profile => {
-        const friendship = friendships.find(f => f.user_id === profile.user_id);
+        const friendship = friendships.find(f => f.friend_id === profile.user_id);
         const userSetting = userSettings?.find(us => us.user_id === profile.user_id);
         
         return {
