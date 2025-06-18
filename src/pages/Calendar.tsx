@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   ChevronLeft, 
   ChevronRight,
@@ -32,73 +32,57 @@ const Calendar: React.FC = () => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['game', 'practice', 'tournament', 'other']);
   const [showFriendsEvents, setShowFriendsEvents] = useState(true);
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
-        if (!user) return;
+  // Memoize profile IDs to prevent unnecessary re-renders
+  const profileIds = useMemo(() => profiles.map(p => p.id), [profiles]);
 
-        // Fetch user's own events
-        if (profiles.length > 0) {
-          const profileIds = selectedProfiles.length > 0 
-            ? selectedProfiles.filter(id => profiles.some(p => p.id === id))
-            : profiles.map(profile => profile.id);
+  // Fetch user's own events - only when profiles change
+  const fetchOwnEvents = useCallback(async () => {
+    if (profileIds.length === 0) return;
 
-          if (profileIds.length > 0) {
-            const { data: eventData, error } = await supabase
-              .from('events')
-              .select('*')
-              .in('profile_id', profileIds)
-              .order('start_time', { ascending: true });
-
-            if (error) throw error;
-
-            const formattedEvents = eventData.map(event => {
-              const profile = profiles.find(p => p.id === event.profile_id);
-              return {
-                ...event,
-                id: event.id,
-                startTime: new Date(event.start_time),
-                endTime: new Date(event.end_time),
-                child: profile!,
-                platformIcon: CalendarIcon,
-                isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
-                isOwnEvent: true
-              };
-            });
-
-            setEvents(formattedEvents);
-          }
-        }
-
-        // Fetch friends' events if enabled
-        if (showFriendsEvents) {
-          await fetchFriendsEvents(user.id);
-        } else {
-          setFriendsEvents([]);
-          setFriendsProfiles([]);
-        }
-
-      } catch (error) {
-        console.error('Error fetching events:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEvents();
-  }, [profiles, selectedProfiles, showFriendsEvents]);
-
-  const fetchFriendsEvents = async (userId: string) => {
     try {
-      console.log('🔍 CALENDAR: Starting friends events fetch for user:', userId);
+      const { data: eventData, error } = await supabase
+        .from('events')
+        .select('*')
+        .in('profile_id', profileIds)
+        .order('start_time', { ascending: true });
+
+      if (error) throw error;
+
+      const formattedEvents = eventData.map(event => {
+        const profile = profiles.find(p => p.id === event.profile_id);
+        return {
+          ...event,
+          id: event.id,
+          startTime: new Date(event.start_time),
+          endTime: new Date(event.end_time),
+          child: profile!,
+          platformIcon: CalendarIcon,
+          isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
+          isOwnEvent: true
+        };
+      });
+
+      setEvents(formattedEvents);
+    } catch (error) {
+      console.error('❌ CALENDAR: Error fetching own events:', error);
+    }
+  }, [profileIds, profiles]);
+
+  // Fetch friends events - only when user changes or showFriendsEvents changes
+  const fetchFriendsEvents = useCallback(async (userId: string) => {
+    if (!showFriendsEvents) {
+      setFriendsEvents([]);
+      setFriendsProfiles([]);
+      return;
+    }
+
+    try {
+      console.log('🔍 CALENDAR: Fetching friends events for user:', userId);
       
-      // CORRECTED: Get all friendships where current user is the user_id 
-      // and has granted viewer or admin access to friend_id
+      // Get friendships where current user has granted access to friends
       const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
-        .select('id, user_id, friend_id, role')
+        .select('friend_id, role')
         .eq('user_id', userId)
         .in('role', ['viewer', 'administrator']);
 
@@ -107,59 +91,59 @@ const Calendar: React.FC = () => {
         return;
       }
 
-      console.log('📊 CALENDAR: Found friendships where user has granted access:', friendships);
-
       if (!friendships || friendships.length === 0) {
         console.log('❌ CALENDAR: No friendships with viewer/admin access found');
+        setFriendsEvents([]);
+        setFriendsProfiles([]);
         return;
       }
 
-      // Get the friend IDs who have been granted access by current user
       const friendUserIds = friendships.map(f => f.friend_id);
-      console.log('👥 CALENDAR: Friend IDs who have been granted access:', friendUserIds);
+      console.log('👥 CALENDAR: Friend user IDs:', friendUserIds);
 
-      // Get user settings for the friends who have been granted access
-      const { data: userSettings, error: userSettingsError } = await supabase
-        .from('user_settings')
-        .select('user_id, full_name, profile_photo_url')
-        .in('user_id', friendUserIds);
+      // Get user settings and profiles in parallel
+      const [userSettingsResult, friendProfilesResult] = await Promise.all([
+        supabase
+          .from('user_settings')
+          .select('user_id, full_name, profile_photo_url')
+          .in('user_id', friendUserIds),
+        supabase
+          .from('profiles')
+          .select('id, name, user_id')
+          .in('user_id', friendUserIds)
+      ]);
 
-      if (userSettingsError) {
-        console.error('❌ CALENDAR: Error fetching user settings:', userSettingsError);
+      if (userSettingsResult.error) {
+        console.error('❌ CALENDAR: Error fetching user settings:', userSettingsResult.error);
         return;
       }
 
-      console.log('📋 CALENDAR: Found user settings:', userSettings);
-
-      // SIMPLIFIED: Get only id and name from profiles to avoid NULL issues
-      const { data: friendProfiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, name, user_id')
-        .in('user_id', friendUserIds);
-
-      if (profilesError) {
-        console.error('❌ CALENDAR: Error fetching friend profiles:', profilesError);
+      if (friendProfilesResult.error) {
+        console.error('❌ CALENDAR: Error fetching friend profiles:', friendProfilesResult.error);
         return;
       }
 
-      console.log('👶 CALENDAR: Found friend profiles:', friendProfiles);
+      const { data: userSettings } = userSettingsResult;
+      const { data: friendProfiles } = friendProfilesResult;
 
       if (!friendProfiles || friendProfiles.length === 0) {
         console.log('❌ CALENDAR: No friend profiles found');
+        setFriendsEvents([]);
+        setFriendsProfiles([]);
         return;
       }
 
-      // Transform friend profiles to match our Child interface with minimal data
+      // Transform friend profiles
       const transformedFriendProfiles = friendProfiles.map(profile => {
         const friendship = friendships.find(f => f.friend_id === profile.user_id);
         const userSetting = userSettings?.find(us => us.user_id === profile.user_id);
         
         return {
           ...profile,
-          age: 0, // Default value
-          color: '#64748B', // Default gray color
+          age: 0,
+          color: '#64748B',
           photo_url: null,
-          sports: [], // Empty sports array for now
+          sports: [],
           eventCount: 0,
           ownerName: userSetting?.full_name || 'Friend',
           ownerPhoto: userSetting?.profile_photo_url,
@@ -168,16 +152,9 @@ const Calendar: React.FC = () => {
       });
 
       setFriendsProfiles(transformedFriendProfiles);
-      console.log('✅ CALENDAR: Set friends profiles:', transformedFriendProfiles);
-
-      // Filter friend profiles if specific ones are selected
-      const friendProfileIds = selectedProfiles.length > 0
-        ? selectedProfiles.filter(id => transformedFriendProfiles.some(p => p.id === id))
-        : transformedFriendProfiles.map(p => p.id);
-
-      console.log('📅 CALENDAR: Friend profile IDs to fetch events for:', friendProfileIds);
 
       // Get events for friend profiles
+      const friendProfileIds = friendProfiles.map(p => p.id);
       if (friendProfileIds.length > 0) {
         const { data: friendEventData, error: eventsError } = await supabase
           .from('events')
@@ -189,8 +166,6 @@ const Calendar: React.FC = () => {
           console.error('❌ CALENDAR: Error fetching friend events:', eventsError);
           return;
         }
-
-        console.log('🎉 CALENDAR: Found friend events:', friendEventData);
 
         const formattedFriendEvents = friendEventData.map(event => {
           const profile = transformedFriendProfiles.find(p => p.id === event.profile_id);
@@ -208,16 +183,48 @@ const Calendar: React.FC = () => {
         });
 
         setFriendsEvents(formattedFriendEvents);
-        console.log('✅ CALENDAR: Set friends events:', formattedFriendEvents);
+        console.log('✅ CALENDAR: Successfully loaded friends events:', formattedFriendEvents.length);
       }
 
     } catch (error) {
       console.error('💥 CALENDAR: Error fetching friends events:', error);
     }
-  };
+  }, [showFriendsEvents]);
 
+  // Main effect - only runs when dependencies actually change
   useEffect(() => {
-    // Initialize selected profiles with all profiles (own + friends)
+    let isMounted = true;
+
+    const fetchAllData = async () => {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user || !isMounted) return;
+
+        // Fetch own events
+        await fetchOwnEvents();
+
+        // Fetch friends events
+        await fetchFriendsEvents(user.id);
+
+      } catch (error) {
+        console.error('❌ CALENDAR: Error in main fetch:', error);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchAllData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchOwnEvents, fetchFriendsEvents]); // Only re-run when these callbacks change
+
+  // Initialize selected profiles when profiles change
+  useEffect(() => {
     const allAvailableProfiles = [...profiles.map(p => p.id), ...friendsProfiles.map(p => p.id)];
     setSelectedProfiles(allAvailableProfiles);
   }, [profiles, friendsProfiles]);
@@ -287,7 +294,6 @@ const Calendar: React.FC = () => {
   const renderView = () => {
     // Combine and filter events based on selected filters
     const allEvents = [...events, ...friendsEvents];
-    console.log('📊 CALENDAR: All events for calendar view:', allEvents.length, 'own:', events.length, 'friends:', friendsEvents.length);
     
     const filteredEvents = allEvents.filter(event => {
       if (selectedPlatforms.length > 0 && !selectedPlatforms.includes(event.platform)) {
@@ -295,8 +301,6 @@ const Calendar: React.FC = () => {
       }
       return true;
     });
-
-    console.log('🎯 CALENDAR: Filtered events:', filteredEvents.length);
 
     switch (view) {
       case 'month':
@@ -486,7 +490,7 @@ const Calendar: React.FC = () => {
                     <span className="ml-1 text-xs text-blue-600">({profile.ownerName})</span>
                   </label>
                 </div>
-                ))}
+              ))}
               {!showFriendsEvents && (
                 <p className="text-xs text-gray-500">Enable to see friends' children</p>
               )}
