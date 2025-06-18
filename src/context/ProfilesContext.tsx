@@ -101,6 +101,8 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         return;
       }
 
+      console.log('🔍 PROFILES: Fetching profiles for user:', user.id);
+
       // Fetch own profiles
       await fetchOwnProfiles(user.id);
       
@@ -117,6 +119,8 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
   };
 
   const fetchOwnProfiles = async (userId: string) => {
+    console.log('📋 PROFILES: Fetching own profiles for user:', userId);
+    
     const { data: profilesData, error: profilesError } = await supabase
       .from('profiles')
       .select(`
@@ -134,7 +138,12 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       `)
       .eq('user_id', userId);
 
-    if (profilesError) throw profilesError;
+    if (profilesError) {
+      console.error('❌ PROFILES: Error fetching own profiles:', profilesError);
+      throw profilesError;
+    }
+
+    console.log('✅ PROFILES: Found own profiles:', profilesData?.length || 0);
 
     const formattedProfiles: Child[] = profilesData?.map(profile => ({
       id: profile.id,
@@ -156,6 +165,8 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
 
   const fetchFriendsProfiles = async (userId: string) => {
     try {
+      console.log('👥 PROFILES: Fetching friends profiles for user:', userId);
+      
       // Get friendships where current user has administrator access to friends
       const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
@@ -163,14 +174,22 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         .eq('user_id', userId)
         .eq('role', 'administrator');
 
-      if (friendshipsError) throw friendshipsError;
+      if (friendshipsError) {
+        console.error('❌ PROFILES: Error fetching friendships:', friendshipsError);
+        throw friendshipsError;
+      }
+
+      console.log('👥 PROFILES: Found administrator friendships:', friendships?.length || 0);
+      console.log('👥 PROFILES: Administrator friendships:', friendships);
 
       if (!friendships || friendships.length === 0) {
+        console.log('❌ PROFILES: No administrator friendships found');
         setFriendsProfiles([]);
         return;
       }
 
       const friendUserIds = friendships.map(f => f.friend_id);
+      console.log('👥 PROFILES: Friend user IDs with admin access:', friendUserIds);
 
       // Get user settings for friends
       const { data: userSettings, error: userSettingsError } = await supabase
@@ -178,7 +197,12 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         .select('user_id, full_name, profile_photo_url')
         .in('user_id', friendUserIds);
 
-      if (userSettingsError) throw userSettingsError;
+      if (userSettingsError) {
+        console.error('❌ PROFILES: Error fetching user settings:', userSettingsError);
+        throw userSettingsError;
+      }
+
+      console.log('👥 PROFILES: Found user settings:', userSettings?.length || 0);
 
       // Get all profiles for friends where user has administrator access
       const { data: friendProfilesData, error: friendProfilesError } = await supabase
@@ -198,7 +222,13 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         `)
         .in('user_id', friendUserIds);
 
-      if (friendProfilesError) throw friendProfilesError;
+      if (friendProfilesError) {
+        console.error('❌ PROFILES: Error fetching friend profiles:', friendProfilesError);
+        throw friendProfilesError;
+      }
+
+      console.log('✅ PROFILES: Found friend profiles:', friendProfilesData?.length || 0);
+      console.log('✅ PROFILES: Friend profiles data:', friendProfilesData);
 
       const formattedFriendsProfiles: Child[] = friendProfilesData?.map(profile => {
         const userSetting = userSettings?.find(us => us.user_id === profile.user_id);
@@ -221,9 +251,10 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         };
       }) || [];
 
+      console.log('✅ PROFILES: Formatted friends profiles:', formattedFriendsProfiles);
       setFriendsProfiles(formattedFriendsProfiles);
     } catch (err) {
-      console.error('Error fetching friends profiles:', err);
+      console.error('💥 PROFILES: Error fetching friends profiles:', err);
       setFriendsProfiles([]);
     }
   };
