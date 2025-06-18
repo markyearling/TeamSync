@@ -28,11 +28,18 @@ interface ProfilesProviderProps {
   children: ReactNode;
 }
 
+interface FriendshipData {
+  user_id: string;
+  role: 'none' | 'viewer' | 'administrator';
+  user_name: string;
+}
+
 export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) => {
   const [profiles, setProfiles] = useState<Child[]>([]);
   const [friendsProfiles, setFriendsProfiles] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [friendshipCache, setFriendshipCache] = useState<FriendshipData[]>([]);
 
   // Combine own profiles and friends' profiles
   const allProfiles = [...profiles, ...friendsProfiles];
@@ -56,6 +63,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
             } else if (event === 'SIGNED_OUT') {
               setProfiles([]);
               setFriendsProfiles([]);
+              setFriendshipCache([]);
             }
           });
 
@@ -98,10 +106,15 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       if (!user) {
         setProfiles([]);
         setFriendsProfiles([]);
+        setFriendshipCache([]);
         return;
       }
 
       console.log('🔍 PROFILES: Fetching profiles for user:', user.id);
+
+      // First, fetch and cache all friendships where current user is the friend_id
+      // This tells us what access levels we have been granted by other users
+      await fetchFriendshipCache(user.id);
 
       // Fetch own profiles
       await fetchOwnProfiles(user.id);
@@ -115,6 +128,69 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       console.error('Error fetching profiles:', err);
       setProfiles([]);
       setFriendsProfiles([]);
+      setFriendshipCache([]);
+    }
+  };
+
+  const fetchFriendshipCache = async (userId: string) => {
+    try {
+      console.log('🤝 PROFILES: Fetching friendship cache for user:', userId);
+      
+      // Query friendships where current user is the friend_id
+      // This shows what access levels we have been granted by other users
+      const { data: friendships, error: friendshipsError } = await supabase
+        .from('friendships')
+        .select(`
+          user_id,
+          role,
+          created_at,
+          updated_at
+        `)
+        .eq('friend_id', userId) // Current user is the friend_id
+        .order('updated_at', { ascending: false });
+
+      if (friendshipsError) {
+        console.error('❌ PROFILES: Error fetching friendships:', friendshipsError);
+        throw friendshipsError;
+      }
+
+      console.log('🤝 PROFILES: Found friendships where user is friend:', friendships?.length || 0);
+      console.log('🤝 PROFILES: Friendship details:', friendships);
+
+      if (!friendships || friendships.length === 0) {
+        console.log('❌ PROFILES: No friendships found where user is friend');
+        setFriendshipCache([]);
+        return;
+      }
+
+      // Get user details for the people who granted us access
+      const granterUserIds = friendships.map(f => f.user_id);
+      const { data: userSettings, error: userSettingsError } = await supabase
+        .from('user_settings')
+        .select('user_id, full_name')
+        .in('user_id', granterUserIds);
+
+      if (userSettingsError) {
+        console.error('❌ PROFILES: Error fetching user settings for friendship cache:', userSettingsError);
+        throw userSettingsError;
+      }
+
+      // Build friendship cache
+      const friendshipData: FriendshipData[] = friendships.map(friendship => {
+        const userSetting = userSettings?.find(us => us.user_id === friendship.user_id);
+        return {
+          user_id: friendship.user_id,
+          role: friendship.role,
+          user_name: userSetting?.full_name || 'Friend'
+        };
+      });
+
+      console.log('✅ PROFILES: Built friendship cache:', friendshipData);
+      setFriendshipCache(friendshipData);
+
+    } catch (err) {
+      console.error('💥 PROFILES: Error fetching friendship cache:', err);
+      setFriendshipCache([]);
     }
   };
 
@@ -167,80 +243,22 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     try {
       console.log('👥 PROFILES: Fetching friends profiles for user:', userId);
       
-      // Force a fresh query by adding a timestamp to prevent caching
-      const timestamp = Date.now();
-      console.log('🔍 PROFILES: Query timestamp:', timestamp);
+      // Filter friendship cache for administrator access only
+      const administratorFriendships = friendshipCache.filter(f => f.role === 'administrator');
       
-      // Debug: First check all friendships for this user with fresh query
-      console.log('🔍 PROFILES: Checking all friendships...');
-      const { data: allFriendships, error: allFriendshipsError } = await supabase
-        .from('friendships')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false }); // Add ordering to ensure fresh query
+      console.log('👑 PROFILES: Administrator friendships from cache:', administratorFriendships);
 
-      if (allFriendshipsError) {
-        console.error('❌ PROFILES: Error fetching all friendships:', allFriendshipsError);
-      } else {
-        console.log('📊 PROFILES: All friendships for user:', allFriendships);
-        console.log('📊 PROFILES: Friendship roles:', allFriendships?.map(f => ({ 
-          friend_id: f.friend_id, 
-          role: f.role,
-          created_at: f.created_at,
-          updated_at: f.updated_at 
-        })));
-      }
-
-      // Get friendships where current user has administrator access to friends
-      // Use a more explicit query with ordering to ensure fresh data
-      const { data: friendships, error: friendshipsError } = await supabase
-        .from('friendships')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('role', 'administrator')
-        .order('updated_at', { ascending: false }); // Order by updated_at to get fresh data
-
-      if (friendshipsError) {
-        console.error('❌ PROFILES: Error fetching administrator friendships:', friendshipsError);
-        throw friendshipsError;
-      }
-
-      console.log('👥 PROFILES: Found administrator friendships:', friendships?.length || 0);
-      console.log('👥 PROFILES: Administrator friendships:', friendships);
-
-      // Additional debug: Check if there are any administrator friendships at all
-      const { data: allAdminFriendships, error: allAdminError } = await supabase
-        .from('friendships')
-        .select('*')
-        .eq('role', 'administrator');
-      
-      if (!allAdminError) {
-        console.log('🔍 PROFILES: All administrator friendships in system:', allAdminFriendships);
-      }
-
-      if (!friendships || friendships.length === 0) {
-        console.log('❌ PROFILES: No administrator friendships found for user');
+      if (administratorFriendships.length === 0) {
+        console.log('❌ PROFILES: No administrator access found in friendship cache');
         setFriendsProfiles([]);
         return;
       }
 
-      const friendUserIds = friendships.map(f => f.friend_id);
-      console.log('👥 PROFILES: Friend user IDs with admin access:', friendUserIds);
+      // Get user IDs where we have administrator access
+      const adminUserIds = administratorFriendships.map(f => f.user_id);
+      console.log('👑 PROFILES: User IDs where we have admin access:', adminUserIds);
 
-      // Get user settings for friends
-      const { data: userSettings, error: userSettingsError } = await supabase
-        .from('user_settings')
-        .select('user_id, full_name, profile_photo_url')
-        .in('user_id', friendUserIds);
-
-      if (userSettingsError) {
-        console.error('❌ PROFILES: Error fetching user settings:', userSettingsError);
-        throw userSettingsError;
-      }
-
-      console.log('👥 PROFILES: Found user settings:', userSettings?.length || 0);
-
-      // Get all profiles for friends where user has administrator access
+      // Get all profiles for users where we have administrator access
       const { data: friendProfilesData, error: friendProfilesError } = await supabase
         .from('profiles')
         .select(`
@@ -256,7 +274,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
             color
           )
         `)
-        .in('user_id', friendUserIds);
+        .in('user_id', adminUserIds);
 
       if (friendProfilesError) {
         console.error('❌ PROFILES: Error fetching friend profiles:', friendProfilesError);
@@ -267,8 +285,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       console.log('✅ PROFILES: Friend profiles data:', friendProfilesData);
 
       const formattedFriendsProfiles: Child[] = friendProfilesData?.map(profile => {
-        const friendship = friendships.find(f => f.friend_id === profile.user_id);
-        const userSetting = userSettings?.find(us => us.user_id === profile.user_id);
+        const friendship = administratorFriendships.find(f => f.user_id === profile.user_id);
         
         return {
           id: profile.id,
@@ -283,8 +300,8 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           })) || [],
           eventCount: 0,
           isOwnProfile: false,
-          ownerName: userSetting?.full_name || 'Friend',
-          ownerPhoto: userSetting?.profile_photo_url,
+          ownerName: friendship?.user_name || 'Friend',
+          ownerPhoto: undefined, // We can add this later if needed
           accessRole: friendship?.role
         };
       }) || [];
@@ -330,15 +347,14 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       let ownerPhoto = undefined;
 
       if (!isOwnProfile) {
-        // Get owner information
-        const { data: ownerSettings } = await supabase
-          .from('user_settings')
-          .select('full_name, profile_photo_url')
-          .eq('user_id', profile.user_id)
-          .single();
-
-        ownerName = ownerSettings?.full_name || 'Friend';
-        ownerPhoto = ownerSettings?.profile_photo_url;
+        // Check if we have access to this profile through friendship cache
+        const friendship = friendshipCache.find(f => f.user_id === profile.user_id);
+        if (!friendship) {
+          throw new Error('Access denied: No friendship found');
+        }
+        
+        ownerName = friendship.user_name;
+        // We can get owner photo from user_settings if needed
       }
 
       return {
