@@ -146,7 +146,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           created_at,
           updated_at
         `)
-        .eq('friend_id', userId) // Current user is the friend_id (we are someone's friend)
+        .eq('friend_id', userId) // FIXED: Current user is the friend_id (we are someone's friend)
         .order('updated_at', { ascending: false });
 
       if (friendshipsError) {
