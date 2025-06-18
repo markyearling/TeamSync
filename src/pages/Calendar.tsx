@@ -131,18 +131,11 @@ const Calendar: React.FC = () => {
 
       console.log('📋 CALENDAR: Found user settings:', userSettings);
 
-      // Get all profiles for friends who have been granted access
+      // FIXED: Get all profiles for friends who have been granted access
+      // Split the query to avoid issues with NULL values in joins
       const { data: friendProfiles, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          name,
-          age,
-          color,
-          photo_url,
-          user_id,
-          profile_sports(sport, color)
-        `)
+        .select('id, name, age, color, photo_url, user_id')
         .in('user_id', friendUserIds);
 
       if (profilesError) {
@@ -157,17 +150,32 @@ const Calendar: React.FC = () => {
         return;
       }
 
+      // Get profile sports separately to avoid NULL issues
+      const profileIds = friendProfiles.map(p => p.id);
+      const { data: profileSports, error: sportsError } = await supabase
+        .from('profile_sports')
+        .select('profile_id, sport, color')
+        .in('profile_id', profileIds);
+
+      if (sportsError) {
+        console.error('❌ CALENDAR: Error fetching profile sports:', sportsError);
+        // Continue without sports data
+      }
+
+      console.log('🏃 CALENDAR: Found profile sports:', profileSports);
+
       // Transform friend profiles to match our Child interface
       const transformedFriendProfiles = friendProfiles.map(profile => {
         const friendship = friendships.find(f => f.friend_id === profile.user_id);
         const userSetting = userSettings?.find(us => us.user_id === profile.user_id);
+        const sports = profileSports?.filter(ps => ps.profile_id === profile.id) || [];
         
         return {
           ...profile,
-          sports: profile.profile_sports?.map(sport => ({
+          sports: sports.map(sport => ({
             name: sport.sport,
             color: sport.color
-          })) || [],
+          })),
           eventCount: 0,
           ownerName: userSetting?.full_name || 'Friend',
           ownerPhoto: userSetting?.profile_photo_url,
@@ -557,7 +565,7 @@ const Calendar: React.FC = () => {
                     {type.label}
                   </label>
                 </div>
-              ))}
+                ))}
             </div>
           </div>
         </div>
