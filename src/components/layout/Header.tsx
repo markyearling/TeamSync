@@ -21,6 +21,8 @@ interface Friend {
     full_name?: string;
     profile_photo_url?: string;
   };
+  unreadCount?: number;
+  lastMessageAt?: string;
 }
 
 const Header: React.FC<HeaderProps> = ({ children }) => {
@@ -53,7 +55,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   useEffect(() => {
     fetchNotificationCount();
     
-    // Set up real-time subscription for notifications count
+    // Set up real-time subscription for notifications count (excluding messages)
     const setupNotificationSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -83,16 +85,83 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     setupNotificationSubscription();
   }, []);
 
-  // Filter friends based on search query
+  useEffect(() => {
+    // Set up real-time subscription for messages to update unread counts
+    const setupMessageSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        const messagesSubscription = supabase
+          .channel(`header-messages:user_id=eq.${user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'messages'
+            },
+            () => {
+              // Refresh friends list to update unread counts
+              if (friends.length > 0) {
+                fetchFriends();
+              }
+            }
+          )
+          .subscribe();
+
+        return () => {
+          messagesSubscription.unsubscribe();
+        };
+      }
+    };
+
+    setupMessageSubscription();
+  }, [friends.length]);
+
+  // Filter friends based on search query and sort by unread messages
   useEffect(() => {
     if (!friendSearchQuery.trim()) {
-      setFilteredFriends(friends);
+      // Sort friends: unread messages first, then by most recent message, then alphabetically
+      const sorted = [...friends].sort((a, b) => {
+        // First, sort by unread count (descending)
+        if ((a.unreadCount || 0) !== (b.unreadCount || 0)) {
+          return (b.unreadCount || 0) - (a.unreadCount || 0);
+        }
+        
+        // Then by last message time (most recent first)
+        if (a.lastMessageAt && b.lastMessageAt) {
+          return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+        }
+        
+        // Finally alphabetically
+        const nameA = a.friend.full_name || 'No name set';
+        const nameB = b.friend.full_name || 'No name set';
+        return nameA.localeCompare(nameB);
+      });
+      
+      setFilteredFriends(sorted);
     } else {
       const query = friendSearchQuery.toLowerCase();
       const filtered = friends.filter(friend => 
         (friend.friend.full_name || '').toLowerCase().includes(query)
       );
-      setFilteredFriends(filtered);
+      
+      // Apply same sorting to filtered results
+      const sorted = filtered.sort((a, b) => {
+        if ((a.unreadCount || 0) !== (b.unreadCount || 0)) {
+          return (b.unreadCount || 0) - (a.unreadCount || 0);
+        }
+        
+        if (a.lastMessageAt && b.lastMessageAt) {
+          return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+        }
+        
+        const nameA = a.friend.full_name || 'No name set';
+        const nameB = b.friend.full_name || 'No name set';
+        return nameA.localeCompare(nameB);
+      });
+      
+      setFilteredFriends(sorted);
     }
   }, [friends, friendSearchQuery]);
 
@@ -101,12 +170,13 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) return;
 
-      // Count unread notifications
+      // Count unread notifications excluding message notifications
       const { count, error: countError } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
-        .eq('read', false);
+        .eq('read', false)
+        .neq('type', 'message'); // Exclude message notifications
 
       if (!countError) {
         setNotificationCount(count || 0);
@@ -153,24 +223,48 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         });
       }
 
-      // Transform friends data and sort alphabetically
-      const transformedFriends = friendsData?.map(friendship => ({
-        ...friendship,
-        friend: friendUsers.find(u => u.id === friendship.friend_id) || {
-          id: friendship.friend_id,
-          full_name: 'No name set',
-          profile_photo_url: undefined
-        }
-      })) || [];
+      // Get unread message counts for each friend
+      const friendsWithUnreadCounts = await Promise.all(
+        (friendsData || []).map(async (friendship) => {
+          const friend = friendUsers.find(u => u.id === friendship.friend_id) || {
+            id: friendship.friend_id,
+            full_name: 'No name set',
+            profile_photo_url: undefined
+          };
 
-      // Sort friends alphabetically by name
-      transformedFriends.sort((a, b) => {
-        const nameA = a.friend.full_name || 'No name set';
-        const nameB = b.friend.full_name || 'No name set';
-        return nameA.localeCompare(nameB);
-      });
+          // Get conversation with this friend
+          const { data: conversation } = await supabase
+            .from('conversations')
+            .select('id, last_message_at')
+            .or(`and(participant_1_id.eq.${user.id},participant_2_id.eq.${friendship.friend_id}),and(participant_1_id.eq.${friendship.friend_id},participant_2_id.eq.${user.id})`)
+            .maybeSingle();
 
-      setFriends(transformedFriends);
+          let unreadCount = 0;
+          let lastMessageAt = null;
+
+          if (conversation) {
+            // Count unread messages from this friend
+            const { count } = await supabase
+              .from('messages')
+              .select('*', { count: 'exact', head: true })
+              .eq('conversation_id', conversation.id)
+              .eq('sender_id', friendship.friend_id)
+              .eq('read', false);
+
+            unreadCount = count || 0;
+            lastMessageAt = conversation.last_message_at;
+          }
+
+          return {
+            ...friendship,
+            friend,
+            unreadCount,
+            lastMessageAt
+          };
+        })
+      );
+
+      setFriends(friendsWithUnreadCounts);
     } catch (error) {
       console.error('Error fetching friends:', error);
     } finally {
@@ -187,6 +281,11 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     setSelectedFriend(friend);
     setFriendsOpen(false);
     setFriendSearchQuery(''); // Reset search when opening chat
+  };
+
+  const handleManageFriends = () => {
+    setFriendsOpen(false);
+    navigate('/friends');
   };
 
   const handleOpenChatFromNotification = (friendId: string, friendInfo: any) => {
@@ -263,7 +362,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 )}
               </div>
 
-              {/* Friends Dropdown - Removed number badge */}
+              {/* Friends Dropdown */}
               <div className="relative">
                 <button
                   type="button"
@@ -272,6 +371,12 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 >
                   <span className="sr-only">View friends</span>
                   <Users className="h-6 w-6" />
+                  {/* Show total unread messages count */}
+                  {friends.some(f => (f.unreadCount || 0) > 0) && (
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white font-medium">
+                      {friends.reduce((total, f) => total + (f.unreadCount || 0), 0)}
+                    </span>
+                  )}
                 </button>
                 
                 {friendsOpen && (
@@ -280,10 +385,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                       <div className="flex justify-between items-center mb-3">
                         <h3 className="text-sm font-medium text-gray-900 dark:text-white">Friends ({friends.length})</h3>
                         <button
-                          onClick={() => {
-                            setFriendsOpen(false);
-                            navigate('/settings');
-                          }}
+                          onClick={handleManageFriends}
                           className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                         >
                           Manage
@@ -326,7 +428,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                               className="w-full px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-600 last:border-b-0 text-left"
                             >
                               <div className="flex items-center">
-                                <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-500 flex items-center justify-center mr-3">
+                                <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-500 flex items-center justify-center mr-3 relative">
                                   {friend.friend.profile_photo_url ? (
                                     <img 
                                       src={friend.friend.profile_photo_url} 
@@ -338,14 +440,29 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                                       {(friend.friend.full_name || 'U').charAt(0).toUpperCase()}
                                     </span>
                                   )}
+                                  {/* Unread message indicator */}
+                                  {(friend.unreadCount || 0) > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white font-medium">
+                                      {friend.unreadCount! > 9 ? '9+' : friend.unreadCount}
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                  <div className={`text-sm font-medium truncate ${
+                                    (friend.unreadCount || 0) > 0 
+                                      ? 'font-bold text-gray-900 dark:text-white' 
+                                      : 'text-gray-900 dark:text-white'
+                                  }`}>
                                     {friend.friend.full_name || 'No name set'}
                                   </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                                     <span className="mr-1">{getRoleIcon(friend.role)}</span>
                                     {getRoleLabel(friend.role)}
+                                    {(friend.unreadCount || 0) > 0 && (
+                                      <span className="ml-2 text-blue-600 dark:text-blue-400 font-medium">
+                                        {friend.unreadCount} new message{friend.unreadCount! > 1 ? 's' : ''}
+                                      </span>
+                                    )}
                                   </div>
                                 </div>
                               </div>
@@ -363,10 +480,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                           <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
                           <p className="text-sm">No friends added yet</p>
                           <button
-                            onClick={() => {
-                              setFriendsOpen(false);
-                              navigate('/settings');
-                            }}
+                            onClick={handleManageFriends}
                             className="mt-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                           >
                             Add friends

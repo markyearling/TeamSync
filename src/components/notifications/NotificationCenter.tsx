@@ -33,7 +33,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
       subscriptionRef.current.unsubscribe();
     }
 
-    // Set up real-time subscription for notifications
+    // Set up real-time subscription for notifications (excluding messages)
     const setupSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -53,16 +53,19 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
             (payload) => {
               console.log('Notification change received:', payload);
               
-              if (payload.eventType === 'INSERT') {
-                // Add new notification to the top of the list
-                const newNotification = payload.new as Notification;
-                setNotifications(prev => [newNotification, ...prev]);
-              } else if (payload.eventType === 'UPDATE') {
-                // Update existing notification
-                const updatedNotification = payload.new as Notification;
-                setNotifications(prev => 
-                  prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
-                );
+              // Only handle non-message notifications
+              if (payload.new && payload.new.type !== 'message') {
+                if (payload.eventType === 'INSERT') {
+                  // Add new notification to the top of the list
+                  const newNotification = payload.new as Notification;
+                  setNotifications(prev => [newNotification, ...prev]);
+                } else if (payload.eventType === 'UPDATE') {
+                  // Update existing notification
+                  const updatedNotification = payload.new as Notification;
+                  setNotifications(prev => 
+                    prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
+                  );
+                }
               } else if (payload.eventType === 'DELETE') {
                 // Remove deleted notification
                 const deletedId = payload.old.id;
@@ -91,10 +94,12 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
       if (userError) throw userError;
       if (!user) return;
 
+      // Fetch notifications excluding message notifications
       const { data: notificationsData, error: notificationsError } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
+        .neq('type', 'message') // Exclude message notifications
         .order('created_at', { ascending: false });
 
       if (notificationsError) throw notificationsError;
@@ -114,32 +119,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
       await markAsRead(notification.id);
     }
 
-    // Handle different notification types
-    if (notification.type === 'message' && onOpenChat) {
-      // Extract sender information from notification data
-      const senderId = notification.data?.sender_id;
-      const senderName = notification.data?.sender_name;
-      const senderPhoto = notification.data?.sender_photo;
-
-      if (senderId) {
-        // Create friend object for chat modal
-        const friendInfo = {
-          id: `friend-${senderId}`, // Create a unique friend ID
-          friend_id: senderId,
-          role: 'none' as const,
-          created_at: new Date().toISOString(),
-          friend: {
-            id: senderId,
-            full_name: senderName || 'Unknown User',
-            profile_photo_url: senderPhoto
-          }
-        };
-
-        // Close notification center and open chat
-        onClose();
-        onOpenChat(senderId, friendInfo);
-      }
-    }
+    // Handle different notification types (excluding messages since they're not shown here)
+    // Message handling is removed since messages are not displayed in this component
   };
 
   const handleFriendRequestAction = async (notification: Notification, action: 'accept' | 'decline') => {
@@ -217,7 +198,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
         .from('notifications')
         .update({ read: true })
         .eq('user_id', user.id)
-        .eq('read', false);
+        .eq('read', false)
+        .neq('type', 'message'); // Only mark non-message notifications as read
 
       if (error) throw error;
 
@@ -252,7 +234,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
       const { error } = await supabase
         .from('notifications')
         .delete()
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .neq('type', 'message'); // Only clear non-message notifications
 
       if (error) throw error;
 
@@ -270,8 +253,6 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
         return <Calendar className="h-5 w-5 text-green-500" />;
       case 'schedule_change':
         return <Clock className="h-5 w-5 text-orange-500" />;
-      case 'message':
-        return <MessageSquare className="h-5 w-5 text-purple-500" />;
       default:
         return <Bell className="h-5 w-5 text-gray-500" />;
     }
@@ -369,11 +350,6 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
                       <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                         {getTimeAgo(notification.created_at)}
                       </p>
-                      {notification.type === 'message' && (
-                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                          Click to open chat
-                        </p>
-                      )}
                     </div>
                     <div className="flex items-center space-x-1 ml-2">
                       {!notification.read && (
