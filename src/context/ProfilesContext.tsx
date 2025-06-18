@@ -167,6 +167,20 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     try {
       console.log('👥 PROFILES: Fetching friends profiles for user:', userId);
       
+      // Debug: First check all friendships for this user
+      console.log('🔍 PROFILES: Checking all friendships...');
+      const { data: allFriendships, error: allFriendshipsError } = await supabase
+        .from('friendships')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (allFriendshipsError) {
+        console.error('❌ PROFILES: Error fetching all friendships:', allFriendshipsError);
+      } else {
+        console.log('📊 PROFILES: All friendships for user:', allFriendships);
+        console.log('📊 PROFILES: Friendship roles:', allFriendships?.map(f => ({ friend_id: f.friend_id, role: f.role })));
+      }
+
       // Get friendships where current user has administrator access to friends
       const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
@@ -175,7 +189,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         .eq('role', 'administrator');
 
       if (friendshipsError) {
-        console.error('❌ PROFILES: Error fetching friendships:', friendshipsError);
+        console.error('❌ PROFILES: Error fetching administrator friendships:', friendshipsError);
         throw friendshipsError;
       }
 
@@ -184,6 +198,17 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
 
       if (!friendships || friendships.length === 0) {
         console.log('❌ PROFILES: No administrator friendships found');
+        
+        // Debug: Let's also check if there are any friendships with 'administrator' role at all
+        const { data: debugAdminFriendships, error: debugError } = await supabase
+          .from('friendships')
+          .select('*')
+          .eq('role', 'administrator');
+        
+        if (!debugError) {
+          console.log('🔍 PROFILES: All administrator friendships in system:', debugAdminFriendships);
+        }
+        
         setFriendsProfiles([]);
         return;
       }
