@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Globe, Lock, Mail, Moon, Sun, User, Phone, Calendar as CalendarIcon, Plus, Trash2, Save, Users } from 'lucide-react';
+import { Bell, Globe, Lock, Mail, Moon, Sun, User, Phone, Calendar as CalendarIcon, Plus, Trash2, Save } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
-import FriendsManager from '../components/friends/FriendsManager';
 import { saveSettings, supabase } from '../lib/supabase';
 
 interface AdditionalEmail {
@@ -191,18 +190,6 @@ const Settings: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Friends Section */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
-                  <Users className="h-5 w-5 mr-2" />
-                  Friends & Sharing
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  Add friends to share your children's schedules and events. You can give them viewer or administrator access.
-                </p>
-                <FriendsManager />
               </div>
 
               <div className="border-t border-gray-200 dark:border-gray-700 pt-6">

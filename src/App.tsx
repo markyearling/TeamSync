@@ -8,6 +8,7 @@ import TeamSnapConnection from './pages/connections/TeamSnapConnection';
 import TeamSnapCallback from './pages/connections/TeamSnapCallback';
 import Playmetrics from './pages/connections/Playmetrics';
 import Profiles from './pages/Profiles';
+import Friends from './pages/Friends';
 import Settings from './pages/Settings';
 import ChildProfile from './pages/ChildProfile';
 import NotFound from './pages/NotFound';
@@ -69,7 +70,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) {
-    return <Navigate to="/auth/signin\" replace />;
+    return <Navigate to="/auth/signin" replace />;
   }
 
   return <>{children}</>;
@@ -137,6 +138,7 @@ const AppContent = () => {
           <Route path="connections/playmetrics" element={<Playmetrics />} />
           <Route path="profiles" element={<Profiles />} />
           <Route path="profiles/:id" element={<ChildProfile />} />
+          <Route path="friends" element={<Friends />} />
           <Route path="settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
         </Route>

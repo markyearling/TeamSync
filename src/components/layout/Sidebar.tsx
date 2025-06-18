@@ -7,7 +7,8 @@ import {
   Users, 
   Settings, 
   X,
-  BarChart 
+  BarChart,
+  UserPlus
 } from 'lucide-react';
 import { useProfiles } from '../../context/ProfilesContext';
 
@@ -32,6 +33,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       ]
     },
     { name: 'Profiles', icon: Users, href: '/profiles' },
+    { name: 'Friends', icon: UserPlus, href: '/friends' },
     { name: 'Settings', icon: Settings, href: '/settings' },
   ];
 
