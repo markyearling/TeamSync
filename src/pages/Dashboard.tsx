@@ -121,11 +121,10 @@ const Dashboard: React.FC = () => {
 
       console.log('📋 DASHBOARD: Found user settings:', userSettings);
 
-      // FIXED: Get all profiles for friends who have been granted access
-      // Split the query to avoid issues with NULL values in joins
+      // SIMPLIFIED: Get only id and name from profiles to avoid NULL issues
       const { data: friendProfiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, name, age, color, photo_url, user_id')
+        .select('id, name, user_id')
         .in('user_id', friendUserIds);
 
       if (profilesError) {
@@ -140,32 +139,17 @@ const Dashboard: React.FC = () => {
         return;
       }
 
-      // Get profile sports separately to avoid NULL issues
-      const profileIds = friendProfiles.map(p => p.id);
-      const { data: profileSports, error: sportsError } = await supabase
-        .from('profile_sports')
-        .select('profile_id, sport, color')
-        .in('profile_id', profileIds);
-
-      if (sportsError) {
-        console.error('❌ DASHBOARD: Error fetching profile sports:', sportsError);
-        // Continue without sports data
-      }
-
-      console.log('🏃 DASHBOARD: Found profile sports:', profileSports);
-
-      // Transform friend profiles to match our Child interface
+      // Transform friend profiles to match our Child interface with minimal data
       const transformedFriendProfiles = friendProfiles.map(profile => {
         const friendship = friendships.find(f => f.friend_id === profile.user_id);
         const userSetting = userSettings?.find(us => us.user_id === profile.user_id);
-        const sports = profileSports?.filter(ps => ps.profile_id === profile.id) || [];
         
         return {
           ...profile,
-          sports: sports.map(sport => ({
-            name: sport.sport,
-            color: sport.color
-          })),
+          age: 0, // Default value
+          color: '#64748B', // Default gray color
+          photo_url: null,
+          sports: [], // Empty sports array for now
           eventCount: 0,
           ownerName: userSetting?.full_name || 'Friend',
           ownerPhoto: userSetting?.profile_photo_url,
