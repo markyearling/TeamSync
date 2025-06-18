@@ -121,11 +121,36 @@ const Dashboard: React.FC = () => {
 
       console.log('📋 DASHBOARD: Found user settings:', userSettings);
 
-      // SIMPLIFIED: Get only id and name from profiles to avoid NULL issues
-      const { data: friendProfiles, error: profilesError } = await supabase
+      // DEBUG: Let's check what's happening with the profiles query step by step
+      console.log('🔍 DASHBOARD: About to query profiles with user_ids:', friendUserIds);
+      
+      // First, let's check if we can query profiles at all
+      const { data: allProfiles, error: allProfilesError } = await supabase
+        .from('profiles')
+        .select('id, name, user_id')
+        .limit(5);
+
+      console.log('🧪 DASHBOARD: Test query - all profiles (first 5):', allProfiles);
+      if (allProfilesError) {
+        console.error('❌ DASHBOARD: Error in test query:', allProfilesError);
+      }
+
+      // Now let's try the specific query with detailed logging
+      console.log('🎯 DASHBOARD: Executing specific profiles query...');
+      const profilesQuery = supabase
         .from('profiles')
         .select('id, name, user_id')
         .in('user_id', friendUserIds);
+
+      console.log('📝 DASHBOARD: Query object:', profilesQuery);
+
+      const { data: friendProfiles, error: profilesError, count } = await profilesQuery;
+
+      console.log('📊 DASHBOARD: Profiles query results:');
+      console.log('  - Data:', friendProfiles);
+      console.log('  - Error:', profilesError);
+      console.log('  - Count:', count);
+      console.log('  - Data length:', friendProfiles?.length || 0);
 
       if (profilesError) {
         console.error('❌ DASHBOARD: Error fetching friend profiles:', profilesError);
@@ -136,6 +161,22 @@ const Dashboard: React.FC = () => {
 
       if (!friendProfiles || friendProfiles.length === 0) {
         console.log('❌ DASHBOARD: No friend profiles found');
+        
+        // Let's try a different approach - query each user_id individually
+        console.log('🔄 DASHBOARD: Trying individual queries for each friend...');
+        for (const friendUserId of friendUserIds) {
+          console.log(`🔍 DASHBOARD: Querying profiles for individual user_id: ${friendUserId}`);
+          const { data: individualProfile, error: individualError } = await supabase
+            .from('profiles')
+            .select('id, name, user_id')
+            .eq('user_id', friendUserId);
+          
+          console.log(`📊 DASHBOARD: Individual query result for ${friendUserId}:`, individualProfile);
+          if (individualError) {
+            console.error(`❌ DASHBOARD: Individual query error for ${friendUserId}:`, individualError);
+          }
+        }
+        
         return;
       }
 
