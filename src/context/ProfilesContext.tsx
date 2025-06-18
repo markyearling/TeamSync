@@ -167,26 +167,38 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     try {
       console.log('👥 PROFILES: Fetching friends profiles for user:', userId);
       
-      // Debug: First check all friendships for this user
+      // Force a fresh query by adding a timestamp to prevent caching
+      const timestamp = Date.now();
+      console.log('🔍 PROFILES: Query timestamp:', timestamp);
+      
+      // Debug: First check all friendships for this user with fresh query
       console.log('🔍 PROFILES: Checking all friendships...');
       const { data: allFriendships, error: allFriendshipsError } = await supabase
         .from('friendships')
         .select('*')
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false }); // Add ordering to ensure fresh query
 
       if (allFriendshipsError) {
         console.error('❌ PROFILES: Error fetching all friendships:', allFriendshipsError);
       } else {
         console.log('📊 PROFILES: All friendships for user:', allFriendships);
-        console.log('📊 PROFILES: Friendship roles:', allFriendships?.map(f => ({ friend_id: f.friend_id, role: f.role })));
+        console.log('📊 PROFILES: Friendship roles:', allFriendships?.map(f => ({ 
+          friend_id: f.friend_id, 
+          role: f.role,
+          created_at: f.created_at,
+          updated_at: f.updated_at 
+        })));
       }
 
       // Get friendships where current user has administrator access to friends
+      // Use a more explicit query with ordering to ensure fresh data
       const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
-        .select('friend_id, role')
+        .select('*')
         .eq('user_id', userId)
-        .eq('role', 'administrator');
+        .eq('role', 'administrator')
+        .order('updated_at', { ascending: false }); // Order by updated_at to get fresh data
 
       if (friendshipsError) {
         console.error('❌ PROFILES: Error fetching administrator friendships:', friendshipsError);
@@ -196,19 +208,18 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       console.log('👥 PROFILES: Found administrator friendships:', friendships?.length || 0);
       console.log('👥 PROFILES: Administrator friendships:', friendships);
 
+      // Additional debug: Check if there are any administrator friendships at all
+      const { data: allAdminFriendships, error: allAdminError } = await supabase
+        .from('friendships')
+        .select('*')
+        .eq('role', 'administrator');
+      
+      if (!allAdminError) {
+        console.log('🔍 PROFILES: All administrator friendships in system:', allAdminFriendships);
+      }
+
       if (!friendships || friendships.length === 0) {
-        console.log('❌ PROFILES: No administrator friendships found');
-        
-        // Debug: Let's also check if there are any friendships with 'administrator' role at all
-        const { data: debugAdminFriendships, error: debugError } = await supabase
-          .from('friendships')
-          .select('*')
-          .eq('role', 'administrator');
-        
-        if (!debugError) {
-          console.log('🔍 PROFILES: All administrator friendships in system:', debugAdminFriendships);
-        }
-        
+        console.log('❌ PROFILES: No administrator friendships found for user');
         setFriendsProfiles([]);
         return;
       }
@@ -256,6 +267,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       console.log('✅ PROFILES: Friend profiles data:', friendProfilesData);
 
       const formattedFriendsProfiles: Child[] = friendProfilesData?.map(profile => {
+        const friendship = friendships.find(f => f.friend_id === profile.user_id);
         const userSetting = userSettings?.find(us => us.user_id === profile.user_id);
         
         return {
@@ -272,7 +284,8 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           eventCount: 0,
           isOwnProfile: false,
           ownerName: userSetting?.full_name || 'Friend',
-          ownerPhoto: userSetting?.profile_photo_url
+          ownerPhoto: userSetting?.profile_photo_url,
+          accessRole: friendship?.role
         };
       }) || [];
 
