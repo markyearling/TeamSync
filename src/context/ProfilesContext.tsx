@@ -29,9 +29,9 @@ interface ProfilesProviderProps {
 }
 
 interface FriendshipData {
-  user_id: string;
+  friend_user_id: string;
   role: 'none' | 'viewer' | 'administrator';
-  user_name: string;
+  friend_name: string;
 }
 
 export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) => {
@@ -136,7 +136,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     try {
       console.log('🤝 PROFILES: Fetching friendship cache for user:', userId);
       
-      // Query friendships where current user is the friend_id
+      // CORRECTED QUERY: Look for friendships where current user is the friend_id
       // This shows what access levels we have been granted by other users
       const { data: friendships, error: friendshipsError } = await supabase
         .from('friendships')
@@ -146,7 +146,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           created_at,
           updated_at
         `)
-        .eq('friend_id', userId) // Current user is the friend_id
+        .eq('friend_id', userId) // Current user is the friend_id (we are someone's friend)
         .order('updated_at', { ascending: false });
 
       if (friendshipsError) {
@@ -179,13 +179,17 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       const friendshipData: FriendshipData[] = friendships.map(friendship => {
         const userSetting = userSettings?.find(us => us.user_id === friendship.user_id);
         return {
-          user_id: friendship.user_id,
-          role: friendship.role,
-          user_name: userSetting?.full_name || 'Friend'
+          friend_user_id: friendship.user_id, // The user who granted us access
+          role: friendship.role, // The role they granted us
+          friend_name: userSetting?.full_name || 'Friend'
         };
       });
 
       console.log('✅ PROFILES: Built friendship cache:', friendshipData);
+      console.log('👑 PROFILES: Administrator access to users:', 
+        friendshipData.filter(f => f.role === 'administrator').map(f => f.friend_name)
+      );
+      
       setFriendshipCache(friendshipData);
 
     } catch (err) {
@@ -255,7 +259,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       }
 
       // Get user IDs where we have administrator access
-      const adminUserIds = administratorFriendships.map(f => f.user_id);
+      const adminUserIds = administratorFriendships.map(f => f.friend_user_id);
       console.log('👑 PROFILES: User IDs where we have admin access:', adminUserIds);
 
       // Get all profiles for users where we have administrator access
@@ -285,7 +289,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       console.log('✅ PROFILES: Friend profiles data:', friendProfilesData);
 
       const formattedFriendsProfiles: Child[] = friendProfilesData?.map(profile => {
-        const friendship = administratorFriendships.find(f => f.user_id === profile.user_id);
+        const friendship = administratorFriendships.find(f => f.friend_user_id === profile.user_id);
         
         return {
           id: profile.id,
@@ -300,7 +304,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           })) || [],
           eventCount: 0,
           isOwnProfile: false,
-          ownerName: friendship?.user_name || 'Friend',
+          ownerName: friendship?.friend_name || 'Friend',
           ownerPhoto: undefined, // We can add this later if needed
           accessRole: friendship?.role
         };
@@ -348,12 +352,12 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
 
       if (!isOwnProfile) {
         // Check if we have access to this profile through friendship cache
-        const friendship = friendshipCache.find(f => f.user_id === profile.user_id);
+        const friendship = friendshipCache.find(f => f.friend_user_id === profile.user_id);
         if (!friendship) {
           throw new Error('Access denied: No friendship found');
         }
         
-        ownerName = friendship.user_name;
+        ownerName = friendship.friend_name;
         // We can get owner photo from user_settings if needed
       }
 
