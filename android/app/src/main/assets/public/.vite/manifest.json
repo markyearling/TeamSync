@@ -1,0 +1,101 @@
+{
+  "_browser.BKHcFLuz.js": {
+    "file": "assets/browser.BKHcFLuz.js",
+    "name": "browser",
+    "isDynamicEntry": true,
+    "imports": [
+      "_vendor.jp6HjmV4.js"
+    ]
+  },
+  "_supabase.DCGCbtK8.js": {
+    "file": "assets/supabase.DCGCbtK8.js",
+    "name": "supabase",
+    "imports": [
+      "_vendor.jp6HjmV4.js"
+    ],
+    "dynamicImports": [
+      "_browser.BKHcFLuz.js"
+    ]
+  },
+  "_vendor.jp6HjmV4.js": {
+    "file": "assets/vendor.jp6HjmV4.js",
+    "name": "vendor"
+  },
+  "index.html": {
+    "file": "assets/index.BLLJjg3v.js",
+    "name": "index",
+    "src": "index.html",
+    "isEntry": true,
+    "imports": [
+      "_vendor.jp6HjmV4.js",
+      "_supabase.DCGCbtK8.js"
+    ],
+    "dynamicImports": [
+      "node_modules/@capacitor/app/dist/esm/web.js",
+      "node_modules/@capacitor/splash-screen/dist/esm/web.js",
+      "node_modules/@capacitor/camera/dist/esm/web.js",
+      "node_modules/@capacitor/local-notifications/dist/esm/index.js"
+    ],
+    "css": [
+      "assets/index.D4GCEFK0.css"
+    ]
+  },
+  "node_modules/@capacitor/app/dist/esm/web.js": {
+    "file": "assets/web.Bmh9vDzE.js",
+    "name": "web",
+    "src": "node_modules/@capacitor/app/dist/esm/web.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_vendor.jp6HjmV4.js",
+      "_supabase.DCGCbtK8.js"
+    ]
+  },
+  "node_modules/@capacitor/camera/dist/esm/web.js": {
+    "file": "assets/web.CoCiFJBs.js",
+    "name": "web",
+    "src": "node_modules/@capacitor/camera/dist/esm/web.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_vendor.jp6HjmV4.js",
+      "_supabase.DCGCbtK8.js"
+    ]
+  },
+  "node_modules/@capacitor/local-notifications/dist/esm/index.js": {
+    "file": "assets/index.DKlBgY7z.js",
+    "name": "index",
+    "src": "node_modules/@capacitor/local-notifications/dist/esm/index.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_supabase.DCGCbtK8.js",
+      "index.html",
+      "_vendor.jp6HjmV4.js"
+    ],
+    "dynamicImports": [
+      "node_modules/@capacitor/local-notifications/dist/esm/web.js"
+    ]
+  },
+  "node_modules/@capacitor/local-notifications/dist/esm/web.js": {
+    "file": "assets/web.DWCKXrjZ.js",
+    "name": "web",
+    "src": "node_modules/@capacitor/local-notifications/dist/esm/web.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_vendor.jp6HjmV4.js",
+      "_supabase.DCGCbtK8.js"
+    ]
+  },
+  "node_modules/@capacitor/splash-screen/dist/esm/web.js": {
+    "file": "assets/web.BX5UnY3j.js",
+    "name": "web",
+    "src": "node_modules/@capacitor/splash-screen/dist/esm/web.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "index.html",
+      "_vendor.jp6HjmV4.js",
+      "_supabase.DCGCbtK8.js"
+    ]
+  }
+}
