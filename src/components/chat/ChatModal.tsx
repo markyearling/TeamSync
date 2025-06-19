@@ -167,7 +167,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
             const newMessages = [...prev, messageWithSender];
             
             // Auto-scroll to bottom when new message arrives
-            setTimeout(() => forceScrollToBottom(), 50);
+            //setTimeout(() => forceScrollToBottom(), 50);
             
             return newMessages;
           });
