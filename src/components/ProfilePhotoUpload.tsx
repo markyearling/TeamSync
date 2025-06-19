@@ -1,14 +1,17 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Plus, Upload } from 'lucide-react';
+import { useCapacitor } from '../hooks/useCapacitor';
+import MobilePhotoUpload from './mobile/MobilePhotoUpload';
 
 interface ProfilePhotoUploadProps {
   currentPhotoUrl?: string | null;
-  onPhotoChange: (file: File) => void;
+  onPhotoChange: (file: File | string) => void;
 }
 
 const ProfilePhotoUpload: React.FC<ProfilePhotoUploadProps> = ({ currentPhotoUrl, onPhotoChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | undefined>(currentPhotoUrl || undefined);
+  const { isNative } = useCapacitor();
 
   useEffect(() => {
     setPreviewUrl(currentPhotoUrl || undefined);
@@ -26,6 +29,30 @@ const ProfilePhotoUpload: React.FC<ProfilePhotoUploadProps> = ({ currentPhotoUrl
     }
   };
 
+  const handleMobilePhotoChange = (fileOrDataUrl: File | string) => {
+    if (typeof fileOrDataUrl === 'string') {
+      setPreviewUrl(fileOrDataUrl);
+    } else {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreviewUrl(reader.result as string);
+      };
+      reader.readAsDataURL(fileOrDataUrl);
+    }
+    onPhotoChange(fileOrDataUrl);
+  };
+
+  // Use mobile component for native apps
+  if (isNative) {
+    return (
+      <MobilePhotoUpload 
+        currentPhotoUrl={previewUrl}
+        onPhotoChange={handleMobilePhotoChange}
+      />
+    );
+  }
+
+  // Web version
   return (
     <div className="relative">
       <div className="h-32 w-32 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">

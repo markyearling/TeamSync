@@ -17,10 +17,12 @@ import SignUp from './pages/auth/SignUp';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import AuthCallback from './pages/auth/AuthCallback';
+import MobileOptimizations from './components/mobile/MobileOptimizations';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProfilesProvider } from './context/ProfilesContext';
 import { useAuth } from './hooks/useAuth';
+import { useCapacitor } from './hooks/useCapacitor';
 import { supabase, testConnection } from './lib/supabase';
 
 const LoadingSpinner = () => (
@@ -79,6 +81,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppContent = () => {
   const [initialized, setInitialized] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const { isNative } = useCapacitor();
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -154,9 +157,11 @@ export default function App() {
         <ThemeProvider>
           <AppProvider>
             <ProfilesProvider>
-              <Suspense fallback={<LoadingSpinner />}>
-                <AppContent />
-              </Suspense>
+              <MobileOptimizations>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <AppContent />
+                </Suspense>
+              </MobileOptimizations>
             </ProfilesProvider>
           </AppProvider>
         </ThemeProvider>
