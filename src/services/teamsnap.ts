@@ -1,5 +1,4 @@
-import pkceChallenge from 'pkce-challenge';
-import { supabase } from '../lib/supabase';
+import { generateCodeVerifier, generateCodeChallenge } from 'oauth-pkce';
 
 const TEAMSNAP_AUTH_URL = 'https://auth.teamsnap.com/oauth/authorize';
 const TEAMSNAP_TOKEN_URL = 'https://auth.teamsnap.com/oauth/token';
@@ -435,39 +434,31 @@ export class TeamSnapService {
 
       // Transform and store events for the specific profile
       const eventsToInsert = teamEvents.map(event => {
-        // Format the title based on event type
+        // Format the title based on event type and is_game flag
         let title = 'TeamSnap Event';
+        
         if (event.type) {
           // Capitalize the first letter of the event type
           title = event.type.charAt(0).toUpperCase() + event.type.slice(1);
+          
+          // If it's a game, append "Game" to the type
+          if (event.is_game) {
+            title += " Game";
+          }
+        } else if (event.is_game) {
+          // If there's no type but it is a game
+          title = "Game";
         } else if (event.name) {
+          // Fall back to the event name if available
           title = event.name;
         }
 
-        // Create a more detailed description
+        // Use formatted_title_for_multi_team for description if available
         let description = '';
-        if (event.notes) {
+        if (event.formatted_title_for_multi_team) {
+          description = event.formatted_title_for_multi_team;
+        } else if (event.notes) {
           description = event.notes;
-        } else if (event.name && title !== event.name) {
-          description = event.name;
-        }
-
-        // If there's opponent information, add it to the description
-        if (event.opponent_name) {
-          if (description) {
-            description += `\nOpponent: ${event.opponent_name}`;
-          } else {
-            description = `Opponent: ${event.opponent_name}`;
-          }
-        }
-
-        // Add any additional details that might be useful
-        if (event.formatted_title && !description.includes(event.formatted_title)) {
-          if (description) {
-            description += `\n${event.formatted_title}`;
-          } else {
-            description = event.formatted_title;
-          }
         }
 
         return {
