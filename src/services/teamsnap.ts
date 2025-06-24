@@ -1,4 +1,5 @@
 import { generateCodeVerifier, generateCodeChallenge } from 'oauth-pkce';
+import { supabase } from '../lib/supabase';
 
 const TEAMSNAP_AUTH_URL = 'https://auth.teamsnap.com/oauth/authorize';
 const TEAMSNAP_TOKEN_URL = 'https://auth.teamsnap.com/oauth/token';
