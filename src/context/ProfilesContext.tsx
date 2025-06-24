@@ -247,9 +247,13 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
   const fetchFriendsProfiles = async (userId: string) => {
     try {
       console.log('👥 PROFILES: Fetching friends profiles for user:', userId);
+      console.log('👥 PROFILES: Current friendship cache:', friendshipCache);
       
       // Filter friendship cache for administrator access only
-      const administratorFriendships = friendshipCache.filter(f => f.role === 'administrator');
+      const administratorFriendships = friendshipCache.filter(f => {
+        console.log(`👥 PROFILES: Checking friendship - User: ${f.friend_name}, Role: ${f.role}`);
+        return f.role === 'administrator';
+      });
       
       console.log('👑 PROFILES: Administrator friendships from cache:', administratorFriendships);
 
