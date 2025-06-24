@@ -15,6 +15,10 @@ import WeekView from '../components/calendar/WeekView';
 import DayView from '../components/calendar/DayView';
 import AgendaView from '../components/calendar/AgendaView';
 import { Event } from '../types';
+import { useLoadScript, Libraries } from '@react-google-maps/api';
+
+// Define libraries outside component to prevent recreation on each render
+const libraries: Libraries = ['places', 'marker'];
 
 type ViewType = 'month' | 'week' | 'day' | 'agenda';
 
@@ -31,6 +35,13 @@ const Calendar: React.FC = () => {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['game', 'practice', 'tournament', 'other']);
   const [showFriendsEvents, setShowFriendsEvents] = useState(true);
+
+  // Centralized Google Maps loading
+  const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    libraries,
+    mapIds: [import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || '']
+  });
 
   // Memoize profile IDs to prevent unnecessary re-renders
   const profileIds = useMemo(() => profiles.map(p => p.id), [profiles]);

@@ -162,7 +162,12 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events }) => {
       </div>
 
       {selectedEvent && (
-        <EventModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+        <EventModal 
+          event={selectedEvent} 
+          onClose={() => setSelectedEvent(null)}
+          mapsLoaded={true}
+          mapsLoadError={undefined}
+        />
       )}
     </div>
   );

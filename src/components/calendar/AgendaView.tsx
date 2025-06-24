@@ -141,7 +141,12 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
       )}
 
       {selectedEvent && (
-        <EventModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+        <EventModal 
+          event={selectedEvent} 
+          onClose={() => setSelectedEvent(null)}
+          mapsLoaded={true}
+          mapsLoadError={undefined}
+        />
       )}
     </div>
   );

@@ -133,7 +133,12 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events }) => {
       })}
 
       {selectedEvent && (
-        <EventModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+        <EventModal 
+          event={selectedEvent} 
+          onClose={() => setSelectedEvent(null)}
+          mapsLoaded={true}
+          mapsLoadError={undefined}
+        />
       )}
     </div>
   );
