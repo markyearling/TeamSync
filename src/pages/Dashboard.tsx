@@ -6,6 +6,10 @@ import ConnectedPlatform from '../components/dashboard/ConnectedPlatform';
 import { useProfiles } from '../context/ProfilesContext';
 import { supabase } from '../lib/supabase';
 import { Event, Platform } from '../types';
+import { useLoadScript, Libraries } from '@react-google-maps/api';
+
+// Define libraries outside component to prevent recreation on each render
+const libraries: Libraries = ['places', 'marker'];
 
 const Dashboard: React.FC = () => {
   const { profiles } = useProfiles();
@@ -31,6 +35,13 @@ const Dashboard: React.FC = () => {
       hasIssue: false,
     }
   ]);
+
+  // Centralized Google Maps loading
+  const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    libraries,
+    mapIds: [import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || '']
+  });
 
   // Memoize profile IDs to prevent unnecessary re-renders
   const profileIds = useMemo(() => profiles.map(p => p.id), [profiles]);
@@ -284,7 +295,11 @@ const Dashboard: React.FC = () => {
                       {event.ownerName}'s schedule
                     </div>
                   )}
-                  <EventCard event={event} />
+                  <EventCard 
+                    event={event} 
+                    mapsLoaded={mapsLoaded}
+                    mapsLoadError={mapsLoadError}
+                  />
                 </div>
               ))
           ) : (
@@ -424,7 +439,11 @@ const Dashboard: React.FC = () => {
                     {event.ownerName}'s schedule
                   </div>
                 )}
-                <EventCard event={event} />
+                <EventCard 
+                  event={event} 
+                  mapsLoaded={mapsLoaded}
+                  mapsLoadError={mapsLoadError}
+                />
               </div>
             ))}
           {upcomingEvents.filter(e => !e.isToday).length === 0 && (

@@ -5,9 +5,11 @@ import EventModal from './EventModal';
 
 interface EventCardProps {
   event: Event;
+  mapsLoaded?: boolean;
+  mapsLoadError?: Error;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event }) => {
+const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoadError }) => {
   const [showModal, setShowModal] = useState(false);
 
   return (
@@ -62,7 +64,12 @@ const EventCard: React.FC<EventCardProps> = ({ event }) => {
       </div>
 
       {showModal && (
-        <EventModal event={event} onClose={() => setShowModal(false)} />
+        <EventModal 
+          event={event} 
+          onClose={() => setShowModal(false)} 
+          mapsLoaded={mapsLoaded}
+          mapsLoadError={mapsLoadError}
+        />
       )}
     </>
   );
