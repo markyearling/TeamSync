@@ -8,6 +8,7 @@ import TeamSnapConnection from './pages/connections/TeamSnapConnection';
 import TeamSnapCallback from './pages/connections/TeamSnapCallback';
 import Playmetrics from './pages/connections/Playmetrics';
 import SportsEngineConnection from './pages/connections/SportsEngineConnection';
+import GameChangerConnection from './pages/connections/GameChangerConnection';
 import Profiles from './pages/Profiles';
 import Friends from './pages/Friends';
 import Settings from './pages/Settings';
@@ -142,6 +143,7 @@ const AppContent = () => {
           <Route path="connections/teamsnap" element={<TeamSnapConnection />} />
           <Route path="connections/playmetrics" element={<Playmetrics />} />
           <Route path="connections/sportsengine" element={<SportsEngineConnection />} />
+          <Route path="connections/gamechanger" element={<GameChangerConnection />} />
           <Route path="profiles" element={<Profiles />} />
           <Route path="profiles/:id" element={<ChildProfile />} />
           <Route path="friends" element={<Friends />} />

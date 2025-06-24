@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   Home, 
@@ -7,8 +7,9 @@ import {
   Users, 
   Settings, 
   X,
-  BarChart,
-  UserPlus
+  UserPlus,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { useProfiles } from '../../context/ProfilesContext';
 
@@ -19,6 +20,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const { profiles, friendsProfiles } = useProfiles();
   const navigate = useNavigate();
+  const [connectionsOpen, setConnectionsOpen] = useState(false);
   
   const navigation = [
     { name: 'Dashboard', icon: Home, href: '/' },
@@ -27,9 +29,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       name: 'Connections', 
       icon: LinkIcon, 
       href: '/connections',
+      hasSubItems: true,
       subItems: [
         { name: 'TeamSnap', href: '/connections/teamsnap' },
-        { name: 'Playmetrics', href: '/connections/playmetrics' }
+        { name: 'SportsEngine', href: '/connections/sportsengine' },
+        { name: 'Playmetrics', href: '/connections/playmetrics' },
+        { name: 'GameChanger', href: '/connections/gamechanger' }
       ]
     },
     { name: 'Profiles', icon: Users, href: '/profiles' },
@@ -40,6 +45,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const handleChildClick = (childId: string) => {
     navigate(`/profiles/${childId}`);
     onClose();
+  };
+
+  const toggleConnections = () => {
+    setConnectionsOpen(!connectionsOpen);
   };
 
   return (
@@ -63,44 +72,65 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       <div className="mt-5 px-2 space-y-1">
         {navigation.map((item) => (
           <div key={item.name}>
-            <NavLink
-              to={item.href}
-              className={({ isActive }) =>
-                `group flex items-center px-2 py-2 text-base font-medium rounded-md ${
-                  isActive
-                    ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
-                }`
-              }
-              end={item.href === '/'}
-            >
-              <item.icon 
-                className={({ isActive }: { isActive: boolean }) =>
-                  `mr-4 h-6 w-6 flex-shrink-0 ${
-                    isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-300'
+            {item.hasSubItems ? (
+              <div>
+                <button
+                  onClick={toggleConnections}
+                  className="w-full group flex items-center justify-between px-2 py-2 text-base font-medium rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+                >
+                  <div className="flex items-center">
+                    <item.icon className="mr-4 h-6 w-6 flex-shrink-0 text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-300" />
+                    {item.name}
+                  </div>
+                  {connectionsOpen ? (
+                    <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                  ) : (
+                    <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                  )}
+                </button>
+                {connectionsOpen && item.subItems && (
+                  <div className="ml-8 mt-1 space-y-1">
+                    {item.subItems.map((subItem) => (
+                      <NavLink
+                        key={subItem.name}
+                        to={subItem.href}
+                        className={({ isActive }) =>
+                          `block px-3 py-2 text-sm font-medium rounded-md ${
+                            isActive
+                              ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                          }`
+                        }
+                        onClick={onClose}
+                      >
+                        {subItem.name}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <NavLink
+                to={item.href}
+                className={({ isActive }) =>
+                  `group flex items-center px-2 py-2 text-base font-medium rounded-md ${
+                    isActive
+                      ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                      : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                   }`
                 }
-              />
-              {item.name}
-            </NavLink>
-            {item.subItems && (
-              <div className="ml-8 mt-1 space-y-1">
-                {item.subItems.map((subItem) => (
-                  <NavLink
-                    key={subItem.name}
-                    to={subItem.href}
-                    className={({ isActive }) =>
-                      `block px-3 py-2 text-sm font-medium rounded-md ${
-                        isActive
-                          ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
-                      }`
-                    }
-                  >
-                    {subItem.name}
-                  </NavLink>
-                ))}
-              </div>
+                end={item.href === '/'}
+                onClick={onClose}
+              >
+                <item.icon 
+                  className={({ isActive }: { isActive: boolean }) =>
+                    `mr-4 h-6 w-6 flex-shrink-0 ${
+                      isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-300'
+                    }`
+                  }
+                />
+                {item.name}
+              </NavLink>
             )}
           </div>
         ))}

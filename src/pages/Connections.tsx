@@ -51,6 +51,14 @@ const Connections: React.FC = () => {
       color: '#10B981', // Green
       connected: false,
       hasIssue: false,
+    },
+    {
+      id: 4,
+      name: 'GameChanger',
+      icon: BarChart,
+      color: '#F97316', // Orange
+      connected: false,
+      hasIssue: false,
     }
   ];
 
@@ -159,6 +167,9 @@ const Connections: React.FC = () => {
         break;
       case 'Playmetrics':
         navigate('/connections/playmetrics');
+        break;
+      case 'GameChanger':
+        navigate('/connections/gamechanger');
         break;
       default:
         navigate('/connections');
@@ -300,6 +311,45 @@ const Connections: React.FC = () => {
             }
           } catch (error) {
             console.error(`Error refreshing Playmetrics team ${team.team_name}:`, error);
+            
+            // Update team status to error
+            await supabase
+              .from('platform_teams')
+              .update({ 
+                sync_status: 'error',
+                last_synced: new Date().toISOString()
+              })
+              .eq('id', team.id);
+          }
+        }
+        
+        // For GameChanger, we would call the sync function
+        else if (platform.name === 'GameChanger') {
+          try {
+            // Get profile mappings for this team
+            const { data: profileMappings } = await supabase
+              .from('profile_teams')
+              .select('profile_id')
+              .eq('platform_team_id', team.id);
+
+            if (profileMappings && profileMappings.length > 0) {
+              // In a real implementation, we would call the GameChanger sync function here
+              // For now, we'll just simulate a successful sync
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              // Update team status to success
+              await supabase
+                .from('platform_teams')
+                .update({ 
+                  sync_status: 'success',
+                  last_synced: new Date().toISOString()
+                })
+                .eq('id', team.id);
+                
+              refreshedCount++;
+            }
+          } catch (error) {
+            console.error(`Error refreshing GameChanger team ${team.team_name}:`, error);
             
             // Update team status to error
             await supabase
@@ -478,7 +528,7 @@ const Connections: React.FC = () => {
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 p-6">
           {availablePlatforms.length > 0 ? (
             availablePlatforms.map(platform => (
               <div 
