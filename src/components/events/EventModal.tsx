@@ -19,6 +19,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   const [shareError, setShareError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral | null>(null);
   const [geocodingAttempted, setGeocodingAttempted] = useState(false);
+  const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
 
   // Use the static libraries array to prevent reloading
   const { isLoaded, loadError } = useLoadScript({
@@ -49,6 +50,32 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
       }
     }
   }, [isLoaded, event.location, geocodingAttempted]);
+
+  // Add marker when map center and map ref are available
+  useEffect(() => {
+    if (mapRef && mapCenter) {
+      try {
+        // Create the marker
+        const marker = new google.maps.marker.AdvancedMarkerElement({
+          position: mapCenter,
+          map: mapRef
+        });
+
+        // Clean up on unmount
+        return () => {
+          if (marker) {
+            marker.map = null;
+          }
+        };
+      } catch (error) {
+        console.error('Error creating marker:', error);
+      }
+    }
+  }, [mapRef, mapCenter]);
+
+  const handleMapLoad = (map: google.maps.Map) => {
+    setMapRef(map);
+  };
 
   const handleShare = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,31 +254,9 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                             mapTypeControl: true,
                             fullscreenControl: true
                           }}
-                          onClick={(e) => e.stopPropagation()}>
-                          {mapCenter && (
-                            <div>
-                              {(() => {
-                                // Create the marker in a self-executing function
-                                const marker = new google.maps.marker.AdvancedMarkerElement({
-                                  position: mapCenter,
-                                  map: null // We'll set the map after the GoogleMap component is rendered
-                                });
-                                
-                                // Use setTimeout to ensure the map is rendered
-                                setTimeout(() => {
-                                  const mapInstance = document.querySelector('.gm-style')?.parentNode;
-                                  if (mapInstance && mapInstance instanceof HTMLElement) {
-                                    const map = mapInstance.__gm?.map;
-                                    if (map) {
-                                      marker.map = map;
-                                    }
-                                  }
-                                }, 100);
-                                
-                                return null; // Return null as we're handling the marker imperatively
-                              })()}
-                            </div>
-                          )}
+                          onClick={(e) => e.stopPropagation()}
+                          onLoad={handleMapLoad}>
+                          {/* Marker is added via useEffect when mapRef and mapCenter are available */}
                         </GoogleMap>
                       </div>
                     ) : !geocodingAttempted ? (
