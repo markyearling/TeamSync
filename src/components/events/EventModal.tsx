@@ -230,10 +230,26 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                           onClick={(e) => e.stopPropagation()}>
                           {mapCenter && (
                             <div>
-                              {new google.maps.marker.AdvancedMarkerElement({
-                                position: mapCenter,
-                                map: google.maps.Map
-                              })}
+                              {(() => {
+                                // Create the marker in a self-executing function
+                                const marker = new google.maps.marker.AdvancedMarkerElement({
+                                  position: mapCenter,
+                                  map: null // We'll set the map after the GoogleMap component is rendered
+                                });
+                                
+                                // Use setTimeout to ensure the map is rendered
+                                setTimeout(() => {
+                                  const mapInstance = document.querySelector('.gm-style')?.parentNode;
+                                  if (mapInstance && mapInstance instanceof HTMLElement) {
+                                    const map = mapInstance.__gm?.map;
+                                    if (map) {
+                                      marker.map = map;
+                                    }
+                                  }
+                                }, 100);
+                                
+                                return null; // Return null as we're handling the marker imperatively
+                              })()}
                             </div>
                           )}
                         </GoogleMap>
