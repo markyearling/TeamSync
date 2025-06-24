@@ -395,8 +395,12 @@ const TeamSnapConnection: React.FC = () => {
           <div className="px-6 py-8 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="h-12 w-12 flex-shrink-0 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center">
-                  <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                <div className="h-12 w-12 flex-shrink-0 rounded-lg overflow-hidden">
+                  <img 
+                    src="https://play-lh.googleusercontent.com/jB40sjFamYP83iQhDcc3DZy_1ukC3TuhH0Dfvh2HMKmhEIFMzB2zTWYZ8CtHU3x5-V8" 
+                    alt="TeamSnap Logo" 
+                    className="h-full w-full object-cover"
+                  />
                 </div>
                 <div className="ml-4">
                   <h1 className="text-2xl font-bold text-gray-900 dark:text-white">TeamSnap</h1>

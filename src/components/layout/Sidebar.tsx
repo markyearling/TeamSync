@@ -74,20 +74,39 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           <div key={item.name}>
             {item.hasSubItems ? (
               <div>
-                <button
-                  onClick={toggleConnections}
-                  className="w-full group flex items-center justify-between px-2 py-2 text-base font-medium rounded-md text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
-                >
-                  <div className="flex items-center">
-                    <item.icon className="mr-4 h-6 w-6 flex-shrink-0 text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-300" />
+                <div className="flex items-center">
+                  <NavLink
+                    to={item.href}
+                    className={({ isActive }) =>
+                      `group flex items-center px-2 py-2 text-base font-medium rounded-md flex-grow ${
+                        isActive
+                          ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                          : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
+                      }`
+                    }
+                    end={true}
+                    onClick={onClose}
+                  >
+                    <item.icon 
+                      className={({ isActive }: { isActive: boolean }) =>
+                        `mr-4 h-6 w-6 flex-shrink-0 ${
+                          isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-300'
+                        }`
+                      }
+                    />
                     {item.name}
-                  </div>
-                  {connectionsOpen ? (
-                    <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                  ) : (
-                    <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                  )}
-                </button>
+                  </NavLink>
+                  <button
+                    onClick={toggleConnections}
+                    className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 rounded-md"
+                  >
+                    {connectionsOpen ? (
+                      <ChevronDown className="h-5 w-5" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
                 {connectionsOpen && item.subItems && (
                   <div className="ml-8 mt-1 space-y-1">
                     {item.subItems.map((subItem) => (

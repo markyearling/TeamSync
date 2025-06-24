@@ -397,11 +397,12 @@ const GameChangerConnection: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
           <div className="px-6 py-8 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
-              <div 
-                className="h-12 w-12 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: '#F97316' + '20', color: '#F97316' }}
-              >
-                <BarChart className="h-6 w-6" />
+              <div className="h-12 w-12 rounded-lg overflow-hidden">
+                <img 
+                  src="https://upload.wikimedia.org/wikipedia/en/thumb/c/c1/GameChanger_Logo.jpg/250px-GameChanger_Logo.jpg" 
+                  alt="GameChanger Logo" 
+                  className="h-full w-full object-cover"
+                />
               </div>
               <div className="ml-4">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Connect to GameChanger</h1>

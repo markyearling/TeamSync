@@ -396,11 +396,12 @@ const Playmetrics: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
           <div className="px-6 py-8 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
-              <div 
-                className="h-12 w-12 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: '#10B981' + '20', color: '#10B981' }}
-              >
-                <BarChart className="h-6 w-6" />
+              <div className="h-12 w-12 rounded-lg overflow-hidden">
+                <img 
+                  src="https://play-lh.googleusercontent.com/3qlMAhClWu_R_XMqFx_8afl4ZiMQpDmw0Xfyb6OyTHAv3--KRr6yxmvmPr0gzQlKJWQ" 
+                  alt="Playmetrics Logo" 
+                  className="h-full w-full object-cover"
+                />
               </div>
               <div className="ml-4">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Connect to Playmetrics</h1>
@@ -587,7 +588,7 @@ const Playmetrics: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleOpenMapping(team.id)}
-                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400"
+                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-green-500 dark:hover:text-green-400"
                             title="Map to profiles"
                           >
                             <Users className="h-4 w-4" />

@@ -377,6 +377,22 @@ const Connections: React.FC = () => {
     }
   };
 
+  // Get platform logo URL
+  const getPlatformLogo = (platformName: string) => {
+    switch(platformName) {
+      case 'TeamSnap':
+        return "https://play-lh.googleusercontent.com/jB40sjFamYP83iQhDcc3DZy_1ukC3TuhH0Dfvh2HMKmhEIFMzB2zTWYZ8CtHU3x5-V8";
+      case 'SportsEngine':
+        return "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQnajmgf8Kri_EZxVAbe7kFESjsiGlQx4lOKw&s";
+      case 'Playmetrics':
+        return "https://play-lh.googleusercontent.com/3qlMAhClWu_R_XMqFx_8afl4ZiMQpDmw0Xfyb6OyTHAv3--KRr6yxmvmPr0gzQlKJWQ";
+      case 'GameChanger':
+        return "https://upload.wikimedia.org/wikipedia/en/thumb/c/c1/GameChanger_Logo.jpg/250px-GameChanger_Logo.jpg";
+      default:
+        return "";
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -422,10 +438,13 @@ const Connections: React.FC = () => {
               <div key={platform.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 <div className="flex flex-col sm:flex-row sm:items-start">
                   <div 
-                    className="h-12 w-12 rounded-lg flex items-center justify-center mb-4 sm:mb-0 sm:mr-4"
-                    style={{ backgroundColor: platform.color + '20', color: platform.color }}
+                    className="h-12 w-12 rounded-lg overflow-hidden flex items-center justify-center mb-4 sm:mb-0 sm:mr-4"
                   >
-                    <platform.icon className="h-6 w-6" />
+                    <img 
+                      src={getPlatformLogo(platform.name)} 
+                      alt={`${platform.name} logo`}
+                      className="h-full w-full object-cover"
+                    />
                   </div>
                   
                   <div className="flex-1">
@@ -542,10 +561,13 @@ const Connections: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
                       <div 
-                        className="h-10 w-10 rounded-lg flex items-center justify-center mr-3"
-                        style={{ backgroundColor: platform.color + '20', color: platform.color }}
+                        className="h-10 w-10 rounded-lg overflow-hidden flex items-center justify-center mr-3"
                       >
-                        <platform.icon className="h-5 w-5" />
+                        <img 
+                          src={getPlatformLogo(platform.name)} 
+                          alt={`${platform.name} logo`}
+                          className="h-full w-full object-cover"
+                        />
                       </div>
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white">{platform.name}</h3>
                     </div>

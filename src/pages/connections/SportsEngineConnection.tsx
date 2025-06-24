@@ -396,11 +396,12 @@ const SportsEngineConnection: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
           <div className="px-6 py-8 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
-              <div 
-                className="h-12 w-12 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: '#2563EB' + '20', color: '#2563EB' }}
-              >
-                <Calendar className="h-6 w-6" />
+              <div className="h-12 w-12 rounded-lg overflow-hidden">
+                <img 
+                  src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQnajmgf8Kri_EZxVAbe7kFESjsiGlQx4lOKw&s" 
+                  alt="SportsEngine Logo" 
+                  className="h-full w-full object-cover"
+                />
               </div>
               <div className="ml-4">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Connect to SportsEngine</h1>
