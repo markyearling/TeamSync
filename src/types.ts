@@ -23,6 +23,8 @@ export interface Platform {
   color: string;
   connected: boolean;
   hasIssue: boolean;
+  teamCount?: number;
+  lastSynced?: string | null;
 }
 
 export interface Event {
