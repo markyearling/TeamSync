@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, Edit } from 'lucide-react';
 import { Event } from '../../types';
-import { GoogleMap, Libraries } from '@react-google-maps/api';
+import { GoogleMap } from '@react-google-maps/api';
 import { supabase } from '../../lib/supabase';
 import EditEventModal from './EditEventModal';
 

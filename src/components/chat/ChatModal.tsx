@@ -421,12 +421,17 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
   const markConversationAsRead = async (conversationId: string, userId: string) => {
     try {
-      await supabase
+      // Mark all messages from the other person as read
+      const { error } = await supabase
         .from('messages')
         .update({ read: true })
         .eq('conversation_id', conversationId)
         .neq('sender_id', userId)
         .eq('read', false);
+        
+      if (error) {
+        console.error('Error marking conversation as read:', error);
+      }
     } catch (error) {
       console.error('Error marking conversation as read:', error);
     }
