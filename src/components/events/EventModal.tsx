@@ -18,6 +18,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   const [isSharing, setIsSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral | null>(null);
+  const [geocodingAttempted, setGeocodingAttempted] = useState(false);
 
   // Use the static libraries array to prevent reloading
   const { isLoaded, loadError } = useLoadScript({
@@ -27,24 +28,27 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
 
   // Geocode the location to get coordinates for the map
   useEffect(() => {
-    if (isLoaded && event.location && !mapCenter) {
+    if (isLoaded && event.location && !geocodingAttempted) {
       const geocoder = new google.maps.Geocoder();
       
       // Use a try-catch block to handle potential geocoding errors
       try {
         geocoder.geocode({ address: event.location }, (results, status) => {
+          setGeocodingAttempted(true);
           if (status === 'OK' && results && results[0] && results[0].geometry) {
             const { lat, lng } = results[0].geometry.location;
             setMapCenter({ lat: lat(), lng: lng() });
           } else {
             console.error('Geocoding failed:', status);
+            // mapCenter remains null, which will trigger the "not found" message
           }
         });
       } catch (error) {
         console.error('Error during geocoding:', error);
+        setGeocodingAttempted(true);
       }
     }
-  }, [isLoaded, event.location, mapCenter]);
+  }, [isLoaded, event.location, geocodingAttempted]);
 
   const handleShare = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,11 +232,21 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                           <Marker position={mapCenter} />
                         </GoogleMap>
                       </div>
-                    ) : (
+                    ) : !geocodingAttempted ? (
                       <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
                         <div className="flex flex-col items-center">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
                           <p className="text-gray-500 dark:text-gray-400">Loading map...</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                        <div className="flex flex-col items-center text-center p-4">
+                          <MapPin className="h-8 w-8 text-gray-400 mb-2" />
+                          <p className="text-gray-500 dark:text-gray-400 font-medium">Location not found on map</p>
+                          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                            {event.location}
+                          </p>
                         </div>
                       </div>
                     )}
