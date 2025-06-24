@@ -4,9 +4,10 @@ import { Check, AlertCircle } from 'lucide-react';
 
 interface ConnectedPlatformProps {
   platform: Platform;
+  onManage?: () => void;
 }
 
-const ConnectedPlatform: React.FC<ConnectedPlatformProps> = ({ platform }) => {
+const ConnectedPlatform: React.FC<ConnectedPlatformProps> = ({ platform, onManage }) => {
   return (
     <div className="flex items-center space-x-4">
       <div 
@@ -36,8 +37,11 @@ const ConnectedPlatform: React.FC<ConnectedPlatformProps> = ({ platform }) => {
         </div>
       </div>
       <div>
-        <button className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300">
-          {platform.connected ? 'Refresh' : 'Connect'}
+        <button 
+          onClick={onManage}
+          className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300"
+        >
+          Manage
         </button>
       </div>
     </div>

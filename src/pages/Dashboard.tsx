@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Calendar as CalendarIcon, Users, Clock, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import EventCard from '../components/events/EventCard';
 import ChildActivitySummary from '../components/dashboard/ChildActivitySummary';
 import ConnectedPlatform from '../components/dashboard/ConnectedPlatform';
@@ -12,29 +13,13 @@ import { useLoadScript, Libraries } from '@react-google-maps/api';
 const libraries: Libraries = ['places', 'marker'];
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
   const { profiles } = useProfiles();
   const [events, setEvents] = useState<Event[]>([]);
   const [friendsEvents, setFriendsEvents] = useState<Event[]>([]);
   const [friendsProfiles, setFriendsProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [platforms] = useState<Platform[]>([
-    {
-      id: 1,
-      name: 'SportsEngine',
-      icon: CalendarIcon,
-      color: '#2563EB',
-      connected: true,
-      hasIssue: false,
-    },
-    {
-      id: 2,
-      name: 'TeamSnap',
-      icon: Users,
-      color: '#7C3AED',
-      connected: true,
-      hasIssue: false,
-    }
-  ]);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<Platform[]>([]);
 
   // Centralized Google Maps loading
   const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
@@ -45,6 +30,65 @@ const Dashboard: React.FC = () => {
 
   // Memoize profile IDs to prevent unnecessary re-renders
   const profileIds = useMemo(() => profiles.map(p => p.id), [profiles]);
+
+  // Fetch connected platforms
+  useEffect(() => {
+    const fetchConnectedPlatforms = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('platform_teams')
+          .select('platform')
+          .limit(1000);
+
+        if (error) throw error;
+
+        // Get unique platforms
+        const uniquePlatforms = [...new Set(data.map(p => p.platform))];
+        
+        // Create platform objects for each connected platform
+        const platforms: Platform[] = [];
+        
+        if (uniquePlatforms.includes('TeamSnap')) {
+          platforms.push({
+            id: 1,
+            name: 'TeamSnap',
+            icon: Users,
+            color: '#7C3AED', // Purple
+            connected: true,
+            hasIssue: false,
+          });
+        }
+        
+        if (uniquePlatforms.includes('SportsEngine')) {
+          platforms.push({
+            id: 2,
+            name: 'SportsEngine',
+            icon: CalendarIcon,
+            color: '#2563EB', // Blue
+            connected: true,
+            hasIssue: false,
+          });
+        }
+        
+        if (uniquePlatforms.includes('Playmetrics')) {
+          platforms.push({
+            id: 3,
+            name: 'Playmetrics',
+            icon: CalendarIcon,
+            color: '#10B981', // Green
+            connected: true,
+            hasIssue: false,
+          });
+        }
+
+        setConnectedPlatforms(platforms);
+      } catch (error) {
+        console.error('Error fetching connected platforms:', error);
+      }
+    };
+
+    fetchConnectedPlatforms();
+  }, []);
 
   // Fetch user's own events - only when profiles change
   const fetchOwnEvents = useCallback(async () => {
@@ -251,6 +295,23 @@ const Dashboard: React.FC = () => {
     ).length
   }));
 
+  // Handle platform management
+  const handleManagePlatform = (platformName: string) => {
+    switch(platformName) {
+      case 'TeamSnap':
+        navigate('/connections/teamsnap');
+        break;
+      case 'SportsEngine':
+        navigate('/connections/sportsengine');
+        break;
+      case 'Playmetrics':
+        navigate('/connections/playmetrics');
+        break;
+      default:
+        navigate('/connections');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -410,9 +471,19 @@ const Dashboard: React.FC = () => {
             </a>
           </div>
           <div className="px-4 py-5 sm:px-6 space-y-4">
-            {platforms.map(platform => (
-              <ConnectedPlatform key={platform.id} platform={platform} />
-            ))}
+            {connectedPlatforms.length > 0 ? (
+              connectedPlatforms.map(platform => (
+                <ConnectedPlatform 
+                  key={platform.id} 
+                  platform={platform} 
+                  onManage={() => handleManagePlatform(platform.name)}
+                />
+              ))
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                No platforms connected yet. Visit the Connections page to connect your sports platforms.
+              </div>
+            )}
           </div>
         </div>
       </div>
