@@ -42,6 +42,12 @@ const Profiles: React.FC = () => {
     { name: 'Volleyball', color: '#EC4899' },
   ];
 
+  // Combine all profiles (own and friends' with admin access)
+  const allProfiles = [
+    ...profiles.map(p => ({ ...p, isOwnProfile: true })),
+    ...friendsProfiles.map(p => ({ ...p, isOwnProfile: false }))
+  ];
+
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -147,87 +153,20 @@ const Profiles: React.FC = () => {
         </button>
       </div>
 
-      {/* Your Children */}
-      {profiles.length > 0 && (
+      {/* Combined Children Profiles */}
+      {allProfiles.length > 0 && (
         <div>
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Your Children</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {profiles.map(child => (
-              <div key={child.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
-                <div className="p-6">
-                  <div className="flex items-center mb-4">
-                    <div className="h-12 w-12 rounded-full overflow-hidden flex items-center justify-center">
-                      {child.photo_url ? (
-                        <img 
-                          src={child.photo_url} 
-                          alt={child.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="h-full w-full flex items-center justify-center text-white text-xl font-bold"
-                          style={{ backgroundColor: child.color }}
-                        >
-                          {child.name.charAt(0)}
-                        </div>
-                      )}
-                    </div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">{child.name}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Age: {child.age}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sports</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {child.sports.map((sport, index) => (
-                          <span
-                            key={index}
-                            className="px-3 py-1 rounded-full text-sm"
-                            style={{ 
-                              backgroundColor: sport.color + '20',
-                              color: sport.color
-                            }}
-                          >
-                            {sport.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Activity Summary</h4>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <p>{child.eventCount} events this week</p>
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => handleViewProfile(child.id)}
-                      className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                    >
-                      View Profile
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Friends' Children (Administrator Access) */}
-      {friendsProfiles.length > 0 && (
-        <div>
-          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
-            <Crown className="h-5 w-5 text-yellow-500 mr-2" />
-            Friends' Children (Administrator Access)
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
+            Your Children {friendsProfiles.length > 0 && `& Administrator Access (${friendsProfiles.length})`}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {friendsProfiles.map(child => (
-              <div key={child.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border-l-4 border-yellow-500">
+            {allProfiles.map(child => (
+              <div 
+                key={child.id} 
+                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden ${
+                  !child.isOwnProfile ? 'border-l-4 border-yellow-500' : ''
+                }`}
+              >
                 <div className="p-6">
                   <div className="flex items-center mb-4">
                     <div className="h-12 w-12 rounded-full overflow-hidden flex items-center justify-center relative">
@@ -245,16 +184,20 @@ const Profiles: React.FC = () => {
                           {child.name.charAt(0)}
                         </div>
                       )}
-                      <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
-                        <Crown className="h-2.5 w-2.5 text-white" />
-                      </div>
+                      {!child.isOwnProfile && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
+                          <Crown className="h-2.5 w-2.5 text-white" />
+                        </div>
+                      )}
                     </div>
                     <div className="ml-4">
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white">{child.name}</h3>
                       <p className="text-sm text-gray-500 dark:text-gray-400">Age: {child.age}</p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                        {child.ownerName}'s child
-                      </p>
+                      {!child.isOwnProfile && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                          {child.ownerName}'s child
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -284,21 +227,27 @@ const Profiles: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                      <div className="flex items-center text-yellow-800 dark:text-yellow-200">
-                        <Crown className="h-4 w-4 mr-2" />
-                        <span className="text-xs font-medium">Administrator Access</span>
+                    {!child.isOwnProfile && (
+                      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                        <div className="flex items-center text-yellow-800 dark:text-yellow-200">
+                          <Crown className="h-4 w-4 mr-2" />
+                          <span className="text-xs font-medium">Administrator Access</span>
+                        </div>
+                        <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+                          You can view and manage all aspects of this profile
+                        </p>
                       </div>
-                      <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                        You can view and manage all aspects of this profile
-                      </p>
-                    </div>
+                    )}
 
                     <button
                       onClick={() => handleViewProfile(child.id)}
-                      className="w-full mt-4 px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+                      className={`w-full mt-4 px-4 py-2 text-white rounded-md hover:opacity-90 ${
+                        child.isOwnProfile 
+                          ? 'bg-blue-600 hover:bg-blue-700' 
+                          : 'bg-yellow-600 hover:bg-yellow-700'
+                      }`}
                     >
-                      Manage Profile
+                      {child.isOwnProfile ? 'View Profile' : 'Manage Profile'}
                     </button>
                   </div>
                 </div>
@@ -309,14 +258,14 @@ const Profiles: React.FC = () => {
       )}
 
       {/* Empty State */}
-      {profiles.length === 0 && friendsProfiles.length === 0 && (
+      {allProfiles.length === 0 && (
         <div className="text-center py-12">
           <div className="text-gray-400 mb-4">
             <Plus className="h-12 w-12 mx-auto" />
           </div>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No profiles yet</h3>
           <p className="text-gray-500 dark:text-gray-400 mb-6">
-            Get started by adding your first child's profile
+            Get started by adding your first child's profile or connect with friends who have granted you administrator access
           </p>
           <button
             onClick={() => setShowAddForm(true)}
