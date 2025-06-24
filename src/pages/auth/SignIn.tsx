@@ -86,6 +86,7 @@ const SignIn: React.FC = () => {
             onError={(error) => {
               setError(error.message);
             }}
+            showLinks={false}
           />
           <div className="mt-4 text-center">
             <Link 
