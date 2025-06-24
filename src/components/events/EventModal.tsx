@@ -252,7 +252,8 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                             zoomControl: true,
                             streetViewControl: true,
                             mapTypeControl: true,
-                            fullscreenControl: true
+                            fullscreenControl: true,
+                            mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID
                           }}
                           onClick={(e) => e.stopPropagation()}
                           onLoad={handleMapLoad}>
