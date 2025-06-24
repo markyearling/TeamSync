@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send } from 'lucide-react';
 import { Event } from '../../types';
 import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
@@ -16,16 +16,18 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   const [shareError, setShareError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral | null>(null);
 
+  // Load Google Maps script only once
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
     libraries: ['places']
   });
 
-  React.useEffect(() => {
+  // Geocode the location to get coordinates for the map
+  useEffect(() => {
     if (isLoaded && event.location && !mapCenter) {
       const geocoder = new google.maps.Geocoder();
       geocoder.geocode({ address: event.location }, (results, status) => {
-        if (status === 'OK' && results?.[0]) {
+        if (status === 'OK' && results && results[0]) {
           const { lat, lng } = results[0].geometry.location;
           setMapCenter({ lat: lat(), lng: lng() });
         }
@@ -141,13 +143,19 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
           </div>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setShowShareModal(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowShareModal(true);
+              }}
               className="p-2 text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               <Share2 className="h-5 w-5" />
             </button>
             <button
-              onClick={onClose}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
               className="p-2 text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
             >
               <X className="h-5 w-5" />
@@ -188,17 +196,34 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                   <MapPin className="h-5 w-5 mr-3" />
                   <span>{event.location}</span>
                 </div>
+                
                 {isLoaded && !loadError && (
                   <div className="h-64 w-full rounded-lg overflow-hidden">
-                    {mapCenter && (
+                    {mapCenter ? (
                       <GoogleMap
                         mapContainerStyle={{ width: '100%', height: '100%' }}
                         center={mapCenter}
                         zoom={15}
+                        options={{
+                          disableDefaultUI: true,
+                          zoomControl: true,
+                          streetViewControl: true,
+                          mapTypeControl: true
+                        }}
                       >
                         <Marker position={mapCenter} />
                       </GoogleMap>
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                        <p className="text-gray-500 dark:text-gray-400">Loading map...</p>
+                      </div>
                     )}
+                  </div>
+                )}
+                
+                {loadError && (
+                  <div className="h-64 w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                    <p className="text-red-500 dark:text-red-400">Error loading map</p>
                   </div>
                 )}
               </div>
