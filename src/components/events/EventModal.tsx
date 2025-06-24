@@ -24,7 +24,8 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   // Use the static libraries array to prevent reloading
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries
+    libraries,
+    mapIds: [import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || '']
   });
 
   // Geocode the location to get coordinates for the map
@@ -55,17 +56,15 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   useEffect(() => {
     if (mapRef && mapCenter) {
       try {
-        // Create the marker
-        const marker = new google.maps.marker.AdvancedMarkerElement({
+        // Create a standard marker instead of AdvancedMarkerElement
+        const marker = new google.maps.Marker({
           position: mapCenter,
           map: mapRef
         });
 
         // Clean up on unmount
         return () => {
-          if (marker) {
-            marker.map = null;
-          }
+          marker.setMap(null);
         };
       } catch (error) {
         console.error('Error creating marker:', error);
