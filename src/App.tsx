@@ -7,6 +7,7 @@ import Connections from './pages/Connections';
 import TeamSnapConnection from './pages/connections/TeamSnapConnection';
 import TeamSnapCallback from './pages/connections/TeamSnapCallback';
 import Playmetrics from './pages/connections/Playmetrics';
+import SportsEngineConnection from './pages/connections/SportsEngineConnection';
 import Profiles from './pages/Profiles';
 import Friends from './pages/Friends';
 import Settings from './pages/Settings';
@@ -27,7 +28,7 @@ import { supabase, testConnection } from './lib/supabase';
 
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
   </div>
 );
 
@@ -48,11 +49,11 @@ const ErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <h1 className="text-xl font-bold text-red-600 mb-2">Something went wrong</h1>
-          <p className="text-sm text-gray-600 mb-4">{errorMessage}</p>
+          <h1 className="text-xl font-bold text-red-600 dark:text-red-400 mb-2">Something went wrong</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{errorMessage}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
           >
             Reload Page
           </button>
@@ -90,6 +91,7 @@ const AppContent = () => {
         if (!isConnected) {
           throw new Error('Failed to connect to the backend services');
         }
+        
         setInitialized(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to initialize application');
@@ -103,11 +105,11 @@ const AppContent = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <h1 className="text-xl font-bold text-red-600 mb-2">Connection Error</h1>
-          <p className="text-sm text-gray-600 mb-4">{error}</p>
+          <h1 className="text-xl font-bold text-red-600 dark:text-red-400 mb-2">Connection Error</h1>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{error}</p>
           <button 
             onClick={() => window.location.reload()} 
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
           >
             Retry Connection
           </button>
@@ -139,6 +141,7 @@ const AppContent = () => {
           <Route path="connections" element={<Connections />} />
           <Route path="connections/teamsnap" element={<TeamSnapConnection />} />
           <Route path="connections/playmetrics" element={<Playmetrics />} />
+          <Route path="connections/sportsengine" element={<SportsEngineConnection />} />
           <Route path="profiles" element={<Profiles />} />
           <Route path="profiles/:id" element={<ChildProfile />} />
           <Route path="friends" element={<Friends />} />

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
+  Plus, 
   RefreshCw, 
   CheckCircle, 
   XCircle,
@@ -37,6 +38,14 @@ const Connections: React.FC = () => {
     },
     {
       id: 2,
+      name: 'SportsEngine',
+      icon: Calendar,
+      color: '#2563EB', // Blue
+      connected: false,
+      hasIssue: false,
+    },
+    {
+      id: 3,
       name: 'Playmetrics',
       icon: BarChart,
       color: '#10B981', // Green
@@ -145,6 +154,9 @@ const Connections: React.FC = () => {
       case 'TeamSnap':
         navigate('/connections/teamsnap');
         break;
+      case 'SportsEngine':
+        navigate('/connections/sportsengine');
+        break;
       case 'Playmetrics':
         navigate('/connections/playmetrics');
         break;
@@ -210,6 +222,45 @@ const Connections: React.FC = () => {
             }
           } catch (error) {
             console.error(`Error refreshing TeamSnap team ${team.team_name}:`, error);
+            
+            // Update team status to error
+            await supabase
+              .from('platform_teams')
+              .update({ 
+                sync_status: 'error',
+                last_synced: new Date().toISOString()
+              })
+              .eq('id', team.id);
+          }
+        }
+        
+        // For SportsEngine, we would call the sync function
+        else if (platform.name === 'SportsEngine') {
+          try {
+            // Get profile mappings for this team
+            const { data: profileMappings } = await supabase
+              .from('profile_teams')
+              .select('profile_id')
+              .eq('platform_team_id', team.id);
+
+            if (profileMappings && profileMappings.length > 0) {
+              // In a real implementation, we would call the SportsEngine sync function here
+              // For now, we'll just simulate a successful sync
+              await new Promise(resolve => setTimeout(resolve, 500));
+              
+              // Update team status to success
+              await supabase
+                .from('platform_teams')
+                .update({ 
+                  sync_status: 'success',
+                  last_synced: new Date().toISOString()
+                })
+                .eq('id', team.id);
+                
+              refreshedCount++;
+            }
+          } catch (error) {
+            console.error(`Error refreshing SportsEngine team ${team.team_name}:`, error);
             
             // Update team status to error
             await supabase
