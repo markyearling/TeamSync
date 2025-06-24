@@ -434,19 +434,56 @@ export class TeamSnapService {
       }
 
       // Transform and store events for the specific profile
-      const eventsToInsert = teamEvents.map(event => ({
-        title: event.name || 'TeamSnap Event',
-        description: event.notes || '',
-        start_time: event.start_date,
-        end_time: event.end_date || event.start_date,
-        location: event.location_name || '',
-        sport: platformTeam.sport || 'Unknown',
-        color: '#7C3AED', // TeamSnap purple
-        platform: 'TeamSnap',
-        platform_color: '#7C3AED',
-        platform_team_id: teamId,
-        profile_id: profileId // This is the key - we now have a valid profile_id
-      })).filter(event => event.start_time); // Only include events with valid start times
+      const eventsToInsert = teamEvents.map(event => {
+        // Format the title based on event type
+        let title = 'TeamSnap Event';
+        if (event.type) {
+          // Capitalize the first letter of the event type
+          title = event.type.charAt(0).toUpperCase() + event.type.slice(1);
+        } else if (event.name) {
+          title = event.name;
+        }
+
+        // Create a more detailed description
+        let description = '';
+        if (event.notes) {
+          description = event.notes;
+        } else if (event.name && title !== event.name) {
+          description = event.name;
+        }
+
+        // If there's opponent information, add it to the description
+        if (event.opponent_name) {
+          if (description) {
+            description += `\nOpponent: ${event.opponent_name}`;
+          } else {
+            description = `Opponent: ${event.opponent_name}`;
+          }
+        }
+
+        // Add any additional details that might be useful
+        if (event.formatted_title && !description.includes(event.formatted_title)) {
+          if (description) {
+            description += `\n${event.formatted_title}`;
+          } else {
+            description = event.formatted_title;
+          }
+        }
+
+        return {
+          title: title,
+          description: description,
+          start_time: event.start_date,
+          end_time: event.end_date || event.start_date,
+          location: event.location_name || '',
+          sport: platformTeam.sport || 'Unknown',
+          color: '#7C3AED', // TeamSnap purple
+          platform: 'TeamSnap',
+          platform_color: '#7C3AED',
+          platform_team_id: teamId,
+          profile_id: profileId // This is the key - we now have a valid profile_id
+        };
+      }).filter(event => event.start_time); // Only include events with valid start times
 
       if (eventsToInsert.length === 0) {
         console.log('No valid events to insert');
