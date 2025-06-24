@@ -84,6 +84,12 @@ const TeamSnapConnection: React.FC = () => {
 
   const checkConnectionStatus = async () => {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        setError('Database connection not available');
+        return;
+      }
+
       // Check if we have any TeamSnap teams
       const { data: teamsData, error: teamsError } = await supabase
         .from('platform_teams')
@@ -108,6 +114,12 @@ const TeamSnapConnection: React.FC = () => {
 
   const fetchTeams = async () => {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        setError('Database connection not available');
+        return;
+      }
+
       const { data: teamsData, error: teamsError } = await supabase
         .from('platform_teams')
         .select('*')
@@ -173,6 +185,12 @@ const TeamSnapConnection: React.FC = () => {
 
   const handleDisconnect = async () => {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        setError('Database connection not available');
+        return;
+      }
+
       setError(null);
       setSuccess(null);
 
@@ -195,6 +213,12 @@ const TeamSnapConnection: React.FC = () => {
 
   const handleRefresh = async (teamId: string) => {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        setError('Database connection not available');
+        return;
+      }
+
       setError(null);
       setSuccess(null);
       setRefreshingTeam(teamId);
@@ -224,7 +248,7 @@ const TeamSnapConnection: React.FC = () => {
       setError(errorMessage);
       
       // Update team sync status to error
-      if (teamId) {
+      if (teamId && supabase) {
         await supabase
           .from('platform_teams')
           .update({
@@ -240,6 +264,12 @@ const TeamSnapConnection: React.FC = () => {
 
   const handleDelete = async (teamId: string) => {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        setError('Database connection not available');
+        return;
+      }
+
       setError(null);
       setSuccess(null);
 
@@ -270,6 +300,12 @@ const TeamSnapConnection: React.FC = () => {
 
   const handleSaveTeamName = async (teamId: string) => {
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        setError('Database connection not available');
+        return;
+      }
+
       setError(null);
       setSuccess(null);
 
@@ -317,6 +353,12 @@ const TeamSnapConnection: React.FC = () => {
     if (!showMappingModal) return;
 
     try {
+      if (!supabase) {
+        console.error('Supabase client not initialized');
+        setError('Database connection not available');
+        return;
+      }
+
       setError(null);
       setSuccess(null);
 
