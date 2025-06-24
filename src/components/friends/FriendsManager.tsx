@@ -16,6 +16,7 @@ import {
   MessageCircle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useProfiles } from '../../context/ProfilesContext';
 
 interface User {
   id: string;
@@ -26,6 +27,7 @@ interface User {
 
 interface Friend {
   id: string;
+  user_id: string;
   friend_id: string;
   role: 'none' | 'viewer' | 'administrator';
   created_at: string;
@@ -45,6 +47,7 @@ interface FriendRequest {
 }
 
 const FriendsManager: React.FC = () => {
+  const { fetchAllProfiles } = useProfiles();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
@@ -442,6 +445,9 @@ const FriendsManager: React.FC = () => {
 
         if (friendshipError) throw friendshipError;
         setSuccess('Friend request accepted!');
+        
+        // Refresh profiles to update the UI with any new friend profiles
+        await fetchAllProfiles();
       } else {
         setSuccess('Friend request declined');
       }
@@ -478,6 +484,9 @@ const FriendsManager: React.FC = () => {
 
       setSuccess('Friend removed successfully');
       fetchFriendsData();
+      
+      // Refresh profiles to update the UI with any removed friend profiles
+      await fetchAllProfiles();
     } catch (err) {
       console.error('Error removing friend:', err);
       setError('Failed to remove friend');
@@ -515,6 +524,9 @@ const FriendsManager: React.FC = () => {
       setSuccess(`Friend access level updated to ${getRoleLabel(newRole)}`);
       setEditingFriend(null);
       fetchFriendsData();
+      
+      // Refresh profiles to update the UI with any new friend profiles that now have administrator access
+      await fetchAllProfiles();
     } catch (err) {
       console.error('Error updating friend role:', err);
       setError('Failed to update friend access level');

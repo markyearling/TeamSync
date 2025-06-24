@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase, testConnection } from '../lib/supabase';
 import { Child } from '../types';
 
@@ -10,6 +10,7 @@ interface ProfilesContextType {
   updateProfile: (id: string, profile: Partial<Child>) => Promise<void>;
   deleteProfile: (id: string) => Promise<void>;
   getProfile: (id: string) => Promise<Child>;
+  fetchAllProfiles: () => Promise<void>;
   loading: boolean;
   error: string | null;
 }
@@ -97,7 +98,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     };
   }, []);
 
-  const fetchAllProfiles = async () => {
+  const fetchAllProfiles = useCallback(async () => {
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError) {
@@ -130,7 +131,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       setFriendsProfiles([]);
       setFriendshipCache([]);
     }
-  };
+  }, []);
 
   const fetchFriendshipCache = async (userId: string) => {
     try {
@@ -510,6 +511,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         updateProfile,
         deleteProfile,
         getProfile,
+        fetchAllProfiles,
         loading,
         error
       }}
