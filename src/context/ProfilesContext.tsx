@@ -115,13 +115,14 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
 
       // First, fetch and cache all friendships where current user is the friend_id
       // This tells us what access levels we have been granted by other users
-      await fetchFriendshipCache(user.id);
+      const freshFriendshipData = await fetchFriendshipCache(user.id);
 
       // Fetch own profiles
       await fetchOwnProfiles(user.id);
       
       // Fetch friends' profiles where user has administrator access
-      await fetchFriendsProfiles(user.id);
+      // Pass the fresh friendship data directly to avoid state timing issues
+      await fetchFriendsProfiles(user.id, freshFriendshipData);
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
@@ -133,7 +134,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     }
   }, []);
 
-  const fetchFriendshipCache = async (userId: string) => {
+  const fetchFriendshipCache = async (userId: string): Promise<FriendshipData[]> => {
     try {
       console.log('🤝 PROFILES: Fetching friendship cache for user:', userId);
       
@@ -161,7 +162,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       if (!friendships || friendships.length === 0) {
         console.log('❌ PROFILES: No friendships found where user is friend');
         setFriendshipCache([]);
-        return;
+        return [];
       }
 
       // Get user details for the people who granted us access
@@ -192,10 +193,12 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       );
       
       setFriendshipCache(friendshipData);
+      return friendshipData; // Return the fresh data
 
     } catch (err) {
       console.error('💥 PROFILES: Error fetching friendship cache:', err);
       setFriendshipCache([]);
+      return [];
     }
   };
 
@@ -244,21 +247,21 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     setProfiles(formattedProfiles);
   };
 
-  const fetchFriendsProfiles = async (userId: string) => {
+  const fetchFriendsProfiles = async (userId: string, freshFriendshipData: FriendshipData[]) => {
     try {
       console.log('👥 PROFILES: Fetching friends profiles for user:', userId);
-      console.log('👥 PROFILES: Current friendship cache:', friendshipCache);
+      console.log('👥 PROFILES: Using fresh friendship data:', freshFriendshipData);
       
-      // Filter friendship cache for administrator access only
-      const administratorFriendships = friendshipCache.filter(f => {
+      // Filter friendship data for administrator access only
+      const administratorFriendships = freshFriendshipData.filter(f => {
         console.log(`👥 PROFILES: Checking friendship - User: ${f.friend_name}, Role: ${f.role}`);
         return f.role === 'administrator';
       });
       
-      console.log('👑 PROFILES: Administrator friendships from cache:', administratorFriendships);
+      console.log('👑 PROFILES: Administrator friendships from fresh data:', administratorFriendships);
 
       if (administratorFriendships.length === 0) {
-        console.log('❌ PROFILES: No administrator access found in friendship cache');
+        console.log('❌ PROFILES: No administrator access found in fresh friendship data');
         setFriendsProfiles([]);
         return;
       }
