@@ -52,25 +52,27 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
     }
   }, [isLoaded, event.location, geocodingAttempted]);
 
-  // Add marker when map center and map ref are available
+  // Add advanced marker when map center and map ref are available
   useEffect(() => {
-    if (mapRef && mapCenter) {
+    if (mapRef && mapCenter && isLoaded && window.google?.maps?.marker) {
       try {
-        // Create a standard marker instead of AdvancedMarkerElement
-        const marker = new google.maps.Marker({
+        // Create an advanced marker element
+        const advancedMarker = new google.maps.marker.AdvancedMarkerElement({
           position: mapCenter,
           map: mapRef
         });
 
         // Clean up on unmount
         return () => {
-          marker.setMap(null);
+          if (advancedMarker) {
+            advancedMarker.map = null;
+          }
         };
       } catch (error) {
-        console.error('Error creating marker:', error);
+        console.error('Error creating advanced marker:', error);
       }
     }
-  }, [mapRef, mapCenter]);
+  }, [mapRef, mapCenter, isLoaded]);
 
   const handleMapLoad = (map: google.maps.Map) => {
     setMapRef(map);
@@ -256,7 +258,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                           }}
                           onClick={(e) => e.stopPropagation()}
                           onLoad={handleMapLoad}>
-                          {/* Marker is added via useEffect when mapRef and mapCenter are available */}
+                          {/* Advanced Marker is added via useEffect when mapRef and mapCenter are available */}
                         </GoogleMap>
                       </div>
                     ) : !geocodingAttempted ? (
