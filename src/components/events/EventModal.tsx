@@ -5,7 +5,7 @@ import { GoogleMap, useLoadScript, Libraries } from '@react-google-maps/api';
 import { supabase } from '../../lib/supabase';
 
 // Define libraries outside component to prevent recreation on each render
-const libraries: Libraries = ['places'];
+const libraries: Libraries = ['places', 'marker'];
 
 interface EventModalProps {
   event: Event;
