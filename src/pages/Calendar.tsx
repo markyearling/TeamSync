@@ -334,7 +334,7 @@ const Calendar: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
   }
@@ -343,36 +343,36 @@ const Calendar: React.FC = () => {
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
         <div className="flex items-center">
-          <h1 className="text-2xl font-bold text-gray-900 mr-4">Calendar</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mr-4">Calendar</h1>
           <div className="flex items-center space-x-2">
             <button
               onClick={navigatePrevious}
-              className="p-1 rounded-full hover:bg-gray-100"
+              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              <ChevronLeft className="h-5 w-5 text-gray-500" />
+              <ChevronLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
             </button>
             <button
               onClick={navigateToday}
-              className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-3 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
             >
               Today
             </button>
             <button
               onClick={navigateNext}
-              className="p-1 rounded-full hover:bg-gray-100"
+              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              <ChevronRight className="h-5 w-5 text-gray-500" />
+              <ChevronRight className="h-5 w-5 text-gray-500 dark:text-gray-400" />
             </button>
-            <h2 className="text-xl font-semibold text-gray-700 ml-2">{renderTitle()}</h2>
+            <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 ml-2">{renderTitle()}</h2>
           </div>
         </div>
         
         <div className="flex items-center space-x-2">
-          <div className="bg-white border border-gray-300 rounded-md p-1 flex">
+          <div className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-1 flex">
             <button
               onClick={() => setView('month')}
               className={`p-1 rounded ${
-                view === 'month' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'
+                view === 'month' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
               }`}
               title="Month view"
             >
@@ -381,7 +381,7 @@ const Calendar: React.FC = () => {
             <button
               onClick={() => setView('week')}
               className={`p-1 rounded ${
-                view === 'week' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'
+                view === 'week' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
               }`}
               title="Week view"
             >
@@ -390,7 +390,7 @@ const Calendar: React.FC = () => {
             <button
               onClick={() => setView('day')}
               className={`p-1 rounded ${
-                view === 'day' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'
+                view === 'day' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
               }`}
               title="Day view"
             >
@@ -403,7 +403,7 @@ const Calendar: React.FC = () => {
             <button
               onClick={() => setView('agenda')}
               className={`p-1 rounded ${
-                view === 'agenda' ? 'bg-blue-100 text-blue-600' : 'text-gray-500 hover:bg-gray-100'
+                view === 'agenda' ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
               }`}
               title="List view"
             >
@@ -413,7 +413,7 @@ const Calendar: React.FC = () => {
           
           <button
             onClick={() => setFilterOpen(!filterOpen)}
-            className="flex items-center px-3 py-1.5 bg-white border border-gray-300 rounded-md hover:bg-gray-50 text-sm"
+            className="flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 text-sm text-gray-700 dark:text-gray-300"
           >
             <Filter className="h-4 w-4 mr-1" />
             Filter
@@ -422,9 +422,9 @@ const Calendar: React.FC = () => {
       </div>
       
       {filterOpen && (
-        <div className="bg-white p-4 rounded-lg shadow-md mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Your Children</h3>
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your Children</h3>
             <div className="space-y-2">
               {allProfiles.filter(p => p.isOwnProfile).map(profile => (
                 <div key={profile.id} className="flex items-center">
@@ -439,11 +439,11 @@ const Calendar: React.FC = () => {
                         setSelectedProfiles(selectedProfiles.filter(id => id !== profile.id));
                       }
                     }}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
                   />
                   <label 
                     htmlFor={`child-${profile.id}`} 
-                    className="ml-2 text-sm text-gray-700 flex items-center"
+                    className="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center"
                   >
                     <span 
                       className="w-3 h-3 rounded-full mr-1.5"
@@ -457,7 +457,7 @@ const Calendar: React.FC = () => {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Friends' Children</h3>
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Friends' Children</h3>
             <div className="space-y-2">
               <div className="flex items-center mb-2">
                 <input 
@@ -465,11 +465,11 @@ const Calendar: React.FC = () => {
                   type="checkbox" 
                   checked={showFriendsEvents}
                   onChange={(e) => setShowFriendsEvents(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
                 />
                 <label 
                   htmlFor="show-friends-events" 
-                  className="ml-2 text-sm font-medium text-gray-700"
+                  className="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300"
                 >
                   Show friends' events
                 </label>
@@ -487,29 +487,29 @@ const Calendar: React.FC = () => {
                         setSelectedProfiles(selectedProfiles.filter(id => id !== profile.id));
                       }
                     }}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
                   />
                   <label 
                     htmlFor={`friend-child-${profile.id}`} 
-                    className="ml-2 text-sm text-gray-700 flex items-center"
+                    className="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center"
                   >
                     <span 
                       className="w-3 h-3 rounded-full mr-1.5"
                       style={{ backgroundColor: profile.color }}
                     ></span>
                     {profile.name}
-                    <span className="ml-1 text-xs text-blue-600">({profile.ownerName})</span>
+                    <span className="ml-1 text-xs text-blue-600 dark:text-blue-400">({profile.ownerName})</span>
                   </label>
                 </div>
               ))}
               {!showFriendsEvents && (
-                <p className="text-xs text-gray-500">Enable to see friends' children</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Enable to see friends' children</p>
               )}
             </div>
           </div>
           
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Platforms</h3>
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Platforms</h3>
             <div className="space-y-2">
               {['SportsEngine', 'TeamSnap', 'Playmetrics', 'Manual'].map(platform => (
                 <div key={platform} className="flex items-center">
@@ -524,11 +524,11 @@ const Calendar: React.FC = () => {
                         setSelectedPlatforms(selectedPlatforms.filter(p => p !== platform));
                       }
                     }}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
                   />
                   <label 
                     htmlFor={`platform-${platform}`} 
-                    className="ml-2 text-sm text-gray-700"
+                    className="ml-2 text-sm text-gray-700 dark:text-gray-300"
                   >
                     {platform}
                   </label>
@@ -538,7 +538,7 @@ const Calendar: React.FC = () => {
           </div>
           
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Activity Types</h3>
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Activity Types</h3>
             <div className="space-y-2">
               {[
                 { id: 'game', label: 'Games' },
@@ -558,9 +558,9 @@ const Calendar: React.FC = () => {
                         setSelectedTypes(selectedTypes.filter(t => t !== type.id));
                       }
                     }}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
                   />
-                  <label htmlFor={`type-${type.id}`} className="ml-2 text-sm text-gray-700">
+                  <label htmlFor={`type-${type.id}`} className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                     {type.label}
                   </label>
                 </div>
@@ -570,7 +570,7 @@ const Calendar: React.FC = () => {
         </div>
       )}
       
-      <div className="bg-white rounded-lg shadow flex-1 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow flex-1 overflow-hidden">
         {view !== 'agenda' && (
           <CalendarHeader view={view} />
         )}

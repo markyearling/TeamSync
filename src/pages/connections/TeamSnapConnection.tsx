@@ -374,56 +374,56 @@ const TeamSnapConnection: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 dark:border-purple-400"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <button
           onClick={() => navigate('/connections')}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+          className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 mb-6"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Connections
         </button>
 
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="px-6 py-8 border-b border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+          <div className="px-6 py-8 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="h-12 w-12 flex-shrink-0 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Users className="h-6 w-6 text-purple-600" />
+                <div className="h-12 w-12 flex-shrink-0 bg-purple-100 dark:bg-purple-900/50 rounded-lg flex items-center justify-center">
+                  <Users className="h-6 w-6 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div className="ml-4">
-                  <h1 className="text-2xl font-bold text-gray-900">TeamSnap</h1>
-                  <p className="mt-1 text-gray-500">
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-white">TeamSnap</h1>
+                  <p className="mt-1 text-gray-500 dark:text-gray-400">
                     {isConnected ? 'Connected - Manage your teams and schedules' : 'Connect to sync your TeamSnap schedules, events, and team information'}
                   </p>
                 </div>
               </div>
               {isConnected && (
                 <div className="flex items-center space-x-2">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-sm text-green-600 font-medium">Connected</span>
+                  <CheckCircle className="h-5 w-5 text-green-500 dark:text-green-400" />
+                  <span className="text-sm text-green-600 dark:text-green-400 font-medium">Connected</span>
                 </div>
               )}
             </div>
           </div>
 
           {error && (
-            <div className="px-6 py-4 bg-red-50 border-b border-red-200">
+            <div className="px-6 py-4 bg-red-50 dark:bg-red-900/20 border-b border-red-200 dark:border-red-800">
               <div className="flex items-center justify-between">
-                <div className="flex items-center text-red-700">
+                <div className="flex items-center text-red-700 dark:text-red-300">
                   <AlertCircle className="h-5 w-5 mr-2" />
                   {error}
                 </div>
                 <button 
                   onClick={() => setError(null)}
-                  className="text-red-400 hover:text-red-500"
+                  className="text-red-400 dark:text-red-500 hover:text-red-500 dark:hover:text-red-400"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -432,15 +432,15 @@ const TeamSnapConnection: React.FC = () => {
           )}
 
           {success && (
-            <div className="px-6 py-4 bg-green-50 border-b border-green-200">
+            <div className="px-6 py-4 bg-green-50 dark:bg-green-900/20 border-b border-green-200 dark:border-green-800">
               <div className="flex items-center justify-between">
-                <div className="flex items-center text-green-700">
+                <div className="flex items-center text-green-700 dark:text-green-300">
                   <CheckCircle className="h-5 w-5 mr-2" />
                   {success}
                 </div>
                 <button 
                   onClick={() => setSuccess(null)}
-                  className="text-green-400 hover:text-green-500"
+                  className="text-green-400 dark:text-green-500 hover:text-green-500 dark:hover:text-green-400"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -452,46 +452,46 @@ const TeamSnapConnection: React.FC = () => {
             <div className="px-6 py-8">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {features.map((feature, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg p-6">
-                    <div className="h-12 w-12 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center mb-4">
+                  <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-6">
+                    <div className="h-12 w-12 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center mb-4">
                       <feature.icon className="h-6 w-6" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                       {feature.title}
                     </h3>
-                    <p className="text-gray-600">
+                    <p className="text-gray-600 dark:text-gray-300">
                       {feature.description}
                     </p>
                   </div>
                 ))}
               </div>
 
-              <div className="bg-purple-50 rounded-lg p-6 mb-8">
-                <h3 className="text-lg font-medium text-purple-900 mb-4">
+              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-6 mb-8">
+                <h3 className="text-lg font-medium text-purple-900 dark:text-purple-200 mb-4">
                   Before you connect
                 </h3>
                 <ul className="space-y-3">
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 h-5 w-5 rounded-full bg-purple-200 text-purple-600 flex items-center justify-center text-sm mr-3 mt-0.5">
+                    <div className="flex-shrink-0 h-5 w-5 rounded-full bg-purple-200 dark:bg-purple-800 text-purple-600 dark:text-purple-300 flex items-center justify-center text-sm mr-3 mt-0.5">
                       1
                     </div>
-                    <p className="text-purple-800">
+                    <p className="text-purple-800 dark:text-purple-200">
                       Make sure you have an active TeamSnap account
                     </p>
                   </li>
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 h-5 w-5 rounded-full bg-purple-200 text-purple-600 flex items-center justify-center text-sm mr-3 mt-0.5">
+                    <div className="flex-shrink-0 h-5 w-5 rounded-full bg-purple-200 dark:bg-purple-800 text-purple-600 dark:text-purple-300 flex items-center justify-center text-sm mr-3 mt-0.5">
                       2
                     </div>
-                    <p className="text-purple-800">
+                    <p className="text-purple-800 dark:text-purple-200">
                       Have your TeamSnap login credentials ready
                     </p>
                   </li>
                   <li className="flex items-start">
-                    <div className="flex-shrink-0 h-5 w-5 rounded-full bg-purple-200 text-purple-600 flex items-center justify-center text-sm mr-3 mt-0.5">
+                    <div className="flex-shrink-0 h-5 w-5 rounded-full bg-purple-200 dark:bg-purple-800 text-purple-600 dark:text-purple-300 flex items-center justify-center text-sm mr-3 mt-0.5">
                       3
                     </div>
-                    <p className="text-purple-800">
+                    <p className="text-purple-800 dark:text-purple-200">
                       Ensure you have permission to access team data
                     </p>
                   </li>
@@ -502,7 +502,7 @@ const TeamSnapConnection: React.FC = () => {
                 <button
                   onClick={handleConnect}
                   disabled={isConnecting}
-                  className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  className="px-6 py-3 bg-purple-600 dark:bg-purple-700 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
                   {isConnecting ? (
                     <>
@@ -521,10 +521,10 @@ const TeamSnapConnection: React.FC = () => {
           ) : (
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-medium text-gray-900">Connected Teams</h2>
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">Connected Teams</h2>
                 <button
                   onClick={handleDisconnect}
-                  className="px-4 py-2 border border-red-300 text-red-600 rounded-md hover:bg-red-50 text-sm font-medium"
+                  className="px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 text-sm font-medium"
                 >
                   Disconnect TeamSnap
                 </button>
@@ -535,11 +535,11 @@ const TeamSnapConnection: React.FC = () => {
                   teams.map((team) => (
                     <div
                       key={team.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center flex-1">
-                          <Calendar className="h-5 w-5 text-gray-400 mr-3" />
+                          <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
                           <div className="flex-1">
                             {editingTeam === team.id ? (
                               <div className="flex items-center space-x-2">
@@ -547,7 +547,7 @@ const TeamSnapConnection: React.FC = () => {
                                   type="text"
                                   value={editingName}
                                   onChange={(e) => setEditingName(e.target.value)}
-                                  className="flex-1 text-sm font-medium border-gray-300 rounded-md focus:border-purple-500 focus:ring-purple-500"
+                                  className="flex-1 text-sm font-medium border-gray-300 dark:border-gray-600 rounded-md focus:border-purple-500 focus:ring-purple-500 dark:bg-gray-700 dark:text-white"
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                       handleSaveTeamName(team.id);
@@ -559,14 +559,14 @@ const TeamSnapConnection: React.FC = () => {
                                 />
                                 <button
                                   onClick={() => handleSaveTeamName(team.id)}
-                                  className="p-1 text-purple-600 hover:text-purple-700"
+                                  className="p-1 text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
                                   title="Save"
                                 >
                                   <Save className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={handleCancelEdit}
-                                  className="p-1 text-gray-400 hover:text-gray-500"
+                                  className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
                                   title="Cancel"
                                 >
                                   <X className="h-4 w-4" />
@@ -574,12 +574,12 @@ const TeamSnapConnection: React.FC = () => {
                               </div>
                             ) : (
                               <div className="flex items-center space-x-2">
-                                <h3 className="text-sm font-medium text-gray-900">
+                                <h3 className="text-sm font-medium text-gray-900 dark:text-white">
                                   {team.team_name}
                                 </h3>
                                 <button
                                   onClick={() => handleEditTeamName(team.id, team.team_name)}
-                                  className="p-1 text-gray-400 hover:text-gray-500"
+                                  className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
                                   title="Edit team name"
                                 >
                                   <Edit2 className="h-3 w-3" />
@@ -590,13 +590,13 @@ const TeamSnapConnection: React.FC = () => {
                             {/* Event count and profile mappings */}
                             <div className="mt-2 space-y-1">
                               <div className="flex items-center space-x-2">
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
                                   {team.event_count || 0} events imported
                                 </span>
                                 {team.mapped_profiles && team.mapped_profiles.length > 0 && (
                                   <>
-                                    <span className="text-xs text-gray-300">•</span>
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-xs text-gray-300 dark:text-gray-600">•</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
                                       Mapped to {team.mapped_profiles.length} profile(s)
                                     </span>
                                   </>
@@ -619,7 +619,7 @@ const TeamSnapConnection: React.FC = () => {
                                   ))}
                                 </div>
                               ) : (
-                                <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                                <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-full">
                                   Not mapped to any profiles - events won't appear in calendars
                                 </span>
                               )}
@@ -627,13 +627,13 @@ const TeamSnapConnection: React.FC = () => {
 
                             <div className="flex items-center mt-1">
                               {team.sync_status === 'success' ? (
-                                <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                                <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-1" />
                               ) : team.sync_status === 'error' ? (
-                                <AlertTriangle className="h-4 w-4 text-red-500 mr-1" />
+                                <AlertTriangle className="h-4 w-4 text-red-500 dark:text-red-400 mr-1" />
                               ) : (
-                                <RefreshCw className="h-4 w-4 text-yellow-500 mr-1" />
+                                <RefreshCw className="h-4 w-4 text-yellow-500 dark:text-yellow-400 mr-1" />
                               )}
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
                                 {team.last_synced
                                   ? `Last synced ${new Date(team.last_synced).toLocaleString()}`
                                   : 'Never synced'}
@@ -644,7 +644,7 @@ const TeamSnapConnection: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleOpenMapping(team.id)}
-                            className="p-2 text-gray-400 hover:text-purple-500"
+                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-purple-500 dark:hover:text-purple-400"
                             title="Map to profiles"
                           >
                             <Users className="h-4 w-4" />
@@ -652,14 +652,14 @@ const TeamSnapConnection: React.FC = () => {
                           <button
                             onClick={() => handleRefresh(team.id)}
                             disabled={refreshingTeam === team.id || !team.mapped_profiles || team.mapped_profiles.length === 0}
-                            className="p-2 text-gray-400 hover:text-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Refresh team events"
                           >
                             <RefreshCw className={`h-4 w-4 ${refreshingTeam === team.id ? 'animate-spin' : ''}`} />
                           </button>
                           <button
                             onClick={() => handleDelete(team.id)}
-                            className="p-2 text-gray-400 hover:text-red-500"
+                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400"
                             title="Remove team"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -669,10 +669,10 @@ const TeamSnapConnection: React.FC = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-6 bg-gray-50 rounded-lg">
-                    <Calendar className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">No teams found</p>
-                    <p className="text-sm text-gray-400 mt-1">Teams will appear here after connecting to TeamSnap</p>
+                  <div className="text-center py-6 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <Calendar className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+                    <p className="text-gray-500 dark:text-gray-400">No teams found</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Teams will appear here after connecting to TeamSnap</p>
                   </div>
                 )}
               </div>
@@ -684,19 +684,19 @@ const TeamSnapConnection: React.FC = () => {
       {/* Profile Mapping Modal */}
       {showMappingModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">Map Team to Profiles</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Map Team to Profiles</h3>
               <button
                 onClick={handleCancelMapping}
-                className="text-gray-400 hover:text-gray-500"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
 
             <div className="p-6">
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                 Select which children's profiles this team should be associated with. Events will be automatically synced for mapped profiles.
               </p>
 
@@ -707,8 +707,8 @@ const TeamSnapConnection: React.FC = () => {
                       key={profile.id}
                       className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
                         selectedProfiles.includes(profile.id)
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-gray-200 hover:bg-gray-50'
+                          ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30'
+                          : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
                       <input
@@ -725,23 +725,23 @@ const TeamSnapConnection: React.FC = () => {
                           {profile.name.charAt(0)}
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{profile.name}</div>
-                          <div className="text-xs text-gray-500">Age: {profile.age}</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{profile.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Age: {profile.age}</div>
                         </div>
                       </div>
                       {selectedProfiles.includes(profile.id) && (
-                        <CheckCircle className="h-5 w-5 text-purple-500" />
+                        <CheckCircle className="h-5 w-5 text-purple-500 dark:text-purple-400" />
                       )}
                     </label>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-4">
-                  <UserPlus className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">No profiles available</p>
+                  <UserPlus className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+                  <p className="text-gray-500 dark:text-gray-400">No profiles available</p>
                   <button
                     onClick={() => navigate('/profiles')}
-                    className="mt-2 text-sm text-purple-600 hover:text-purple-700"
+                    className="mt-2 text-sm text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300"
                   >
                     Create a profile first
                   </button>
@@ -749,16 +749,16 @@ const TeamSnapConnection: React.FC = () => {
               )}
             </div>
 
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
               <button
                 onClick={handleCancelMapping}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveMapping}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 dark:focus:ring-offset-gray-800"
               >
                 Save & Sync Events
               </button>

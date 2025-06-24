@@ -40,7 +40,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="divide-y divide-gray-200">
+    <div className="divide-y divide-gray-200 dark:divide-gray-700">
       {dateKeys.length > 0 ? (
         dateKeys.map(dateKey => {
           const date = new Date(dateKey);
@@ -49,10 +49,10 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
           return (
             <div key={dateKey} className="p-4">
               <div className="flex items-center mb-3">
-                <Calendar className="h-5 w-5 text-gray-400 mr-2" />
+                <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-2" />
                 <h3 
                   className={`text-base font-medium ${
-                    isToday ? 'text-blue-600' : 'text-gray-900'
+                    isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
                   }`}
                 >
                   {date.toLocaleDateString('en-US', { 
@@ -61,7 +61,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
                     day: 'numeric' 
                   })}
                   {isToday && (
-                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                    <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full">
                       Today
                     </span>
                   )}
@@ -72,7 +72,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
                 {eventsByDate[dateKey].map((event, index) => (
                   <div 
                     key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}-${index}`}
-                    className="bg-white border rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                    className="bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
                     onClick={() => setSelectedEvent(event)}
                   >
                     <div className="flex border-l-4 h-full" style={{ borderColor: event.color }}>
@@ -82,10 +82,10 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
                             className="w-3 h-3 rounded-full mr-2"
                             style={{ backgroundColor: event.child.color }}
                           ></span>
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
                             {event.child.name}
                             {!event.isOwnEvent && event.ownerName && (
-                              <span className="text-blue-600"> ({event.ownerName})</span>
+                              <span className="text-blue-600 dark:text-blue-400"> ({event.ownerName})</span>
                             )}
                           </span>
                           <span 
@@ -98,23 +98,23 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
                             {event.platform}
                           </span>
                           {!event.isOwnEvent && (
-                            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full">
+                            <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full">
                               👥 Friend's Event
                             </span>
                           )}
                         </div>
                         
-                        <h4 className="text-base font-medium text-gray-900">{event.title}</h4>
+                        <h4 className="text-base font-medium text-gray-900 dark:text-white">{event.title}</h4>
                         
                         <div className="mt-2 flex flex-col sm:flex-row sm:space-x-4">
-                          <div className="flex items-center text-sm text-gray-500">
+                          <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                             <Clock className="h-4 w-4 mr-1" />
                             {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
                             {event.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                           </div>
                           
                           {event.location && (
-                            <div className="flex items-center text-sm text-gray-500 mt-1 sm:mt-0">
+                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1 sm:mt-0">
                               <MapPin className="h-4 w-4 mr-1" />
                               {event.location}
                             </div>
@@ -122,7 +122,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
                         </div>
                         
                         {event.description && (
-                          <p className="mt-2 text-sm text-gray-600">{event.description}</p>
+                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">{event.description}</p>
                         )}
                       </div>
                     </div>
@@ -134,9 +134,9 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
         })
       ) : (
         <div className="p-8 text-center">
-          <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900">No events this month</h3>
-          <p className="text-gray-500 mt-1">Try changing your filters or adding new connections</p>
+          <Calendar className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">No events this month</h3>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Try changing your filters or adding new connections</p>
         </div>
       )}
 

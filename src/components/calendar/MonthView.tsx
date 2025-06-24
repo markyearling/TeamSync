@@ -71,7 +71,7 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events }) => {
   });
 
   return (
-    <div className="grid grid-cols-7 h-full border-b border-gray-200">
+    <div className="grid grid-cols-7 h-full border-b border-gray-200 dark:border-gray-700">
       {calendarDays.map((day, index) => {
         const dateKey = day.date.toISOString().split('T')[0];
         const dayEvents = eventsByDate[dateKey] || [];
@@ -83,8 +83,8 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events }) => {
         return (
           <div 
             key={index} 
-            className={`min-h-[100px] border-r border-t border-gray-200 p-1 ${
-              !day.isCurrentMonth ? 'bg-gray-50' : ''
+            className={`min-h-[100px] border-r border-t border-gray-200 dark:border-gray-700 p-1 ${
+              !day.isCurrentMonth ? 'bg-gray-50 dark:bg-gray-800/50' : ''
             }`}
           >
             <div className="flex justify-between items-start">
@@ -93,8 +93,8 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events }) => {
                   isToday 
                     ? 'bg-blue-600 text-white' 
                     : day.isCurrentMonth 
-                      ? 'text-gray-900' 
-                      : 'text-gray-400'
+                      ? 'text-gray-900 dark:text-gray-100' 
+                      : 'text-gray-400 dark:text-gray-500'
                 }`}
               >
                 {day.date.getDate()}
@@ -123,7 +123,7 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events }) => {
                 </div>
               ))}
               {dayEvents.length > 3 && (
-                <div className="text-xs text-gray-500 px-1">
+                <div className="text-xs text-gray-500 dark:text-gray-400 px-1">
                   +{dayEvents.length - 3} more
                 </div>
               )}

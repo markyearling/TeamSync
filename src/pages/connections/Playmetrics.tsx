@@ -383,18 +383,18 @@ const Playmetrics: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <button
           onClick={() => navigate('/connections')}
-          className="flex items-center text-gray-600 hover:text-gray-900 mb-6"
+          className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 mb-6"
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Connections
         </button>
 
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="px-6 py-8 border-b border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+          <div className="px-6 py-8 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
               <div 
                 className="h-12 w-12 rounded-lg flex items-center justify-center"
@@ -403,8 +403,8 @@ const Playmetrics: React.FC = () => {
                 <BarChart className="h-6 w-6" />
               </div>
               <div className="ml-4">
-                <h1 className="text-2xl font-bold text-gray-900">Connect to Playmetrics</h1>
-                <p className="mt-1 text-gray-500">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Connect to Playmetrics</h1>
+                <p className="mt-1 text-gray-500 dark:text-gray-400">
                   Import your team schedules from Playmetrics calendars
                 </p>
               </div>
@@ -413,10 +413,10 @@ const Playmetrics: React.FC = () => {
 
           <div className="p-6">
             <div className="mb-8">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Add Team Calendar</h2>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Add Team Calendar</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="ics-url" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="ics-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Calendar URL
                   </label>
                   <div className="mt-1">
@@ -426,23 +426,23 @@ const Playmetrics: React.FC = () => {
                       value={icsUrl}
                       onChange={(e) => setIcsUrl(e.target.value)}
                       placeholder="https://api.playmetrics.com/calendar/1079/team/220548-46283CA0.ics"
-                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500"
+                      className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-green-500 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
                       required
                     />
                   </div>
-                  <p className="mt-2 text-sm text-gray-500">
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                     Enter the Playmetrics calendar URL for your team. Events will be imported immediately, then you can map the team to your children's profiles.
                   </p>
                 </div>
 
                 {error && (
-                  <div className="bg-red-50 border border-red-200 rounded-md p-4 text-red-700">
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4 text-red-700 dark:text-red-300">
                     {error}
                   </div>
                 )}
 
                 {success && (
-                  <div className="bg-green-50 border border-green-200 rounded-md p-4 text-green-700">
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-4 text-green-700 dark:text-green-300">
                     {success}
                   </div>
                 )}
@@ -450,7 +450,7 @@ const Playmetrics: React.FC = () => {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? (
                     <>
@@ -468,21 +468,21 @@ const Playmetrics: React.FC = () => {
             </div>
 
             <div>
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Connected Teams</h2>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Connected Teams</h2>
               <div className="space-y-4">
                 {loading ? (
                   <div className="text-center py-4">
-                    <RefreshCw className="animate-spin h-6 w-6 text-gray-400 mx-auto" />
+                    <RefreshCw className="animate-spin h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto" />
                   </div>
                 ) : teams.length > 0 ? (
                   teams.map((team) => (
                     <div
                       key={team.id}
-                      className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50"
+                      className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center flex-1">
-                          <Calendar className="h-5 w-5 text-gray-400 mr-3" />
+                          <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
                           <div className="flex-1">
                             {editingTeam === team.id ? (
                               <div className="flex items-center space-x-2">
@@ -490,7 +490,7 @@ const Playmetrics: React.FC = () => {
                                   type="text"
                                   value={editingName}
                                   onChange={(e) => setEditingName(e.target.value)}
-                                  className="flex-1 text-sm font-medium border-gray-300 rounded-md focus:border-green-500 focus:ring-green-500"
+                                  className="flex-1 text-sm font-medium border-gray-300 dark:border-gray-600 rounded-md focus:border-green-500 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
                                       handleSaveTeamName(team.id);
@@ -502,14 +502,14 @@ const Playmetrics: React.FC = () => {
                                 />
                                 <button
                                   onClick={() => handleSaveTeamName(team.id)}
-                                  className="p-1 text-green-600 hover:text-green-700"
+                                  className="p-1 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
                                   title="Save"
                                 >
                                   <Save className="h-4 w-4" />
                                 </button>
                                 <button
                                   onClick={handleCancelEdit}
-                                  className="p-1 text-gray-400 hover:text-gray-500"
+                                  className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
                                   title="Cancel"
                                 >
                                   <X className="h-4 w-4" />
@@ -517,12 +517,12 @@ const Playmetrics: React.FC = () => {
                               </div>
                             ) : (
                               <div className="flex items-center space-x-2">
-                                <h3 className="text-sm font-medium text-gray-900">
+                                <h3 className="text-sm font-medium text-gray-900 dark:text-white">
                                   {team.team_name}
                                 </h3>
                                 <button
                                   onClick={() => handleEditTeamName(team.id, team.team_name)}
-                                  className="p-1 text-gray-400 hover:text-gray-500"
+                                  className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
                                   title="Edit team name"
                                 >
                                   <Edit2 className="h-3 w-3" />
@@ -533,13 +533,13 @@ const Playmetrics: React.FC = () => {
                             {/* Event count and profile mappings */}
                             <div className="mt-2 space-y-1">
                               <div className="flex items-center space-x-2">
-                                <span className="text-xs text-gray-500">
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
                                   {team.event_count || 0} events imported
                                 </span>
                                 {team.mapped_profiles && team.mapped_profiles.length > 0 && (
                                   <>
-                                    <span className="text-xs text-gray-300">•</span>
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-xs text-gray-300 dark:text-gray-600">•</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
                                       Mapped to {team.mapped_profiles.length} profile(s)
                                     </span>
                                   </>
@@ -562,7 +562,7 @@ const Playmetrics: React.FC = () => {
                                   ))}
                                 </div>
                               ) : (
-                                <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-full">
+                                <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-1 rounded-full">
                                   Not mapped to any profiles - events won't appear in calendars
                                 </span>
                               )}
@@ -570,13 +570,13 @@ const Playmetrics: React.FC = () => {
 
                             <div className="flex items-center mt-1">
                               {team.sync_status === 'success' ? (
-                                <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+                                <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-1" />
                               ) : team.sync_status === 'error' ? (
-                                <AlertTriangle className="h-4 w-4 text-red-500 mr-1" />
+                                <AlertTriangle className="h-4 w-4 text-red-500 dark:text-red-400 mr-1" />
                               ) : (
-                                <RefreshCw className="h-4 w-4 text-yellow-500 mr-1" />
+                                <RefreshCw className="h-4 w-4 text-yellow-500 dark:text-yellow-400 mr-1" />
                               )}
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
                                 {team.last_synced
                                   ? `Last synced ${new Date(team.last_synced).toLocaleString()}`
                                   : 'Never synced'}
@@ -587,14 +587,14 @@ const Playmetrics: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           <button
                             onClick={() => handleOpenMapping(team.id)}
-                            className="p-2 text-gray-400 hover:text-blue-500"
+                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400"
                             title="Map to profiles"
                           >
                             <Users className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleRefresh(team.id)}
-                            className="p-2 text-gray-400 hover:text-gray-500"
+                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
                             title="Refresh calendar"
                             disabled={!team.mapped_profiles || team.mapped_profiles.length === 0}
                           >
@@ -602,7 +602,7 @@ const Playmetrics: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleDelete(team.id)}
-                            className="p-2 text-gray-400 hover:text-red-500"
+                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400"
                             title="Remove team"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -612,9 +612,9 @@ const Playmetrics: React.FC = () => {
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-6 bg-gray-50 rounded-lg">
-                    <Calendar className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                    <p className="text-gray-500">No teams connected yet</p>
+                  <div className="text-center py-6 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <Calendar className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+                    <p className="text-gray-500 dark:text-gray-400">No teams connected yet</p>
                   </div>
                 )}
               </div>
@@ -626,19 +626,19 @@ const Playmetrics: React.FC = () => {
       {/* Profile Mapping Modal */}
       {showMappingModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">Map Team to Profiles</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Map Team to Profiles</h3>
               <button
                 onClick={handleCancelMapping}
-                className="text-gray-400 hover:text-gray-500"
+                className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
 
             <div className="p-6">
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                 Select which children's profiles this team calendar should be associated with. Events will only appear in the calendars of mapped profiles.
               </p>
 
@@ -649,8 +649,8 @@ const Playmetrics: React.FC = () => {
                       key={profile.id}
                       className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
                         selectedProfiles.includes(profile.id)
-                          ? 'border-green-500 bg-green-50'
-                          : 'border-gray-200 hover:bg-gray-50'
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/30'
+                          : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
                       <input
@@ -667,23 +667,23 @@ const Playmetrics: React.FC = () => {
                           {profile.name.charAt(0)}
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900">{profile.name}</div>
-                          <div className="text-xs text-gray-500">Age: {profile.age}</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{profile.name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">Age: {profile.age}</div>
                         </div>
                       </div>
                       {selectedProfiles.includes(profile.id) && (
-                        <CheckCircle className="h-5 w-5 text-green-500" />
+                        <CheckCircle className="h-5 w-5 text-green-500 dark:text-green-400" />
                       )}
                     </label>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-4">
-                  <UserPlus className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-500">No profiles available</p>
+                  <UserPlus className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+                  <p className="text-gray-500 dark:text-gray-400">No profiles available</p>
                   <button
                     onClick={() => navigate('/profiles')}
-                    className="mt-2 text-sm text-green-600 hover:text-green-700"
+                    className="mt-2 text-sm text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
                   >
                     Create a profile first
                   </button>
@@ -691,16 +691,16 @@ const Playmetrics: React.FC = () => {
               )}
             </div>
 
-            <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-3">
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
               <button
                 onClick={handleCancelMapping}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveMapping}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700"
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-offset-gray-800"
               >
                 Save Mapping
               </button>

@@ -299,7 +299,7 @@ const ChildProfile: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
   }
@@ -350,7 +350,7 @@ const ChildProfile: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{child.name}</h1>
                 {isFriendProfile && (
-                  <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
+                  <span className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs px-2 py-1 rounded-full font-medium">
                     {child.ownerName}'s child
                   </span>
                 )}
@@ -495,7 +495,7 @@ const ChildProfile: React.FC = () => {
 
               <button
                 onClick={() => setFilterOpen(!filterOpen)}
-                className="flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 text-sm"
+                className="flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 text-sm text-gray-700 dark:text-gray-300"
               >
                 <Filter className="h-4 w-4 mr-1" />
                 Filter
@@ -528,7 +528,7 @@ const ChildProfile: React.FC = () => {
             <button
               onClick={() => setShowAddEventModal(true)}
               className={`px-4 py-2 text-white rounded-md hover:opacity-90 flex items-center ${
-                isFriendProfile ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-blue-600 hover:bg-blue-700'
+                isFriendProfile ? 'bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-800' : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800'
               }`}
             >
               <Plus className="h-5 w-5 mr-2" />
@@ -582,7 +582,7 @@ const ChildProfile: React.FC = () => {
               </button>
               <button
                 onClick={handleDelete}
-                className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 dark:bg-red-700 hover:bg-red-700 dark:hover:bg-red-800"
               >
                 Delete Profile
               </button>
@@ -600,7 +600,7 @@ const ChildProfile: React.FC = () => {
                   {isFriendProfile ? (
                     <div className="flex items-center">
                       <span>Edit Profile</span>
-                      <span className="ml-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">
+                      <span className="ml-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs px-2 py-1 rounded-full font-medium">
                         {child.ownerName}'s child
                       </span>
                     </div>
@@ -726,7 +726,7 @@ const ChildProfile: React.FC = () => {
                         className={`flex items-center p-3 rounded-lg border dark:border-gray-600 cursor-pointer transition-colors ${
                           selectedSports.includes(sport.name)
                             ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50'
-                            : 'border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700'
+                            : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                       >
                         <input
@@ -791,8 +791,8 @@ const ChildProfile: React.FC = () => {
                   type="submit"
                   className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                     isFriendProfile 
-                      ? 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500' 
-                      : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                      ? 'bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-800 focus:ring-yellow-500' 
+                      : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 focus:ring-blue-500'
                   }`}
                 >
                   Save Changes

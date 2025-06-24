@@ -38,10 +38,10 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events }) => {
         <div className="w-20 flex-shrink-0"></div>
         <div className="flex-1 px-4 py-3">
           <div className="text-center">
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
               {currentDate.toLocaleDateString('en-US', { weekday: 'long' })}
             </div>
-            <div className={`inline-flex items-center justify-center ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
+            <div className={`inline-flex items-center justify-center ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
               <span 
                 className={`text-2xl font-bold ${
                   isToday ? 'bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center' : ''
@@ -56,11 +56,11 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events }) => {
       
       <div className="flex-1 overflow-y-auto">
         <div className="flex h-full">
-          <div className="w-20 flex-shrink-0 border-r border-gray-200">
+          <div className="w-20 flex-shrink-0 border-r border-gray-200 dark:border-gray-700">
             {timeSlots.map(hour => (
               <div 
                 key={hour} 
-                className="h-12 text-xs text-gray-500 text-right pr-2"
+                className="h-12 text-xs text-gray-500 dark:text-gray-400 text-right pr-2"
                 style={{ marginTop: hour === 0 ? '0' : '-8px' }}
               >
                 {hour === 0 ? '' : `${hour % 12 === 0 ? '12' : hour % 12}${hour < 12 ? 'am' : 'pm'}`}
@@ -73,11 +73,11 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events }) => {
             {timeSlots.map(hour => (
               <React.Fragment key={hour}>
                 <div 
-                  className="absolute w-full border-t border-gray-200" 
+                  className="absolute w-full border-t border-gray-200 dark:border-gray-700" 
                   style={{ top: `${hour * 48}px` }}
                 ></div>
                 <div 
-                  className="absolute w-full border-t border-gray-200 border-dashed opacity-50" 
+                  className="absolute w-full border-t border-gray-200 dark:border-gray-700 border-dashed opacity-50" 
                   style={{ top: `${hour * 48 + 24}px` }}
                 ></div>
               </React.Fragment>
@@ -114,23 +114,23 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events }) => {
                         <span className="ml-1 text-xs opacity-75">👥</span>
                       )}
                     </div>
-                    <div className="text-gray-600 text-xs mt-1">
+                    <div className="text-gray-600 dark:text-gray-300 text-xs mt-1">
                       {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
                       {event.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                     </div>
                     {duration > 0.75 && event.location && (
-                      <div className="text-gray-600 text-xs mt-1 flex items-center">
+                      <div className="text-gray-600 dark:text-gray-300 text-xs mt-1 flex items-center">
                         <MapPin className="h-3 w-3 mr-1" />
                         <span className="truncate">{event.location}</span>
                       </div>
                     )}
                     {duration > 1.5 && (
-                      <div className="mt-1 text-xs text-gray-600">
+                      <div className="mt-1 text-xs text-gray-600 dark:text-gray-300">
                         <div className="flex items-center">
                           <span className="truncate">
                             {event.child.name}
                             {!event.isOwnEvent && event.ownerName && (
-                              <span className="text-blue-600"> ({event.ownerName})</span>
+                              <span className="text-blue-600 dark:text-blue-400"> ({event.ownerName})</span>
                             )}
                           </span>
                         </div>

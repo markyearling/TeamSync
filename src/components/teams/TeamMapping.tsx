@@ -113,7 +113,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-48">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
   }
@@ -149,7 +149,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                     key={team.id}
                     className={`flex items-center p-4 rounded-lg border ${
                       selectedTeams.includes(team.id)
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50'
+                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/50 dark:border-blue-700'
                         : 'border-gray-200 dark:border-gray-700'
                     } cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 relative`}
                   >
@@ -171,10 +171,10 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                         </div>
                         <div className="flex items-center space-x-2">
                           {syncing === team.id && (
-                            <RefreshCw className="h-4 w-4 text-blue-600 animate-spin" />
+                            <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-spin" />
                           )}
                           {selectedTeams.includes(team.id) && (
-                            <Check className="h-5 w-5 text-blue-600" />
+                            <Check className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                           )}
                         </div>
                       </div>
@@ -204,7 +204,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
           <button
             onClick={handleSave}
             disabled={saving || syncing !== null}
-            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
             {saving ? (
               <>
@@ -218,7 +218,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
         </div>
 
         {selectedTeams.some(teamId => teams.find(t => t.id === teamId)?.platform === 'TeamSnap') && (
-          <div className="px-6 py-3 bg-blue-50 dark:bg-blue-900/50 border-t border-blue-200 dark:border-blue-800">
+          <div className="px-6 py-3 bg-blue-50 dark:bg-blue-900/30 border-t border-blue-200 dark:border-blue-800">
             <p className="text-sm text-blue-800 dark:text-blue-200">
               <strong>Note:</strong> TeamSnap events will be synced when you refresh the team connection or manually sync events.
             </p>

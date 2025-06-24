@@ -51,11 +51,11 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events }) => {
           {weekDays.map((day, index) => (
             <div 
               key={index} 
-              className="px-2 py-3 text-center border-r border-gray-200"
+              className="px-2 py-3 text-center border-r border-gray-200 dark:border-gray-700"
             >
               <div 
                 className={`text-sm font-medium ${
-                  isToday(day) ? 'text-blue-600' : 'text-gray-500'
+                  isToday(day) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
                 {day.toLocaleDateString('en-US', { weekday: 'short' })}
@@ -64,7 +64,7 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events }) => {
                 className={`text-lg font-semibold ${
                   isToday(day) 
                     ? 'text-white bg-blue-600 rounded-full w-8 h-8 flex items-center justify-center mx-auto'
-                    : 'text-gray-900'
+                    : 'text-gray-900 dark:text-white'
                 }`}
               >
                 {day.getDate()}
@@ -76,11 +76,11 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events }) => {
       
       <div className="flex-1 overflow-y-auto">
         <div className="flex h-full">
-          <div className="w-20 flex-shrink-0 border-r border-gray-200">
+          <div className="w-20 flex-shrink-0 border-r border-gray-200 dark:border-gray-700">
             {timeSlots.map(hour => (
               <div 
                 key={hour} 
-                className="h-12 text-xs text-gray-500 text-right pr-2"
+                className="h-12 text-xs text-gray-500 dark:text-gray-400 text-right pr-2"
                 style={{ marginTop: hour === 0 ? '0' : '-8px' }}
               >
                 {hour === 0 ? '' : `${hour % 12 === 0 ? '12' : hour % 12}${hour < 12 ? 'am' : 'pm'}`}
@@ -93,11 +93,11 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events }) => {
             {timeSlots.map(hour => (
               <React.Fragment key={hour}>
                 <div 
-                  className="absolute w-full border-t border-gray-200" 
+                  className="absolute w-full border-t border-gray-200 dark:border-gray-700" 
                   style={{ top: `${hour * 48}px` }}
                 ></div>
                 <div 
-                  className="absolute w-full border-t border-gray-200 border-dashed opacity-50" 
+                  className="absolute w-full border-t border-gray-200 dark:border-gray-700 border-dashed opacity-50" 
                   style={{ top: `${hour * 48 + 24}px` }}
                 ></div>
               </React.Fragment>
@@ -111,7 +111,7 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events }) => {
               return (
                 <div 
                   key={dayIndex} 
-                  className="h-full border-r border-gray-200 relative"
+                  className="h-full border-r border-gray-200 dark:border-gray-700 relative"
                 >
                   {dayEvents.map((event, eventIndex) => {
                     const startHour = event.startTime.getHours() + (event.startTime.getMinutes() / 60);
@@ -137,12 +137,12 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events }) => {
                               <span className="ml-1 text-xs opacity-75">👥</span>
                             )}
                           </div>
-                          <div className="text-gray-600 text-xs mt-0.5">
+                          <div className="text-gray-600 dark:text-gray-300 text-xs mt-0.5">
                             {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
                             {event.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                           </div>
                           {duration > 0.75 && (
-                            <div className="text-gray-600 text-xs mt-0.5 flex items-center">
+                            <div className="text-gray-600 dark:text-gray-300 text-xs mt-0.5 flex items-center">
                               <span 
                                 className="w-2 h-2 rounded-full mr-1"
                                 style={{ backgroundColor: event.child.color }}
@@ -150,7 +150,7 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events }) => {
                               <span className="truncate">
                                 {event.child.name}
                                 {!event.isOwnEvent && event.ownerName && (
-                                  <span className="text-blue-600"> ({event.ownerName})</span>
+                                  <span className="text-blue-600 dark:text-blue-400"> ({event.ownerName})</span>
                                 )}
                               </span>
                             </div>
