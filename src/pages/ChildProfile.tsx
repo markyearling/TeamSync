@@ -11,6 +11,10 @@ import MonthView from '../components/calendar/MonthView';
 import WeekView from '../components/calendar/WeekView';
 import DayView from '../components/calendar/DayView';
 import AgendaView from '../components/calendar/AgendaView';
+import { useLoadScript, Libraries } from '@react-google-maps/api';
+
+// Define libraries outside component to prevent recreation on each render
+const libraries: Libraries = ['places', 'marker'];
 
 const ChildProfile: React.FC = () => {
   const { id } = useParams();
@@ -35,6 +39,13 @@ const ChildProfile: React.FC = () => {
     age: '',
     color: '#3B82F6',
     notes: ''
+  });
+
+  // Centralized Google Maps loading
+  const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    libraries,
+    mapIds: [import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || '']
   });
 
   const colorOptions = [
@@ -538,13 +549,17 @@ const ChildProfile: React.FC = () => {
           onClose={() => setShowAddEventModal(false)}
           onEventAdded={handleEventAdded}
           sports={child.sports}
+          mapsLoaded={mapsLoaded}
+          mapsLoadError={mapsLoadError}
         />
       )}
 
       {selectedEvent && (
         <EventModal 
           event={selectedEvent} 
-          onClose={() => setSelectedEvent(null)} 
+          onClose={() => setSelectedEvent(null)}
+          mapsLoaded={mapsLoaded}
+          mapsLoadError={mapsLoadError}
         />
       )}
 

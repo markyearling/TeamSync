@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, Edit } from 'lucide-react';
 import { Event } from '../../types';
-import { GoogleMap, useLoadScript, Libraries } from '@react-google-maps/api';
+import { GoogleMap, Libraries } from '@react-google-maps/api';
 import { supabase } from '../../lib/supabase';
 import EditEventModal from './EditEventModal';
-
-// Define libraries outside component to prevent recreation on each render
-const libraries: Libraries = ['places', 'marker'];
 
 interface EventModalProps {
   event: Event;
   onClose: () => void;
+  mapsLoaded: boolean;
+  mapsLoadError: Error | undefined;
 }
 
-const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
+const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, mapsLoadError }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [shareEmail, setShareEmail] = useState('');
@@ -23,13 +22,6 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   const [geocodingAttempted, setGeocodingAttempted] = useState(false);
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
   const [canEdit, setCanEdit] = useState(false);
-
-  // Use the static libraries array to prevent reloading
-  const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries,
-    mapIds: [import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || '']
-  });
 
   // Check if user can edit this event
   useEffect(() => {
@@ -66,7 +58,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
 
   // Geocode the location to get coordinates for the map
   useEffect(() => {
-    if (isLoaded && event.location && !geocodingAttempted) {
+    if (mapsLoaded && !mapsLoadError && event.location && !geocodingAttempted) {
       const geocoder = new google.maps.Geocoder();
       
       // Use a try-catch block to handle potential geocoding errors
@@ -86,11 +78,11 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
         setGeocodingAttempted(true);
       }
     }
-  }, [isLoaded, event.location, geocodingAttempted]);
+  }, [mapsLoaded, mapsLoadError, event.location, geocodingAttempted]);
 
   // Add advanced marker when map center and map ref are available
   useEffect(() => {
-    if (mapRef && mapCenter && isLoaded && window.google?.maps?.marker) {
+    if (mapRef && mapCenter && mapsLoaded && !mapsLoadError && window.google?.maps?.marker) {
       try {
         // Create an advanced marker element
         const advancedMarker = new google.maps.marker.AdvancedMarkerElement({
@@ -108,7 +100,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
         console.error('Error creating advanced marker:', error);
       }
     }
-  }, [mapRef, mapCenter, isLoaded]);
+  }, [mapRef, mapCenter, mapsLoaded, mapsLoadError]);
 
   const handleMapLoad = (map: google.maps.Map) => {
     setMapRef(map);
@@ -295,7 +287,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                     <span>{event.location}</span>
                   </div>
                   
-                  {isLoaded && !loadError && (
+                  {mapsLoaded && !mapsLoadError && (
                     <div className="h-64 w-full rounded-lg overflow-hidden">
                       {mapCenter ? (
                         <div onClick={(e) => e.stopPropagation()}>
@@ -337,7 +329,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                     </div>
                   )}
                   
-                  {loadError && (
+                  {mapsLoadError && (
                     <div className="h-64 w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex flex-col items-center justify-center p-4">
                       <p className="text-red-500 dark:text-red-400 mb-2">Error loading map</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
@@ -373,6 +365,8 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
           event={event} 
           onClose={() => setShowEditModal(false)}
           onEventUpdated={handleEventUpdated}
+          mapsLoaded={mapsLoaded}
+          mapsLoadError={mapsLoadError}
         />
       )}
     </>

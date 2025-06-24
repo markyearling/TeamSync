@@ -1,16 +1,24 @@
 import React, { useState, useRef } from 'react';
 import { X, Calendar as CalendarIcon, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { useLoadScript, Autocomplete } from '@react-google-maps/api';
+import { Autocomplete } from '@react-google-maps/api';
 import { Event } from '../../types';
 
 interface EditEventModalProps {
   event: Event;
   onClose: () => void;
   onEventUpdated: () => void;
+  mapsLoaded: boolean;
+  mapsLoadError: Error | undefined;
 }
 
-const EditEventModal: React.FC<EditEventModalProps> = ({ event, onClose, onEventUpdated }) => {
+const EditEventModal: React.FC<EditEventModalProps> = ({ 
+  event, 
+  onClose, 
+  onEventUpdated, 
+  mapsLoaded, 
+  mapsLoadError 
+}) => {
   const [formData, setFormData] = useState({
     title: event.title,
     description: event.description || '',
@@ -21,11 +29,6 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ event, onClose, onEvent
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
-    libraries: ['places']
-  });
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -188,7 +191,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ event, onClose, onEvent
               <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Location
               </label>
-              {isLoaded ? (
+              {mapsLoaded && !mapsLoadError ? (
                 <Autocomplete
                   onLoad={autocomplete => {
                     autocompleteRef.current = autocomplete;
@@ -213,9 +216,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({ event, onClose, onEvent
                   name="location"
                   value={formData.location}
                   onChange={handleInputChange}
-                  placeholder="Loading places search..."
+                  placeholder={mapsLoadError ? "Maps unavailable - enter location manually" : "Loading places search..."}
                   className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  disabled
+                  disabled={!mapsLoadError && !mapsLoaded}
                 />
               )}
             </div>
