@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send } from 'lucide-react';
 import { Event } from '../../types';
-import { GoogleMap, useLoadScript, Marker } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript, Marker, Libraries } from '@react-google-maps/api';
 import { supabase } from '../../lib/supabase';
+
+// Define libraries outside component to prevent recreation on each render
+const libraries: Libraries = ['places'];
 
 interface EventModalProps {
   event: Event;
@@ -16,22 +19,30 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   const [shareError, setShareError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral | null>(null);
 
-  // Load Google Maps script only once
+  // Use the static libraries array to prevent reloading
   const { isLoaded, loadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    libraries: ['places']
+    libraries
   });
 
   // Geocode the location to get coordinates for the map
   useEffect(() => {
     if (isLoaded && event.location && !mapCenter) {
       const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ address: event.location }, (results, status) => {
-        if (status === 'OK' && results && results[0]) {
-          const { lat, lng } = results[0].geometry.location;
-          setMapCenter({ lat: lat(), lng: lng() });
-        }
-      });
+      
+      // Use a try-catch block to handle potential geocoding errors
+      try {
+        geocoder.geocode({ address: event.location }, (results, status) => {
+          if (status === 'OK' && results && results[0] && results[0].geometry) {
+            const { lat, lng } = results[0].geometry.location;
+            setMapCenter({ lat: lat(), lng: lng() });
+          } else {
+            console.error('Geocoding failed:', status);
+          }
+        });
+      } catch (error) {
+        console.error('Error during geocoding:', error);
+      }
     }
   }, [isLoaded, event.location, mapCenter]);
 
@@ -200,30 +211,40 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                 {isLoaded && !loadError && (
                   <div className="h-64 w-full rounded-lg overflow-hidden">
                     {mapCenter ? (
-                      <GoogleMap
-                        mapContainerStyle={{ width: '100%', height: '100%' }}
-                        center={mapCenter}
-                        zoom={15}
-                        options={{
-                          disableDefaultUI: true,
-                          zoomControl: true,
-                          streetViewControl: true,
-                          mapTypeControl: true
-                        }}
-                      >
-                        <Marker position={mapCenter} />
-                      </GoogleMap>
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <GoogleMap
+                          mapContainerStyle={{ width: '100%', height: '100%' }}
+                          center={mapCenter}
+                          zoom={15}
+                          options={{
+                            disableDefaultUI: false,
+                            zoomControl: true,
+                            streetViewControl: true,
+                            mapTypeControl: true,
+                            fullscreenControl: true
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Marker position={mapCenter} />
+                        </GoogleMap>
+                      </div>
                     ) : (
                       <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
-                        <p className="text-gray-500 dark:text-gray-400">Loading map...</p>
+                        <div className="flex flex-col items-center">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+                          <p className="text-gray-500 dark:text-gray-400">Loading map...</p>
+                        </div>
                       </div>
                     )}
                   </div>
                 )}
                 
                 {loadError && (
-                  <div className="h-64 w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-                    <p className="text-red-500 dark:text-red-400">Error loading map</p>
+                  <div className="h-64 w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex flex-col items-center justify-center p-4">
+                    <p className="text-red-500 dark:text-red-400 mb-2">Error loading map</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                      {event.location}
+                    </p>
                   </div>
                 )}
               </div>
