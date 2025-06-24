@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send } from 'lucide-react';
 import { Event } from '../../types';
-import { GoogleMap, useLoadScript, Marker, Libraries } from '@react-google-maps/api';
+import { GoogleMap, useLoadScript, Libraries } from '@react-google-maps/api';
 import { supabase } from '../../lib/supabase';
 
 // Define libraries outside component to prevent recreation on each render
@@ -227,9 +227,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                             mapTypeControl: true,
                             fullscreenControl: true
                           }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <Marker position={mapCenter} />
+                          onClick={(e) => e.stopPropagation()}>
+                          {mapCenter && (
+                            new google.maps.marker.AdvancedMarkerElement({
+                              position: mapCenter,
+                              map: google.maps.Map
+                            })
+                          )}
                         </GoogleMap>
                       </div>
                     ) : !geocodingAttempted ? (
