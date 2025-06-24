@@ -279,7 +279,7 @@ const Connections: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
       </div>
     );
   }
@@ -287,15 +287,15 @@ const Connections: React.FC = () => {
   return (
     <div>
       {showSuccessMessage && (
-        <div className="fixed top-4 right-4 bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 shadow-lg z-50 animate-fade-in">
+        <div className="fixed top-4 right-4 bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-200 rounded-lg p-4 shadow-lg z-50 animate-fade-in">
           <div className="flex items-center">
-            <CheckCircle className="h-5 w-5 text-green-400 mr-2" />
+            <CheckCircle className="h-5 w-5 text-green-400 dark:text-green-300 mr-2" />
             <div className="flex-1">
               <p className="font-medium">{successMessage}</p>
             </div>
             <button 
               onClick={() => setShowSuccessMessage(false)}
-              className="ml-4 text-green-400 hover:text-green-500"
+              className="ml-4 text-green-400 dark:text-green-300 hover:text-green-500 dark:hover:text-green-200"
             >
               <X className="h-5 w-5" />
             </button>
@@ -304,21 +304,21 @@ const Connections: React.FC = () => {
       )}
 
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2 sm:mb-0">Connections</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-0">Connections</h1>
       </div>
       
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden mb-8">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Connected Platforms</h2>
-          <p className="mt-1 text-sm text-gray-500">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden mb-8">
+        <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white">Connected Platforms</h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Manage your connections to sports platforms and services
           </p>
         </div>
         
-        <div className="divide-y divide-gray-200">
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
           {connectedPlatforms.length > 0 ? (
             connectedPlatforms.map(platform => (
-              <div key={platform.id} className="p-6 hover:bg-gray-50 transition-colors">
+              <div key={platform.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                 <div className="flex flex-col sm:flex-row sm:items-start">
                   <div 
                     className="h-12 w-12 rounded-lg flex items-center justify-center mb-4 sm:mb-0 sm:mr-4"
@@ -329,15 +329,15 @@ const Connections: React.FC = () => {
                   
                   <div className="flex-1">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
-                      <h3 className="text-lg font-medium text-gray-900">{platform.name}</h3>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">{platform.name}</h3>
                       <div className="flex items-center mt-2 sm:mt-0">
                         {platform.hasIssue ? (
-                          <div className="flex items-center text-yellow-600">
+                          <div className="flex items-center text-yellow-600 dark:text-yellow-400">
                             <AlertTriangle className="h-5 w-5 mr-1" />
                             <span>Connection issue</span>
                           </div>
                         ) : (
-                          <div className="flex items-center text-green-600">
+                          <div className="flex items-center text-green-600 dark:text-green-400">
                             <CheckCircle className="h-5 w-5 mr-1" />
                             <span>Connected</span>
                           </div>
@@ -345,18 +345,18 @@ const Connections: React.FC = () => {
                       </div>
                     </div>
                     
-                    <p className="text-gray-600 mb-4">
+                    <p className="text-gray-600 dark:text-gray-300 mb-4">
                       {platform.hasIssue 
                         ? `There is an issue with your ${platform.name} connection. Please refresh or reconnect.` 
                         : `Your ${platform.name} account is connected and syncing data to TeamSync.`}
                     </p>
                     
                     {platform.teamCount && (
-                      <div className="bg-gray-50 p-3 rounded-md mb-4">
-                        <div className="text-sm text-gray-600">
+                      <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded-md mb-4">
+                        <div className="text-sm text-gray-600 dark:text-gray-300">
                           <span className="font-medium">{platform.teamCount}</span> team{platform.teamCount !== 1 ? 's' : ''} connected
                           {platform.lastSynced && (
-                            <span className="ml-2 text-gray-500">
+                            <span className="ml-2 text-gray-500 dark:text-gray-400">
                               · Last synced {new Date(platform.lastSynced).toLocaleString()}
                             </span>
                           )}
@@ -366,14 +366,14 @@ const Connections: React.FC = () => {
                     
                     <div className="flex flex-wrap gap-3">
                       <button
-                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                         onClick={() => handleManage(platform.name)}
                       >
                         Manage
                       </button>
                       
                       <button
-                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                         onClick={() => handleRefresh(platform.id)}
                         disabled={refreshingPlatform === platform.id}
                       >
@@ -391,7 +391,7 @@ const Connections: React.FC = () => {
                       </button>
                       
                       {platform.hasIssue && (
-                        <div className="bg-yellow-100 text-yellow-800 text-xs px-2.5 py-1.5 rounded-full flex items-center">
+                        <div className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs px-2.5 py-1.5 rounded-full flex items-center">
                           <AlertTriangle className="h-3.5 w-3.5 mr-1" />
                           Connection issue
                         </div>
@@ -403,26 +403,26 @@ const Connections: React.FC = () => {
             ))
           ) : (
             <div className="p-8 text-center">
-              <div className="mx-auto h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mb-4">
-                <Calendar className="h-6 w-6 text-blue-600" />
+              <div className="mx-auto h-12 w-12 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center mb-4">
+                <Calendar className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900">No platforms connected</h3>
-              <p className="mt-1 text-gray-500">Connect to your sports platforms to start syncing data</p>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">No platforms connected</h3>
+              <p className="mt-1 text-gray-500 dark:text-gray-400">Connect to your sports platforms to start syncing data</p>
             </div>
           )}
         </div>
       </div>
       
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-md mb-6">
           <p>{error}</p>
         </div>
       )}
       
-      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
-          <h2 className="text-lg font-medium text-gray-900">Available Platforms</h2>
-          <p className="mt-1 text-sm text-gray-500">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
+        <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white">Available Platforms</h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Connect to additional sports platforms to import your schedules and events
           </p>
         </div>
@@ -432,10 +432,10 @@ const Connections: React.FC = () => {
             availablePlatforms.map(platform => (
               <div 
                 key={platform.id} 
-                className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
               >
                 <div 
-                  className="p-4 border-b" 
+                  className="p-4 border-b border-gray-200 dark:border-gray-700" 
                   style={{ backgroundColor: platform.color + '10' }}
                 >
                   <div className="flex items-center justify-between">
@@ -446,20 +446,20 @@ const Connections: React.FC = () => {
                       >
                         <platform.icon className="h-5 w-5" />
                       </div>
-                      <h3 className="text-lg font-medium text-gray-900">{platform.name}</h3>
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">{platform.name}</h3>
                     </div>
                   </div>
                 </div>
                 
                 <div className="p-4">
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
                     Connect to {platform.name} to import your schedules, events, and team information.
                   </p>
                   
                   <div className="flex justify-between items-center">
                     <a 
                       href="#" 
-                      className="text-sm text-blue-600 hover:text-blue-700 flex items-center"
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center"
                       onClick={(e) => e.preventDefault()}
                     >
                       Learn more
@@ -467,7 +467,7 @@ const Connections: React.FC = () => {
                     </a>
                     
                     <button
-                      className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                       onClick={() => handleManage(platform.name)}
                     >
                       Connect
@@ -478,11 +478,11 @@ const Connections: React.FC = () => {
             ))
           ) : (
             <div className="col-span-full p-8 text-center">
-              <div className="mx-auto h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="mx-auto h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-4">
+                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
-              <h3 className="text-lg font-medium text-gray-900">All platforms connected!</h3>
-              <p className="mt-1 text-gray-500">You've connected all available platforms</p>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">All platforms connected!</h3>
+              <p className="mt-1 text-gray-500 dark:text-gray-400">You've connected all available platforms</p>
             </div>
           )}
         </div>

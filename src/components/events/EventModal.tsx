@@ -70,12 +70,10 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
             const { lat, lng } = results[0].geometry.location;
             setMapCenter({ lat: lat(), lng: lng() });
           } else {
-            console.error('Geocoding failed:', status);
             // mapCenter remains null, which will trigger the "not found" message
           }
         });
       } catch (error) {
-        console.error('Error during geocoding:', error);
         setGeocodingAttempted(true);
       }
     }
@@ -192,7 +190,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
             </label>
             <div className="mt-1 relative rounded-md shadow-sm">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-gray-400" />
+                <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
               </div>
               <input
                 type="email"
@@ -213,7 +211,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
           <button
             type="submit"
             disabled={isSharing || !shareEmail}
-            className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSharing ? (
               <>
@@ -345,14 +343,14 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                       ) : !geocodingAttempted ? (
                         <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
                           <div className="flex flex-col items-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400 mb-2"></div>
                             <p className="text-gray-500 dark:text-gray-400">Loading map...</p>
                           </div>
                         </div>
                       ) : (
                         <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
                           <div className="flex flex-col items-center text-center p-4">
-                            <MapPin className="h-8 w-8 text-gray-400 mb-2" />
+                            <MapPin className="h-8 w-8 text-gray-400 dark:text-gray-500 mb-2" />
                             <p className="text-gray-500 dark:text-gray-400 font-medium">Location not found on map</p>
                             <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
                               {event.location}
