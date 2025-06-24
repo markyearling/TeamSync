@@ -229,10 +229,12 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
                           }}
                           onClick={(e) => e.stopPropagation()}>
                           {mapCenter && (
-                            new google.maps.marker.AdvancedMarkerElement({
-                              position: mapCenter,
-                              map: google.maps.Map
-                            })
+                            <div>
+                              {new google.maps.marker.AdvancedMarkerElement({
+                                position: mapCenter,
+                                map: google.maps.Map
+                              })}
+                            </div>
                           )}
                         </GoogleMap>
                       </div>
