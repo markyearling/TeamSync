@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, Edit } from 'lucide-react';
 import { Event } from '../../types';
 import { GoogleMap } from '@react-google-maps/api';
@@ -22,6 +22,10 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   const [geocodingAttempted, setGeocodingAttempted] = useState(false);
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
   const [canEdit, setCanEdit] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  console.log('EventModal render - mapsLoaded:', mapsLoaded, 'mapsLoadError:', mapsLoadError);
+  console.log('Event location:', event.location);
 
   // Check if user can edit this event
   useEffect(() => {
@@ -59,15 +63,22 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   // Geocode the location to get coordinates for the map
   useEffect(() => {
     if (mapsLoaded && !mapsLoadError && event.location && !geocodingAttempted) {
+      console.log('Attempting to geocode location:', event.location);
+      
       const geocoder = new google.maps.Geocoder();
       
       // Use a try-catch block to handle potential geocoding errors
       try {
         geocoder.geocode({ address: event.location }, (results, status) => {
+          console.log('Geocoding results:', results);
+          console.log('Geocoding status:', status);
+          
           setGeocodingAttempted(true);
           if (status === 'OK' && results && results[0] && results[0].geometry) {
             const { lat, lng } = results[0].geometry.location;
-            setMapCenter({ lat: lat(), lng: lng() });
+            const center = { lat: lat(), lng: lng() };
+            console.log('Setting map center to:', center);
+            setMapCenter(center);
           } else {
             console.error('Geocoding failed:', status);
             // mapCenter remains null, which will trigger the "not found" message
@@ -82,28 +93,76 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
   // Add advanced marker when map center and map ref are available
   useEffect(() => {
-    if (mapRef && mapCenter && mapsLoaded && !mapsLoadError && window.google?.maps?.marker) {
+    if (mapRef && mapCenter && mapsLoaded && !mapsLoadError) {
+      console.log('Creating marker at:', mapCenter);
+      
       try {
-        // Create an advanced marker element
-        const advancedMarker = new google.maps.marker.AdvancedMarkerElement({
-          position: mapCenter,
-          map: mapRef
-        });
+        // Check if the advanced marker API is available
+        if (window.google?.maps?.marker) {
+          console.log('Using AdvancedMarkerElement');
+          // Create an advanced marker element
+          const advancedMarker = new google.maps.marker.AdvancedMarkerElement({
+            position: mapCenter,
+            map: mapRef
+          });
+          
+          console.log('Advanced marker created:', advancedMarker);
 
-        // Clean up on unmount
-        return () => {
-          if (advancedMarker) {
-            advancedMarker.map = null;
-          }
-        };
+          // Clean up on unmount
+          return () => {
+            if (advancedMarker) {
+              advancedMarker.map = null;
+            }
+          };
+        } else {
+          console.log('AdvancedMarkerElement not available, using standard Marker');
+          // Fallback to standard marker if advanced marker is not available
+          const marker = new google.maps.Marker({
+            position: mapCenter,
+            map: mapRef
+          });
+          
+          console.log('Standard marker created:', marker);
+
+          // Clean up on unmount
+          return () => {
+            if (marker) {
+              marker.setMap(null);
+            }
+          };
+        }
       } catch (error) {
-        console.error('Error creating advanced marker:', error);
+        console.error('Error creating marker:', error);
       }
     }
   }, [mapRef, mapCenter, mapsLoaded, mapsLoadError]);
 
+  // Log map container dimensions
+  useEffect(() => {
+    if (mapContainerRef.current && mapCenter) {
+      console.log('Map container dimensions:', {
+        width: mapContainerRef.current.clientWidth,
+        height: mapContainerRef.current.clientHeight,
+        offsetWidth: mapContainerRef.current.offsetWidth,
+        offsetHeight: mapContainerRef.current.offsetHeight,
+        scrollWidth: mapContainerRef.current.scrollWidth,
+        scrollHeight: mapContainerRef.current.scrollHeight
+      });
+    }
+  }, [mapCenter]);
+
   const handleMapLoad = (map: google.maps.Map) => {
+    console.log('Map loaded:', map);
     setMapRef(map);
+    
+    // Force map to redraw after a short delay
+    setTimeout(() => {
+      if (map && mapCenter) {
+        console.log('Triggering map resize event');
+        google.maps.event.trigger(map, 'resize');
+        map.setCenter(mapCenter);
+      }
+    }, 100);
   };
 
   const handleShare = async (e: React.FormEvent) => {
@@ -288,9 +347,15 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                   </div>
                   
                   {mapsLoaded && !mapsLoadError && (
-                    <div className="h-64 w-full rounded-lg overflow-hidden">
+                    <div 
+                      ref={mapContainerRef}
+                      className="h-64 w-full rounded-lg overflow-hidden"
+                    >
                       {mapCenter ? (
-                        <div onClick={(e) => e.stopPropagation()}>
+                        <div 
+                          onClick={(e) => e.stopPropagation()}
+                          className="h-full w-full"
+                        >
                           <GoogleMap
                             mapContainerStyle={{ width: '100%', height: '100%' }}
                             center={mapCenter}
@@ -303,9 +368,16 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                               fullscreenControl: true,
                               mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID
                             }}
-                            onClick={(e) => e.stopPropagation()}
-                            onLoad={handleMapLoad}>
-                            {/* Advanced Marker is added via useEffect when mapRef and mapCenter are available */}
+                            onClick={(e) => {
+                              console.log('Map clicked:', e);
+                              e.stopPropagation();
+                            }}
+                            onLoad={(map) => {
+                              console.log('Map onLoad called');
+                              handleMapLoad(map);
+                            }}
+                          >
+                            {/* Marker is added via useEffect when mapRef and mapCenter are available */}
                           </GoogleMap>
                         </div>
                       ) : !geocodingAttempted ? (
@@ -331,7 +403,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                   
                   {mapsLoadError && (
                     <div className="h-64 w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex flex-col items-center justify-center p-4">
-                      <p className="text-red-500 dark:text-red-400 mb-2">Error loading map</p>
+                      <p className="text-red-500 dark:text-red-400 mb-2">Error loading map: {mapsLoadError.message}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
                         {event.location}
                       </p>
