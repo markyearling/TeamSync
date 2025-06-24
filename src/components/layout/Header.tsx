@@ -278,6 +278,13 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   };
 
   const handleFriendClick = (friend: Friend) => {
+    // Clear unread count for this friend
+    setFriends(prevFriends => 
+      prevFriends.map(f => 
+        f.id === friend.id ? { ...f, unreadCount: 0 } : f
+      )
+    );
+    
     setSelectedFriend(friend);
     setFriendsOpen(false);
     setFriendSearchQuery(''); // Reset search when opening chat
