@@ -85,12 +85,24 @@ const ChildProfile: React.FC = () => {
 
           if (eventError) throw eventError;
 
+          // Get the user_id for this profile
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('user_id')
+            .eq('id', id)
+            .single();
+
           const formattedEvents = eventData.map(event => ({
             ...event,
+            id: event.id,
             startTime: new Date(event.start_time),
             endTime: new Date(event.end_time),
-            child: profile,
-            platformIcon: Calendar
+            child: {
+              ...profile,
+              user_id: profileData?.user_id
+            },
+            platformIcon: Calendar,
+            isOwnEvent: profile.isOwnProfile
           }));
 
           setEvents(formattedEvents);
@@ -106,6 +118,11 @@ const ChildProfile: React.FC = () => {
   }, [id, getProfile]);
 
   const handleEventAdded = () => {
+    window.location.reload();
+  };
+
+  const handleEventUpdated = () => {
+    // Refresh events after an update
     window.location.reload();
   };
 
