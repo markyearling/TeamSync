@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send } from 'lucide-react';
+import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, Edit } from 'lucide-react';
 import { Event } from '../../types';
 import { GoogleMap, useLoadScript, Libraries } from '@react-google-maps/api';
 import { supabase } from '../../lib/supabase';
+import EditEventModal from './EditEventModal';
 
 // Define libraries outside component to prevent recreation on each render
 const libraries: Libraries = ['places', 'marker'];
@@ -14,12 +15,14 @@ interface EventModalProps {
 
 const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [shareEmail, setShareEmail] = useState('');
   const [isSharing, setIsSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral | null>(null);
   const [geocodingAttempted, setGeocodingAttempted] = useState(false);
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
+  const [canEdit, setCanEdit] = useState(false);
 
   // Use the static libraries array to prevent reloading
   const { isLoaded, loadError } = useLoadScript({
@@ -27,6 +30,39 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
     libraries,
     mapIds: [import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || '']
   });
+
+  // Check if user can edit this event
+  useEffect(() => {
+    const checkEditPermissions = async () => {
+      try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError || !user) return;
+
+        // Check if this is the user's own event
+        if (event.isOwnEvent) {
+          setCanEdit(true);
+          return;
+        }
+
+        // Check if user has administrator access to the event owner
+        const { data: friendship, error: friendshipError } = await supabase
+          .from('friendships')
+          .select('role')
+          .eq('friend_id', user.id)
+          .eq('user_id', event.child.user_id || '')
+          .eq('role', 'administrator')
+          .maybeSingle();
+
+        if (!friendshipError && friendship) {
+          setCanEdit(true);
+        }
+      } catch (error) {
+        console.error('Error checking edit permissions:', error);
+      }
+    };
+
+    checkEditPermissions();
+  }, [event]);
 
   // Geocode the location to get coordinates for the map
   useEffect(() => {
@@ -113,6 +149,12 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
     }
   };
 
+  const handleEventUpdated = () => {
+    setShowEditModal(false);
+    // Refresh the page to show updated event data
+    window.location.reload();
+  };
+
   const ShareModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]" onClick={(e) => e.stopPropagation()}>
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
@@ -174,144 +216,166 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose }) => {
   );
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <span 
-              className="w-3 h-3 rounded-full"
-              style={{ backgroundColor: event.child.color }}
-            ></span>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{event.title}</h3>
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <span 
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: event.child.color }}
+              ></span>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{event.title}</h3>
+            </div>
+            <div className="flex items-center space-x-2">
+              {canEdit && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEditModal(true);
+                  }}
+                  className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-300 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Edit event"
+                >
+                  <Edit className="h-5 w-5" />
+                </button>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowShareModal(true);
+                }}
+                className="p-2 text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <Share2 className="h-5 w-5" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                }}
+                className="p-2 text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowShareModal(true);
-              }}
-              className="p-2 text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <Share2 className="h-5 w-5" />
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onClose();
-              }}
-              className="p-2 text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
 
-        <div className="p-6 space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center text-gray-600 dark:text-gray-300">
-              <Calendar className="h-5 w-5 mr-3" />
-              <span>
-                {event.startTime.toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </span>
-            </div>
+          <div className="p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center text-gray-600 dark:text-gray-300">
+                <Calendar className="h-5 w-5 mr-3" />
+                <span>
+                  {event.startTime.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </span>
+              </div>
 
-            <div className="flex items-center text-gray-600 dark:text-gray-300">
-              <Clock className="h-5 w-5 mr-3" />
-              <span>
-                {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
-                {event.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-              </span>
-            </div>
+              <div className="flex items-center text-gray-600 dark:text-gray-300">
+                <Clock className="h-5 w-5 mr-3" />
+                <span>
+                  {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
+                  {event.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </span>
+              </div>
 
-            <div className="flex items-center text-gray-600 dark:text-gray-300">
-              <User className="h-5 w-5 mr-3" />
-              <span>{event.child.name}</span>
-            </div>
+              <div className="flex items-center text-gray-600 dark:text-gray-300">
+                <User className="h-5 w-5 mr-3" />
+                <span>{event.child.name}</span>
+              </div>
 
-            {event.location && (
-              <div className="space-y-2">
-                <div className="flex items-center text-gray-600 dark:text-gray-300">
-                  <MapPin className="h-5 w-5 mr-3" />
-                  <span>{event.location}</span>
+              {event.location && (
+                <div className="space-y-2">
+                  <div className="flex items-center text-gray-600 dark:text-gray-300">
+                    <MapPin className="h-5 w-5 mr-3" />
+                    <span>{event.location}</span>
+                  </div>
+                  
+                  {isLoaded && !loadError && (
+                    <div className="h-64 w-full rounded-lg overflow-hidden">
+                      {mapCenter ? (
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <GoogleMap
+                            mapContainerStyle={{ width: '100%', height: '100%' }}
+                            center={mapCenter}
+                            zoom={15}
+                            options={{
+                              disableDefaultUI: false,
+                              zoomControl: true,
+                              streetViewControl: true,
+                              mapTypeControl: true,
+                              fullscreenControl: true,
+                              mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            onLoad={handleMapLoad}>
+                            {/* Advanced Marker is added via useEffect when mapRef and mapCenter are available */}
+                          </GoogleMap>
+                        </div>
+                      ) : !geocodingAttempted ? (
+                        <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                          <div className="flex flex-col items-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
+                            <p className="text-gray-500 dark:text-gray-400">Loading map...</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
+                          <div className="flex flex-col items-center text-center p-4">
+                            <MapPin className="h-8 w-8 text-gray-400 mb-2" />
+                            <p className="text-gray-500 dark:text-gray-400 font-medium">Location not found on map</p>
+                            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                              {event.location}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {loadError && (
+                    <div className="h-64 w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex flex-col items-center justify-center p-4">
+                      <p className="text-red-500 dark:text-red-400 mb-2">Error loading map</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                        {event.location}
+                      </p>
+                    </div>
+                  )}
                 </div>
-                
-                {isLoaded && !loadError && (
-                  <div className="h-64 w-full rounded-lg overflow-hidden">
-                    {mapCenter ? (
-                      <div onClick={(e) => e.stopPropagation()}>
-                        <GoogleMap
-                          mapContainerStyle={{ width: '100%', height: '100%' }}
-                          center={mapCenter}
-                          zoom={15}
-                          options={{
-                            disableDefaultUI: false,
-                            zoomControl: true,
-                            streetViewControl: true,
-                            mapTypeControl: true,
-                            fullscreenControl: true,
-                            mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          onLoad={handleMapLoad}>
-                          {/* Advanced Marker is added via useEffect when mapRef and mapCenter are available */}
-                        </GoogleMap>
-                      </div>
-                    ) : !geocodingAttempted ? (
-                      <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
-                        <div className="flex flex-col items-center">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-2"></div>
-                          <p className="text-gray-500 dark:text-gray-400">Loading map...</p>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center bg-gray-100 dark:bg-gray-700">
-                        <div className="flex flex-col items-center text-center p-4">
-                          <MapPin className="h-8 w-8 text-gray-400 mb-2" />
-                          <p className="text-gray-500 dark:text-gray-400 font-medium">Location not found on map</p>
-                          <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                            {event.location}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {loadError && (
-                  <div className="h-64 w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex flex-col items-center justify-center p-4">
-                    <p className="text-red-500 dark:text-red-400 mb-2">Error loading map</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
-                      {event.location}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+              )}
 
-            {event.description && (
-              <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                <p className="text-gray-600 dark:text-gray-300">{event.description}</p>
-              </div>
-            )}
-          </div>
+              {event.description && (
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <p className="text-gray-600 dark:text-gray-300">{event.description}</p>
+                </div>
+              )}
+            </div>
 
-          <div 
-            className="flex items-center space-x-2 text-sm"
-            style={{ color: event.platformColor }}
-          >
-            <event.platformIcon className="h-4 w-4" />
-            <span>Synced from {event.platform}</span>
+            <div 
+              className="flex items-center space-x-2 text-sm"
+              style={{ color: event.platformColor }}
+            >
+              <event.platformIcon className="h-4 w-4" />
+              <span>Synced from {event.platform}</span>
+            </div>
           </div>
         </div>
+
+        {showShareModal && <ShareModal />}
       </div>
 
-      {showShareModal && <ShareModal />}
-    </div>
+      {showEditModal && (
+        <EditEventModal 
+          event={event} 
+          onClose={() => setShowEditModal(false)}
+          onEventUpdated={handleEventUpdated}
+        />
+      )}
+    </>
   );
 };
 

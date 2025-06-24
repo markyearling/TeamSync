@@ -13,6 +13,7 @@ export interface Child {
   ownerPhoto?: string; // For friends' children
   accessRole?: 'viewer' | 'administrator'; // For friends' children
   isOwnProfile?: boolean; // To distinguish between own and friends' profiles
+  user_id?: string; // The user ID who owns this profile
 }
 
 export interface Platform {
