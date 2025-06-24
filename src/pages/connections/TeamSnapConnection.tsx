@@ -13,7 +13,8 @@ import {
   Trash2,
   Edit2,
   Save,
-  UserPlus
+  UserPlus,
+  AlertTriangle
 } from 'lucide-react';
 import { TeamSnapService } from '../../services/teamsnap';
 import { supabase } from '../../lib/supabase';
