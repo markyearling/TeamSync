@@ -167,7 +167,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
             const newMessages = [...prev, messageWithSender];
             
             // Auto-scroll to bottom when new message arrives
-            //setTimeout(() => forceScrollToBottom(), 50);
+            setTimeout(() => forceScrollToBottom(), 50);
             
             return newMessages;
           });
@@ -431,6 +431,19 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         
       if (error) {
         console.error('Error marking conversation as read:', error);
+      }
+      
+      // Use the database function to ensure all messages are marked as read
+      const { error: funcError } = await supabase.rpc(
+        'mark_conversation_messages_read',
+        { 
+          conversation_id_param: conversationId,
+          user_id_param: userId
+        }
+      );
+      
+      if (funcError) {
+        console.error('Error calling mark_conversation_messages_read function:', funcError);
       }
     } catch (error) {
       console.error('Error marking conversation as read:', error);
