@@ -1,4 +1,4 @@
-import React, { ReactNode, useState, useEffect } from 'react';
+import React, { ReactNode, useState, useEffect, useRef } from 'react';
 import { Bell, User, Search, Moon, Sun, LogOut, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
@@ -6,6 +6,8 @@ import { useTheme } from '../../context/ThemeContext';
 import NotificationCenter from '../notifications/NotificationCenter';
 import ChatModal from '../chat/ChatModal';
 import { supabase } from '../../lib/supabase';
+import EventModal from '../events/EventModal';
+import { Event } from '../../types';
 
 interface HeaderProps {
   children?: ReactNode;
@@ -37,6 +39,12 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const [friendSearchQuery, setFriendSearchQuery] = useState('');
   const [loadingFriends, setLoadingFriends] = useState(false);
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Event[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   
   const toggleNotifications = () => setNotificationsOpen(!notificationsOpen);
@@ -164,6 +172,136 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       setFilteredFriends(sorted);
     }
   }, [friends, friendSearchQuery]);
+
+  // Handle clicks outside of search results
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Search events when query changes
+  useEffect(() => {
+    const searchEvents = async () => {
+      if (!searchQuery.trim() || searchQuery.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // Get all profiles the user has access to (own profiles and friends' profiles with viewer/admin access)
+        const { data: ownProfiles } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', user.id);
+
+        const { data: friendProfiles } = await supabase
+          .from('profiles')
+          .select('id, user_id')
+          .neq('user_id', user.id);
+
+        // Filter friend profiles to only those the user has access to
+        const accessibleFriendProfiles = await Promise.all(
+          (friendProfiles || []).map(async (profile) => {
+            const { data: friendship } = await supabase
+              .from('friendships')
+              .select('role')
+              .eq('friend_id', user.id)
+              .eq('user_id', profile.user_id)
+              .in('role', ['viewer', 'administrator'])
+              .maybeSingle();
+
+            return friendship ? profile : null;
+          })
+        );
+
+        const allAccessibleProfiles = [
+          ...(ownProfiles || []),
+          ...accessibleFriendProfiles.filter(Boolean)
+        ];
+
+        const profileIds = allAccessibleProfiles.map(p => p?.id).filter(Boolean);
+
+        // Search events by title, description, or location
+        const { data: eventData, error } = await supabase
+          .from('events')
+          .select(`
+            *,
+            profiles:profile_id (
+              id,
+              name,
+              color,
+              user_id
+            )
+          `)
+          .in('profile_id', profileIds)
+          .or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,location.ilike.%${searchQuery}%`)
+          .order('start_time', { ascending: true })
+          .limit(10);
+
+        if (error) throw error;
+
+        // Format events for display
+        const formattedEvents = eventData.map(event => {
+          const isOwnEvent = ownProfiles?.some(p => p.id === event.profile_id) || false;
+          
+          return {
+            ...event,
+            id: event.id,
+            title: event.title,
+            description: event.description || '',
+            startTime: new Date(event.start_time),
+            endTime: new Date(event.end_time),
+            location: event.location || '',
+            sport: event.sport,
+            color: event.color,
+            platform: event.platform,
+            platformColor: event.platform_color,
+            platformIcon: () => null, // This will be replaced with the actual icon component
+            child: {
+              id: event.profiles.id,
+              name: event.profiles.name,
+              color: event.profiles.color,
+              user_id: event.profiles.user_id,
+              sports: [],
+              eventCount: 0
+            },
+            isOwnEvent,
+            isToday: new Date(event.start_time).toDateString() === new Date().toDateString()
+          };
+        });
+
+        setSearchResults(formattedEvents);
+      } catch (error) {
+        console.error('Error searching events:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim().length >= 2) {
+        searchEvents();
+        setShowSearchResults(true);
+      } else {
+        setSearchResults([]);
+        setShowSearchResults(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
 
   const fetchNotificationCount = async () => {
     try {
@@ -300,12 +438,36 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     setNotificationsOpen(false);
   };
 
+  const handleEventSelect = (event: Event) => {
+    setSelectedEvent(event);
+    setSearchQuery('');
+    setShowSearchResults(false);
+  };
+
   const getRoleIcon = (role: string) => {
     return role === 'administrator' ? '👑' : role === 'viewer' ? '👁️' : '💬';
   };
 
   const getRoleLabel = (role: string) => {
     return role === 'administrator' ? 'Admin' : role === 'viewer' ? 'Viewer' : 'Friend';
+  };
+
+  const formatEventDate = (date: Date) => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return 'Tomorrow';
+    } else {
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    }
   };
 
   return (
@@ -320,17 +482,92 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               </div>
             </div>
             
-            <div className="hidden md:block">
+            <div className="hidden md:block relative" ref={searchRef}>
               <div className="relative mx-4 w-64">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Search className="h-5 w-5 text-gray-400" />
+                  <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                 </div>
                 <input
                   type="text"
                   placeholder="Search events..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => {
+                    if (searchResults.length > 0) {
+                      setShowSearchResults(true);
+                    }
+                  }}
                   className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 pl-10 pr-3 text-sm placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
+                {isSearching && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent"></div>
+                  </div>
+                )}
               </div>
+              
+              {/* Search Results Dropdown */}
+              {showSearchResults && searchResults.length > 0 && (
+                <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto">
+                  <div className="py-2 px-3 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Search Results ({searchResults.length})
+                    </h3>
+                  </div>
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {searchResults.map(event => (
+                      <div 
+                        key={event.id}
+                        className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                        onClick={() => handleEventSelect(event)}
+                      >
+                        <div className="flex items-center mb-1">
+                          <span 
+                            className="w-2 h-2 rounded-full mr-2"
+                            style={{ backgroundColor: event.color }}
+                          ></span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {event.title}
+                          </span>
+                          {!event.isOwnEvent && (
+                            <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full">
+                              👥 Friend's
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center">
+                            <span 
+                              className="w-2 h-2 rounded-full mr-1"
+                              style={{ backgroundColor: event.child.color }}
+                            ></span>
+                            <span>{event.child.name}</span>
+                          </div>
+                          <div>
+                            {formatEventDate(event.startTime)} • {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                          </div>
+                        </div>
+                        {event.location && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                            {event.location}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* No Results Message */}
+              {showSearchResults && searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 border border-gray-200 dark:border-gray-700">
+                  <div className="p-4 text-center">
+                    <Search className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No events found</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Try a different search term</p>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="flex items-center space-x-4">
@@ -533,6 +770,16 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         <ChatModal 
           friend={selectedFriend} 
           onClose={() => setSelectedFriend(null)} 
+        />
+      )}
+
+      {/* Event Modal */}
+      {selectedEvent && (
+        <EventModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          mapsLoaded={true}
+          mapsLoadError={undefined}
         />
       )}
     </>
