@@ -5,6 +5,7 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--no-optional --platform=linux --arch=x64"
+  EMAIL_FROM_ADDRESS = "noreply@teamsync.com"
 
 [build.processing]
   skip_processing = false

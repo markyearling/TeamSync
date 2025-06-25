@@ -18,14 +18,17 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    const { event, recipientEmail, senderEmail } = await req.json();
+    const { event, recipientEmail } = await req.json();
+    
+    // Use environment variable for sender email with fallback
+    const fromEmail = Deno.env.get('EMAIL_FROM_ADDRESS') ?? 'noreply@teamsync.com';
 
     // Set SendGrid API key
     sgMail.setApiKey(Deno.env.get('SENDGRID_API_KEY') ?? '');
 
     const msg = {
       to: recipientEmail,
-      from: senderEmail,
+      from: fromEmail,
       subject: `Shared Event: ${event.title}`,
       html: `
         <h2>${event.title}</h2>
