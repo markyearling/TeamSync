@@ -42,6 +42,7 @@ const Playmetrics: React.FC = () => {
   const [editingName, setEditingName] = useState('');
   const [showMappingModal, setShowMappingModal] = useState<string | null>(null);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
+  const [refreshingTeam, setRefreshingTeam] = useState<string | null>(null);
 
   useEffect(() => {
     fetchTeams();
@@ -231,6 +232,7 @@ const Playmetrics: React.FC = () => {
     try {
       setError(null);
       setSuccess(null);
+      setRefreshingTeam(teamId);
       
       const team = teams.find(t => t.id === teamId);
       if (!team) return;
@@ -292,6 +294,8 @@ const Playmetrics: React.FC = () => {
           })
           .eq('id', teamId);
       }
+    } finally {
+      setRefreshingTeam(null);
     }
   };
 
@@ -350,7 +354,6 @@ const Playmetrics: React.FC = () => {
 
     try {
       setError(null);
-      setSuccess(null);
 
       // Delete existing mappings
       await supabase
@@ -370,11 +373,13 @@ const Playmetrics: React.FC = () => {
           );
 
         if (error) throw error;
+        
+        // Immediately sync events for the newly mapped profiles
+        await handleRefresh(showMappingModal);
       }
 
       setShowMappingModal(null);
       setSelectedProfiles([]);
-      setSuccess('Team mapping updated successfully. Use the refresh button to sync events for the mapped profiles.');
       fetchTeams();
     } catch (err) {
       console.error('Error saving team mapping:', err);
@@ -608,9 +613,11 @@ const Playmetrics: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleRefresh(team.id)}
-                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
+                            className={`p-2 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 ${
+                              refreshingTeam === team.id ? 'animate-spin' : ''
+                            }`}
                             title="Refresh calendar"
-                            disabled={!team.mapped_profiles || team.mapped_profiles.length === 0}
+                            disabled={refreshingTeam === team.id || !team.mapped_profiles || team.mapped_profiles.length === 0}
                           >
                             <RefreshCw className="h-4 w-4" />
                           </button>
@@ -653,7 +660,7 @@ const Playmetrics: React.FC = () => {
 
             <div className="p-6">
               <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                Select which children's profiles this team calendar should be associated with. Events will only appear in the calendars of mapped profiles.
+                Select which children's profiles this team calendar should be associated with. Events will be automatically synced for mapped profiles.
               </p>
 
               {profiles && profiles.length > 0 ? (
@@ -716,7 +723,7 @@ const Playmetrics: React.FC = () => {
                 onClick={handleSaveMapping}
                 className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 dark:focus:ring-offset-gray-800"
               >
-                Save Mapping
+                Save & Sync Events
               </button>
             </div>
           </div>
