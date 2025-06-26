@@ -234,13 +234,35 @@ const Playmetrics: React.FC = () => {
       setSuccess(null);
       setRefreshingTeam(teamId);
       
-      const team = teams.find(t => t.id === teamId);
-      if (!team) return;
-
-      if (!team.mapped_profiles || team.mapped_profiles.length === 0) {
+      // Fetch the latest team data with profile mappings directly from the database
+      const { data: freshTeamData, error: freshTeamError } = await supabase
+        .from('platform_teams')
+        .select('id, team_name, ics_url')
+        .eq('id', teamId)
+        .single();
+      
+      if (freshTeamError) throw freshTeamError;
+      if (!freshTeamData) throw new Error('Team not found');
+      
+      // Get the latest profile mappings for this team
+      const { data: freshProfileMappings, error: mappingsError } = await supabase
+        .from('profile_teams')
+        .select(`
+          profile_id,
+          profiles!inner(id, name, color)
+        `)
+        .eq('platform_team_id', teamId);
+      
+      if (mappingsError) throw mappingsError;
+      
+      // Check if there are any profile mappings
+      if (!freshProfileMappings || freshProfileMappings.length === 0) {
         setError('Please map this team to at least one child profile before syncing events.');
         return;
       }
+      
+      const mappedProfiles = freshProfileMappings.map(mapping => mapping.profiles);
+      console.log(`Found ${mappedProfiles.length} mapped profiles for team ${teamId}`);
 
       // Get the current session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -255,7 +277,7 @@ const Playmetrics: React.FC = () => {
 
       // Sync events for each mapped profile
       let totalEvents = 0;
-      for (const profile of team.mapped_profiles) {
+      for (const profile of mappedProfiles) {
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
           method: 'POST',
           headers: {
@@ -263,8 +285,8 @@ const Playmetrics: React.FC = () => {
             'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
-            icsUrl: team.ics_url,
-            teamId: team.id,
+            icsUrl: freshTeamData.ics_url,
+            teamId: teamId,
             profileId: profile.id
           })
         });
@@ -278,7 +300,7 @@ const Playmetrics: React.FC = () => {
         totalEvents += syncResult.eventCount || 0;
       }
 
-      setSuccess(`Calendar refreshed successfully! Synced ${totalEvents} events for ${team.mapped_profiles.length} profile(s).`);
+      setSuccess(`Calendar refreshed successfully! Synced ${totalEvents} events for ${mappedProfiles.length} profile(s).`);
       fetchTeams();
     } catch (err) {
       console.error('Error refreshing calendar:', err);
@@ -617,7 +639,7 @@ const Playmetrics: React.FC = () => {
                               refreshingTeam === team.id ? 'animate-spin' : ''
                             }`}
                             title="Refresh calendar"
-                            disabled={refreshingTeam === team.id || !team.mapped_profiles || team.mapped_profiles.length === 0}
+                            disabled={refreshingTeam === team.id}
                           >
                             <RefreshCw className="h-4 w-4" />
                           </button>
