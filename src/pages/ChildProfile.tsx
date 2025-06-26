@@ -35,6 +35,7 @@ const ChildProfile: React.FC = () => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [userTimezone, setUserTimezone] = useState<string>('UTC');
   const [formData, setFormData] = useState({
     name: '',
     age: '',
@@ -73,6 +74,35 @@ const ChildProfile: React.FC = () => {
     { name: 'Volleyball', color: '#EC4899' },
   ];
 
+  // Fetch user's timezone
+  useEffect(() => {
+    const fetchUserTimezone = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: userSettings, error } = await supabase
+          .from('user_settings')
+          .select('timezone')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user timezone:', error);
+          return;
+        }
+
+        if (userSettings?.timezone) {
+          setUserTimezone(userSettings.timezone);
+        }
+      } catch (error) {
+        console.error('Error fetching user timezone:', error);
+      }
+    };
+
+    fetchUserTimezone();
+  }, []);
+
   useEffect(() => {
     const fetchProfile = async () => {
       if (id) {
@@ -107,8 +137,8 @@ const ChildProfile: React.FC = () => {
           const formattedEvents = eventData.map(event => ({
             ...event,
             id: event.id,
-            startTime: DateTime.fromISO(event.start_time, { zone: 'local' }).toJSDate(),
-            endTime: DateTime.fromISO(event.end_time, { zone: 'local' }).toJSDate(),
+            startTime: new Date(event.start_time),
+            endTime: new Date(event.end_time),
             child: {
               ...profile,
               user_id: profileData?.user_id
@@ -285,15 +315,15 @@ const ChildProfile: React.FC = () => {
   const renderCalendarView = () => {
     switch (view) {
       case 'month':
-        return <MonthView currentDate={currentDate} events={events} />;
+        return <MonthView currentDate={currentDate} events={events} userTimezone={userTimezone} />;
       case 'week':
-        return <WeekView currentDate={currentDate} events={events} />;
+        return <WeekView currentDate={currentDate} events={events} userTimezone={userTimezone} />;
       case 'day':
-        return <DayView currentDate={currentDate} events={events} />;
+        return <DayView currentDate={currentDate} events={events} userTimezone={userTimezone} />;
       case 'agenda':
-        return <AgendaView currentDate={currentDate} events={events} />;
+        return <AgendaView currentDate={currentDate} events={events} userTimezone={userTimezone} />;
       default:
-        return <MonthView currentDate={currentDate} events={events} />;
+        return <MonthView currentDate={currentDate} events={events} userTimezone={userTimezone} />;
     }
   };
 
@@ -434,7 +464,7 @@ const ChildProfile: React.FC = () => {
                   <div className="mt-1 space-y-1">
                     <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                       <Clock className="h-4 w-4 mr-1" />
-                      {event.startTime.toLocaleString()} - {event.endTime.toLocaleTimeString()}
+                      {event.startTime.toLocaleString(undefined, { timeZone: userTimezone })} - {event.endTime.toLocaleTimeString(undefined, { timeZone: userTimezone })}
                     </div>
                     {event.location && (
                       <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">

@@ -6,9 +6,10 @@ import EventModal from '../events/EventModal';
 interface AgendaViewProps {
   currentDate: Date;
   events: Event[];
+  userTimezone?: string;
 }
 
-const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
+const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezone = 'UTC' }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   
   // Get the start of the month
@@ -109,8 +110,16 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events }) => {
                         <div className="mt-2 flex flex-col sm:flex-row sm:space-x-4">
                           <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                             <Clock className="h-4 w-4 mr-1" />
-                            {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
-                            {event.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            {event.startTime.toLocaleTimeString('en-US', { 
+                              hour: 'numeric', 
+                              minute: '2-digit',
+                              timeZone: userTimezone
+                            })} - 
+                            {event.endTime.toLocaleTimeString('en-US', { 
+                              hour: 'numeric', 
+                              minute: '2-digit',
+                              timeZone: userTimezone
+                            })}
                           </div>
                           
                           {event.location && (

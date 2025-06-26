@@ -6,9 +6,10 @@ import EventModal from '../events/EventModal';
 interface DayViewProps {
   currentDate: Date;
   events: Event[];
+  userTimezone?: string;
 }
 
-const DayView: React.FC<DayViewProps> = ({ currentDate, events }) => {
+const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = 'UTC' }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const today = new Date();
   const isToday = 
@@ -115,8 +116,16 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events }) => {
                       )}
                     </div>
                     <div className="text-gray-600 dark:text-gray-300 text-xs mt-1">
-                      {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
-                      {event.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                      {event.startTime.toLocaleTimeString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        timeZone: userTimezone
+                      })} - 
+                      {event.endTime.toLocaleTimeString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        timeZone: userTimezone
+                      })}
                     </div>
                     {duration > 0.75 && event.location && (
                       <div className="text-gray-600 dark:text-gray-300 text-xs mt-1 flex items-center">

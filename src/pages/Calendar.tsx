@@ -36,6 +36,7 @@ const Calendar: React.FC = () => {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['game', 'practice', 'tournament', 'other']);
   const [showFriendsEvents, setShowFriendsEvents] = useState(true);
+  const [userTimezone, setUserTimezone] = useState<string>('UTC');
 
   // Centralized Google Maps loading
   const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
@@ -46,6 +47,35 @@ const Calendar: React.FC = () => {
 
   // Memoize profile IDs to prevent unnecessary re-renders
   const profileIds = useMemo(() => profiles.map(p => p.id), [profiles]);
+
+  // Fetch user's timezone
+  useEffect(() => {
+    const fetchUserTimezone = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: userSettings, error } = await supabase
+          .from('user_settings')
+          .select('timezone')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user timezone:', error);
+          return;
+        }
+
+        if (userSettings?.timezone) {
+          setUserTimezone(userSettings.timezone);
+        }
+      } catch (error) {
+        console.error('Error fetching user timezone:', error);
+      }
+    };
+
+    fetchUserTimezone();
+  }, []);
 
   // Fetch user's own events - only when profiles change
   const fetchOwnEvents = useCallback(async () => {
@@ -65,8 +95,8 @@ const Calendar: React.FC = () => {
         return {
           ...event,
           id: event.id,
-          startTime: DateTime.fromISO(event.start_time, { zone: 'local' }).toJSDate(),
-          endTime: DateTime.fromISO(event.end_time, { zone: 'local' }).toJSDate(),
+          startTime: new Date(event.start_time),
+          endTime: new Date(event.end_time),
           child: profile!,
           platformIcon: CalendarIcon,
           isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
@@ -184,8 +214,8 @@ const Calendar: React.FC = () => {
           return {
             ...event,
             id: event.id,
-            startTime: DateTime.fromISO(event.start_time, { zone: 'local' }).toJSDate(),
-            endTime: DateTime.fromISO(event.end_time, { zone: 'local' }).toJSDate(),
+            startTime: new Date(event.start_time),
+            endTime: new Date(event.end_time),
             child: profile!,
             platformIcon: CalendarIcon,
             isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
@@ -316,13 +346,13 @@ const Calendar: React.FC = () => {
 
     switch (view) {
       case 'month':
-        return <MonthView currentDate={currentDate} events={filteredEvents} />;
+        return <MonthView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
       case 'week':
-        return <WeekView currentDate={currentDate} events={filteredEvents} />;
+        return <WeekView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
       case 'day':
-        return <DayView currentDate={currentDate} events={filteredEvents} />;
+        return <DayView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
       case 'agenda':
-        return <AgendaView currentDate={currentDate} events={filteredEvents} />;
+        return <AgendaView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
     }
   };
 

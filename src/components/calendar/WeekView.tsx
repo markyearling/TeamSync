@@ -5,9 +5,10 @@ import EventModal from '../events/EventModal';
 interface WeekViewProps {
   currentDate: Date;
   events: Event[];
+  userTimezone?: string;
 }
 
-const WeekView: React.FC<WeekViewProps> = ({ currentDate, events }) => {
+const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone = 'UTC' }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   
   // Get the start of the week (Sunday)
@@ -138,8 +139,16 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events }) => {
                             )}
                           </div>
                           <div className="text-gray-600 dark:text-gray-300 text-xs mt-0.5">
-                            {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
-                            {event.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                            {event.startTime.toLocaleTimeString('en-US', { 
+                              hour: 'numeric', 
+                              minute: '2-digit',
+                              timeZone: userTimezone
+                            })} - 
+                            {event.endTime.toLocaleTimeString('en-US', { 
+                              hour: 'numeric', 
+                              minute: '2-digit',
+                              timeZone: userTimezone
+                            })}
                           </div>
                           {duration > 0.75 && (
                             <div className="text-gray-600 dark:text-gray-300 text-xs mt-0.5 flex items-center">

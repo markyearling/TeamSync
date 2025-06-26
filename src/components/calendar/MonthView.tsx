@@ -5,9 +5,10 @@ import EventModal from '../events/EventModal';
 interface MonthViewProps {
   currentDate: Date;
   events: Event[];
+  userTimezone?: string;
 }
 
-const MonthView: React.FC<MonthViewProps> = ({ currentDate, events }) => {
+const MonthView: React.FC<MonthViewProps> = ({ currentDate, events, userTimezone = 'UTC' }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   
   // Calculate grid days for the month view

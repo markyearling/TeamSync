@@ -7,16 +7,18 @@ interface EventCardProps {
   event: Event;
   mapsLoaded?: boolean;
   mapsLoadError?: Error;
+  userTimezone?: string;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoadError }) => {
+const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoadError, userTimezone = 'UTC' }) => {
   const [showModal, setShowModal] = useState(false);
 
   // Format time with user's timezone
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: userTimezone
     });
   };
 
