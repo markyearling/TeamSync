@@ -42,6 +42,9 @@ const ChildProfile: React.FC = () => {
     color: '#3B82F6',
     notes: ''
   });
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(['game', 'practice', 'tournament', 'other']);
+  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
 
   // Centralized Google Maps loading
   const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
@@ -148,6 +151,7 @@ const ChildProfile: React.FC = () => {
           }));
 
           setEvents(formattedEvents);
+          setFilteredEvents(formattedEvents);
         } catch (error) {
           console.error('Error fetching profile:', error);
         } finally {
@@ -158,6 +162,37 @@ const ChildProfile: React.FC = () => {
 
     fetchProfile();
   }, [id, getProfile]);
+
+  // Apply filters when events, selectedPlatforms, or selectedTypes change
+  useEffect(() => {
+    const filtered = events.filter(event => {
+      if (selectedPlatforms.length > 0 && !selectedPlatforms.includes(event.platform)) {
+        return false;
+      }
+      
+      // Filter by event type (based on title)
+      const title = event.title.toLowerCase();
+      if (selectedTypes.length > 0) {
+        if (
+          (selectedTypes.includes('game') && (title.includes('game') || title.includes('vs'))) ||
+          (selectedTypes.includes('practice') && title.includes('practice')) ||
+          (selectedTypes.includes('tournament') && title.includes('tournament')) ||
+          (selectedTypes.includes('other') && 
+            !title.includes('game') && 
+            !title.includes('vs') && 
+            !title.includes('practice') && 
+            !title.includes('tournament'))
+        ) {
+          return true;
+        }
+        return false;
+      }
+      
+      return true;
+    });
+    
+    setFilteredEvents(filtered);
+  }, [events, selectedPlatforms, selectedTypes]);
 
   const handleEventAdded = () => {
     window.location.reload();
@@ -307,6 +342,9 @@ const ChildProfile: React.FC = () => {
         options.month = 'long';
         options.day = 'numeric';
         break;
+      case 'agenda':
+        options.month = 'long';
+        break;
     }
     
     return currentDate.toLocaleDateString('en-US', options);
@@ -315,15 +353,15 @@ const ChildProfile: React.FC = () => {
   const renderCalendarView = () => {
     switch (view) {
       case 'month':
-        return <MonthView currentDate={currentDate} events={events} userTimezone={userTimezone} />;
+        return <MonthView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
       case 'week':
-        return <WeekView currentDate={currentDate} events={events} userTimezone={userTimezone} />;
+        return <WeekView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
       case 'day':
-        return <DayView currentDate={currentDate} events={events} userTimezone={userTimezone} />;
+        return <DayView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
       case 'agenda':
-        return <AgendaView currentDate={currentDate} events={events} userTimezone={userTimezone} />;
+        return <AgendaView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
       default:
-        return <MonthView currentDate={currentDate} events={events} userTimezone={userTimezone} />;
+        return <MonthView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
     }
   };
 
@@ -343,12 +381,21 @@ const ChildProfile: React.FC = () => {
     );
   }
 
-  const upcomingEvents = events
+  const upcomingEvents = filteredEvents
     .filter(event => event.startTime >= new Date())
     .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
     .slice(0, 5);
 
   const isFriendProfile = !child.isOwnProfile;
+
+  // Format time with user's timezone
+  const formatTime = (date: Date) => {
+    return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString({
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -464,7 +511,7 @@ const ChildProfile: React.FC = () => {
                   <div className="mt-1 space-y-1">
                     <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                       <Clock className="h-4 w-4 mr-1" />
-                      {event.startTime.toLocaleString(undefined, { timeZone: userTimezone })} - {event.endTime.toLocaleTimeString(undefined, { timeZone: userTimezone })}
+                      {formatTime(event.startTime)} - {formatTime(event.endTime)}
                     </div>
                     {event.location && (
                       <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
@@ -544,6 +591,36 @@ const ChildProfile: React.FC = () => {
                   <Calendar className="h-5 w-5" />
                 </button>
                 <button
+                  onClick={() => setView('week')}
+                  className={`p-1 rounded ${
+                    view === 'week' 
+                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
+                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
+                  }`}
+                  title="Week view"
+                >
+                  <div className="w-5 h-5 flex flex-col justify-center items-center">
+                    <div className="w-4 h-0.5 bg-current mb-0.5"></div>
+                    <div className="w-4 h-0.5 bg-current mb-0.5"></div>
+                    <div className="w-4 h-0.5 bg-current"></div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setView('day')}
+                  className={`p-1 rounded ${
+                    view === 'day' 
+                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
+                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
+                  }`}
+                  title="Day view"
+                >
+                  <div className="w-5 h-5 flex flex-col justify-center items-center">
+                    <div className="w-4 h-0.5 bg-current mb-0.5"></div>
+                    <div className="w-4 h-0.5 bg-current mb-0.5"></div>
+                    <div className="w-4 h-0.5 bg-current"></div>
+                  </div>
+                </button>
+                <button
                   onClick={() => setView('agenda')}
                   className={`p-1 rounded ${
                     view === 'agenda' 
@@ -567,6 +644,88 @@ const ChildProfile: React.FC = () => {
             </button>
           </div>
         </div>
+        
+        {filterOpen && (
+          <div className="bg-white dark:bg-gray-800 p-4 border-b border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Platforms</h3>
+              <div className="space-y-2">
+                {['SportsEngine', 'TeamSnap', 'Playmetrics', 'GameChanger', 'Manual'].map(platform => (
+                  <div key={platform} className="flex items-center">
+                    <input 
+                      id={`platform-${platform}`} 
+                      type="checkbox" 
+                      checked={selectedPlatforms.length === 0 || selectedPlatforms.includes(platform)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedPlatforms([...selectedPlatforms, platform]);
+                        } else {
+                          setSelectedPlatforms(selectedPlatforms.filter(p => p !== platform));
+                        }
+                      }}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                    />
+                    <label 
+                      htmlFor={`platform-${platform}`} 
+                      className="ml-2 text-sm text-gray-700 dark:text-gray-300"
+                    >
+                      {platform}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Activity Types</h3>
+              <div className="space-y-2">
+                {[
+                  { id: 'game', label: 'Games' },
+                  { id: 'practice', label: 'Practices' },
+                  { id: 'tournament', label: 'Tournaments' },
+                  { id: 'other', label: 'Other events' }
+                ].map(type => (
+                  <div key={type.id} className="flex items-center">
+                    <input 
+                      id={`type-${type.id}`} 
+                      type="checkbox" 
+                      checked={selectedTypes.includes(type.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedTypes([...selectedTypes, type.id]);
+                        } else {
+                          setSelectedTypes(selectedTypes.filter(t => t !== type.id));
+                        }
+                      }}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
+                    />
+                    <label htmlFor={`type-${type.id}`} className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                      {type.label}
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div>
+              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date Range</h3>
+              <div className="space-y-2">
+                <div className="flex items-center">
+                  <input 
+                    id="date-all" 
+                    type="radio" 
+                    name="date-range" 
+                    checked={true}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                  />
+                  <label htmlFor="date-all" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    All dates
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="h-[600px] overflow-auto">
           {renderCalendarView()}
