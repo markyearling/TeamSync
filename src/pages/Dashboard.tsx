@@ -8,6 +8,7 @@ import { useProfiles } from '../context/ProfilesContext';
 import { supabase } from '../lib/supabase';
 import { Event, Platform } from '../types';
 import { useLoadScript, Libraries } from '@react-google-maps/api';
+import { DateTime } from 'luxon';
 
 // Define libraries outside component to prevent recreation on each render
 const libraries: Libraries = ['places', 'marker'];
@@ -108,8 +109,8 @@ const Dashboard: React.FC = () => {
         return {
           ...event,
           id: event.id,
-          startTime: new Date(event.start_time),
-          endTime: new Date(event.end_time),
+          startTime: DateTime.fromISO(event.start_time, { zone: 'local' }).toJSDate(),
+          endTime: DateTime.fromISO(event.end_time, { zone: 'local' }).toJSDate(),
           child: profile!,
           platformIcon: CalendarIcon,
           isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
@@ -221,8 +222,8 @@ const Dashboard: React.FC = () => {
           return {
             ...event,
             id: event.id,
-            startTime: new Date(event.start_time),
-            endTime: new Date(event.end_time),
+            startTime: DateTime.fromISO(event.start_time, { zone: 'local' }).toJSDate(),
+            endTime: DateTime.fromISO(event.end_time, { zone: 'local' }).toJSDate(),
             child: profile!,
             platformIcon: CalendarIcon,
             isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),

@@ -12,6 +12,7 @@ import WeekView from '../components/calendar/WeekView';
 import DayView from '../components/calendar/DayView';
 import AgendaView from '../components/calendar/AgendaView';
 import { useLoadScript, Libraries } from '@react-google-maps/api';
+import { DateTime } from 'luxon';
 
 // Define libraries outside component to prevent recreation on each render
 const libraries: Libraries = ['places', 'marker'];
@@ -106,8 +107,8 @@ const ChildProfile: React.FC = () => {
           const formattedEvents = eventData.map(event => ({
             ...event,
             id: event.id,
-            startTime: new Date(event.start_time),
-            endTime: new Date(event.end_time),
+            startTime: DateTime.fromISO(event.start_time, { zone: 'local' }).toJSDate(),
+            endTime: DateTime.fromISO(event.end_time, { zone: 'local' }).toJSDate(),
             child: {
               ...profile,
               user_id: profileData?.user_id

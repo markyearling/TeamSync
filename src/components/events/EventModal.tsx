@@ -206,16 +206,14 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric',
-      timeZone: userTimezone
+      day: 'numeric'
     });
   };
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
-      minute: '2-digit',
-      timeZone: userTimezone
+      minute: '2-digit'
     });
   };
 
