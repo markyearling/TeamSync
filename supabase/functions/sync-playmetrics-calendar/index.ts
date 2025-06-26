@@ -245,23 +245,88 @@ Deno.serve(async (req) => {
             : `Opponent: ${opponent}`;
         }
         
-        // Convert times to user's timezone
-        const startDate = event.startDate.toJSDate();
-        const endDate = event.endDate.toJSDate();
+        // Improved timezone handling
+        console.log(`Processing event: ${title}`);
+        console.log(`Original event timezone: ${event.startDate.timezone}`);
         
-        // Use Luxon for timezone conversion
-        const startInUserTz = DateTime.fromJSDate(startDate).setZone(userTimezone);
-        const endInUserTz = DateTime.fromJSDate(endDate).setZone(userTimezone);
+        let startDateTime, endDateTime;
         
-        console.log(`Converting event time: 
-          Original: ${startDate.toISOString()} - ${endDate.toISOString()}
-          User TZ (${userTimezone}): ${startInUserTz.toISO()} - ${endInUserTz.toISO()}`);
+        // Check if the event has a specific timezone
+        if (event.startDate.timezone === 'Z') {
+          // This is already in UTC
+          console.log('Event is in UTC timezone');
+          startDateTime = DateTime.fromObject({
+            year: event.startDate.year,
+            month: event.startDate.month,
+            day: event.startDate.day,
+            hour: event.startDate.hour,
+            minute: event.startDate.minute,
+            second: event.startDate.second
+          }, { zone: 'utc' });
+          
+          endDateTime = DateTime.fromObject({
+            year: event.endDate.year,
+            month: event.endDate.month,
+            day: event.endDate.day,
+            hour: event.endDate.hour,
+            minute: event.endDate.minute,
+            second: event.endDate.second
+          }, { zone: 'utc' });
+        } else if (event.startDate.timezone) {
+          // This has a specific timezone
+          console.log(`Event has specific timezone: ${event.startDate.timezone}`);
+          startDateTime = DateTime.fromObject({
+            year: event.startDate.year,
+            month: event.startDate.month,
+            day: event.startDate.day,
+            hour: event.startDate.hour,
+            minute: event.startDate.minute,
+            second: event.startDate.second
+          }, { zone: event.startDate.timezone });
+          
+          endDateTime = DateTime.fromObject({
+            year: event.endDate.year,
+            month: event.endDate.month,
+            day: event.endDate.day,
+            hour: event.endDate.hour,
+            minute: event.endDate.minute,
+            second: event.endDate.second
+          }, { zone: event.endDate.timezone });
+        } else {
+          // This is a floating time, interpret in user's timezone
+          console.log(`Event has floating time, interpreting in user timezone: ${userTimezone}`);
+          startDateTime = DateTime.fromObject({
+            year: event.startDate.year,
+            month: event.startDate.month,
+            day: event.startDate.day,
+            hour: event.startDate.hour,
+            minute: event.startDate.minute,
+            second: event.startDate.second
+          }, { zone: userTimezone });
+          
+          endDateTime = DateTime.fromObject({
+            year: event.endDate.year,
+            month: event.endDate.month,
+            day: event.endDate.day,
+            hour: event.endDate.hour,
+            minute: event.endDate.minute,
+            second: event.endDate.second
+          }, { zone: userTimezone });
+        }
+        
+        // Convert to UTC for storage
+        const startTimeUTC = startDateTime.toUTC().toISO();
+        const endTimeUTC = endDateTime.toUTC().toISO();
+        
+        console.log(`Converted times:
+          Start: ${startDateTime.toString()} -> UTC: ${startTimeUTC}
+          End: ${endDateTime.toString()} -> UTC: ${endTimeUTC}`);
         
         return {
           title: title,
           description: description,
-          start_time: startInUserTz.toUTC().toISO(),
-          end_time: endInUserTz.toUTC().toISO(),
+          start_time: startTimeUTC,
+          end_time: endTimeUTC,
           location: event.location || '',
           sport: 'Soccer',
           color: '#10B981',
