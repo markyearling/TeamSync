@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MapPin, Clock, User } from 'lucide-react';
 import { Event } from '../../types';
 import EventModal from './EventModal';
+import { DateTime } from 'luxon';
 
 interface EventCardProps {
   event: Event;
@@ -13,12 +14,12 @@ interface EventCardProps {
 const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoadError, userTimezone = 'UTC' }) => {
   const [showModal, setShowModal] = useState(false);
 
-  // Format time with user's timezone
+  // Format time with user's timezone using Luxon
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
+    return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString({
+      hour: 'numeric',
       minute: '2-digit',
-      timeZone: userTimezone
+      hour12: true
     });
   };
 
@@ -79,6 +80,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
           onClose={() => setShowModal(false)} 
           mapsLoaded={mapsLoaded}
           mapsLoadError={mapsLoadError}
+          userTimezone={userTimezone}
         />
       )}
     </>
