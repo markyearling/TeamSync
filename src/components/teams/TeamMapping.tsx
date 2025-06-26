@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { X, Check, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { Check, X, RefreshCw } from 'lucide-react';
-import { TeamSnapService } from '../../services/teamsnap';
+
+interface Friend {
+  id: string;
+  friend_id: string;
+  role: 'none' | 'viewer' | 'administrator';
+}
 
 interface Team {
   id: string;
@@ -9,6 +14,11 @@ interface Team {
   team_id: string;
   team_name: string;
   sport: string;
+  created_at: string;
+  updated_at: string;
+  ics_url?: string;
+  last_synced?: string | null;
+  sync_status?: 'pending' | 'success' | 'error';
 }
 
 interface TeamMappingProps {
@@ -19,9 +29,27 @@ interface TeamMappingProps {
 const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
+  const [teamSports, setTeamSports] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
+
+  // Available sports list
+  const availableSports = [
+    { name: 'Soccer', color: '#10B981' },
+    { name: 'Baseball', color: '#F59E0B' },
+    { name: 'Basketball', color: '#EF4444' },
+    { name: 'Swimming', color: '#3B82F6' },
+    { name: 'Tennis', color: '#8B5CF6' },
+    { name: 'Volleyball', color: '#EC4899' },
+    { name: 'Football', color: '#6366F1' },
+    { name: 'Hockey', color: '#14B8A6' },
+    { name: 'Lacrosse', color: '#F97316' },
+    { name: 'Track', color: '#06B6D4' },
+    { name: 'Golf', color: '#84CC16' },
+    { name: 'Gymnastics', color: '#F43F5E' },
+    { name: 'Other', color: '#64748B' }
+  ];
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -43,6 +71,13 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
 
         setTeams(platformTeams);
         setSelectedTeams(profileTeams.map(pt => pt.platform_team_id));
+        
+        // Initialize team sports state with current sport values
+        const initialTeamSports: Record<string, string> = {};
+        platformTeams.forEach(team => {
+          initialTeamSports[team.id] = team.sport || 'Other';
+        });
+        setTeamSports(initialTeamSports);
       } catch (error) {
         console.error('Error fetching teams:', error);
       } finally {
@@ -77,9 +112,36 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
         if (error) throw error;
       }
 
-      // Now sync events for TeamSnap teams
+      // Update sports for each team if changed
       for (const teamId of selectedTeams) {
         const team = teams.find(t => t.id === teamId);
+        if (team && team.sport !== teamSports[teamId]) {
+          // Update the platform_team sport
+          const { error: updateTeamError } = await supabase
+            .from('platform_teams')
+            .update({ sport: teamSports[teamId] })
+            .eq('id', teamId);
+
+          if (updateTeamError) {
+            console.error(`Error updating sport for team ${team.team_name}:`, updateTeamError);
+            continue;
+          }
+
+          // Update all events for this team and profile to use the new sport
+          if (selectedTeams.includes(teamId)) {
+            const { error: updateEventsError } = await supabase
+              .from('events')
+              .update({ sport: teamSports[teamId] })
+              .eq('platform_team_id', teamId)
+              .eq('profile_id', profileId);
+
+            if (updateEventsError) {
+              console.error(`Error updating events for team ${team.team_name}:`, updateEventsError);
+            }
+          }
+        }
+
+        // Now sync events for TeamSnap teams
         if (team && team.platform === 'TeamSnap') {
           try {
             setSyncing(teamId);
@@ -108,6 +170,13 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
         ? prev.filter(id => id !== teamId)
         : [...prev, teamId]
     );
+  };
+
+  const handleSportChange = (teamId: string, sport: string) => {
+    setTeamSports(prev => ({
+      ...prev,
+      [teamId]: sport
+    }));
   };
 
   if (loading) {
@@ -165,9 +234,19 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                           <h5 className="text-sm font-medium text-gray-900 dark:text-white">
                             {team.team_name}
                           </h5>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {team.sport}
-                          </p>
+                          <div className="flex items-center mt-2">
+                            <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">Sport:</span>
+                            <select
+                              value={teamSports[team.id] || 'Other'}
+                              onChange={(e) => handleSportChange(team.id, e.target.value)}
+                              className="text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                              onClick={(e) => e.stopPropagation()} // Prevent checkbox toggle when clicking dropdown
+                            >
+                              {availableSports.map(sport => (
+                                <option key={sport.name} value={sport.name}>{sport.name}</option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           {syncing === team.id && (
