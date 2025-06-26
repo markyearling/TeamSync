@@ -48,6 +48,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
     { name: 'Track', color: '#06B6D4' },
     { name: 'Golf', color: '#84CC16' },
     { name: 'Gymnastics', color: '#F43F5E' },
+    { name: 'Unknown', color: '#64748B' },
     { name: 'Other', color: '#64748B' }
   ];
 
@@ -75,7 +76,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
         // Initialize team sports state with current sport values
         const initialTeamSports: Record<string, string> = {};
         platformTeams.forEach(team => {
-          initialTeamSports[team.id] = team.sport || 'Other';
+          initialTeamSports[team.id] = team.sport || 'Unknown';
         });
         setTeamSports(initialTeamSports);
       } catch (error) {
@@ -237,7 +238,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                           <div className="flex items-center mt-2">
                             <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">Sport:</span>
                             <select
-                              value={teamSports[team.id] || 'Other'}
+                              value={teamSports[team.id] || 'Unknown'}
                               onChange={(e) => handleSportChange(team.id, e.target.value)}
                               className="text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                               onClick={(e) => e.stopPropagation()} // Prevent checkbox toggle when clicking dropdown
