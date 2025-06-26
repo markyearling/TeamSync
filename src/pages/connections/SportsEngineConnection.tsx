@@ -101,13 +101,28 @@ const SportsEngineConnection: React.FC = () => {
 
   const validateIcsUrl = (url: string): boolean => {
     try {
-      const parsedUrl = new URL(url);
-      return (
-        parsedUrl.protocol === 'https:' &&
-        (parsedUrl.hostname.includes('sportsengine.com') || 
-         parsedUrl.hostname.includes('sportngin.com')) &&
-        url.endsWith('.ics')
-      );
+      // Handle webcal:// protocol by converting to https:// for URL parsing
+      let urlToValidate = url;
+      const isWebcal = url.startsWith('webcal://');
+      
+      if (isWebcal) {
+        urlToValidate = url.replace('webcal://', 'https://');
+      }
+      
+      const parsedUrl = new URL(urlToValidate);
+      
+      // Check hostname is from SportsEngine
+      const validHostname = 
+        parsedUrl.hostname.includes('sportsengine.com') || 
+        parsedUrl.hostname.includes('sportngin.com');
+      
+      // If it's a webcal URL, we don't require the .ics extension
+      if (isWebcal) {
+        return validHostname;
+      }
+      
+      // For regular https URLs, we still check for .ics extension
+      return validHostname && url.endsWith('.ics');
     } catch {
       return false;
     }
@@ -119,7 +134,7 @@ const SportsEngineConnection: React.FC = () => {
     setSuccess(null);
 
     if (!validateIcsUrl(icsUrl)) {
-      setError('Please enter a valid SportsEngine calendar URL (must end with .ics)');
+      setError('Please enter a valid SportsEngine calendar URL (must be from sportsengine.com or sportngin.com)');
       return;
     }
 
@@ -426,13 +441,13 @@ const SportsEngineConnection: React.FC = () => {
                       id="ics-url"
                       value={icsUrl}
                       onChange={(e) => setIcsUrl(e.target.value)}
-                      placeholder="https://api.sportsengine.com/v1/teams/12345/events.ics"
+                      placeholder="https://api.sportsengine.com/v1/teams/12345/events.ics or webcal://api.sportsengine.com/v1/teams/12345/events"
                       className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                       required
                     />
                   </div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    Enter the SportsEngine calendar URL for your team. Events will be imported immediately, then you can map the team to your children's profiles.
+                    Enter the SportsEngine calendar URL for your team. Both https:// and webcal:// URLs are supported. Events will be imported immediately, then you can map the team to your children's profiles.
                   </p>
                 </div>
 

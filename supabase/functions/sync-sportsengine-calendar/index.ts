@@ -36,8 +36,15 @@ Deno.serve(async (req) => {
 
     console.log('Fetching ICS file from:', icsUrl);
 
+    // Convert webcal:// to https:// if needed
+    let fetchUrl = icsUrl;
+    if (fetchUrl.startsWith('webcal://')) {
+      fetchUrl = fetchUrl.replace('webcal://', 'https://');
+      console.log('Converted webcal URL to https for fetching:', fetchUrl);
+    }
+
     // Fetch ICS file
-    const response = await fetch(icsUrl, {
+    const response = await fetch(fetchUrl, {
       headers: {
         'Accept': 'text/calendar',
         'Cache-Control': 'no-cache'
@@ -48,7 +55,7 @@ Deno.serve(async (req) => {
       console.error('Failed to fetch ICS file:', {
         status: response.status,
         statusText: response.statusText,
-        url: icsUrl
+        url: fetchUrl
       });
       throw new Error(`Failed to fetch calendar: ${response.status} ${response.statusText}`);
     }
@@ -96,7 +103,14 @@ Deno.serve(async (req) => {
       
       // Fallback to URL-based name if still no name found
       if (!calendarName) {
-        const teamIdFromUrl = icsUrl.split('/').pop()?.split('.')[0];
+        // Extract team ID from URL, handling both .ics and non-ics URLs
+        let teamIdFromUrl;
+        if (icsUrl.includes('.ics')) {
+          teamIdFromUrl = icsUrl.split('/').pop()?.split('.')[0];
+        } else {
+          // For webcal URLs without .ics extension, try to extract the last path segment
+          teamIdFromUrl = icsUrl.split('/').pop();
+        }
         calendarName = `SportsEngine Team ${teamIdFromUrl}`;
       }
       
