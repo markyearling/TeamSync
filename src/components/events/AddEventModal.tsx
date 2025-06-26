@@ -10,6 +10,7 @@ interface AddEventModalProps {
   sports: { name: string; color: string }[];
   mapsLoaded: boolean;
   mapsLoadError: Error | undefined;
+  userTimezone?: string;
 }
 
 const AddEventModal: React.FC<AddEventModalProps> = ({ 
@@ -18,7 +19,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   onEventAdded, 
   sports, 
   mapsLoaded, 
-  mapsLoadError 
+  mapsLoadError,
+  userTimezone = 'UTC'
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -213,6 +215,12 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                   disabled={!mapsLoadError && !mapsLoaded}
                 />
               )}
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                <strong>Timezone:</strong> All times will be saved in your preferred timezone ({userTimezone}).
+              </p>
             </div>
           </div>
 

@@ -10,9 +10,10 @@ interface EventModalProps {
   onClose: () => void;
   mapsLoaded: boolean;
   mapsLoadError: Error | undefined;
+  userTimezone?: string;
 }
 
-const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, mapsLoadError }) => {
+const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, mapsLoadError, userTimezone = 'UTC' }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [shareEmail, setShareEmail] = useState('');
@@ -23,7 +24,6 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const [userTimezone, setUserTimezone] = useState<string>('UTC');
 
   // Fetch user's timezone
   useEffect(() => {
@@ -41,10 +41,6 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
         if (error) {
           console.error('Error fetching user timezone:', error);
           return;
-        }
-
-        if (userSettings?.timezone) {
-          setUserTimezone(userSettings.timezone);
         }
       } catch (error) {
         console.error('Error fetching user timezone:', error);
@@ -206,14 +202,16 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone: userTimezone
     });
   };
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', { 
       hour: 'numeric', 
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: userTimezone
     });
   };
 
@@ -440,6 +438,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
           onEventUpdated={handleEventUpdated}
           mapsLoaded={mapsLoaded}
           mapsLoadError={mapsLoadError}
+          userTimezone={userTimezone}
         />
       )}
     </>

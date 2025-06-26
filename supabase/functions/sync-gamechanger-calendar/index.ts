@@ -294,8 +294,8 @@ Deno.serve(async (req) => {
         return {
           title: title,
           description: description,
-          start_time: startInUserTz.toISO(),
-          end_time: endInUserTz.toISO(),
+          start_time: startInUserTz.toUTC().toISO(),
+          end_time: endInUserTz.toUTC().toISO(),
           location: event.location || '',
           sport: sport,
           color: '#F97316', // GameChanger orange

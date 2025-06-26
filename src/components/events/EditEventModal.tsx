@@ -10,6 +10,7 @@ interface EditEventModalProps {
   onEventUpdated: () => void;
   mapsLoaded: boolean;
   mapsLoadError: Error | undefined;
+  userTimezone?: string;
 }
 
 const EditEventModal: React.FC<EditEventModalProps> = ({ 
@@ -17,7 +18,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   onClose, 
   onEventUpdated, 
   mapsLoaded, 
-  mapsLoadError 
+  mapsLoadError,
+  userTimezone = 'UTC'
 }) => {
   const [formData, setFormData] = useState({
     title: event.title,
@@ -29,38 +31,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [userTimezone, setUserTimezone] = useState<string>('UTC');
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
-
-  // Fetch user's timezone
-  useEffect(() => {
-    const fetchUserTimezone = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: userSettings, error } = await supabase
-          .from('user_settings')
-          .select('timezone')
-          .eq('user_id', user.id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching user timezone:', error);
-          return;
-        }
-
-        if (userSettings?.timezone) {
-          setUserTimezone(userSettings.timezone);
-        }
-      } catch (error) {
-        console.error('Error fetching user timezone:', error);
-      }
-    };
-
-    fetchUserTimezone();
-  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
