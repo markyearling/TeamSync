@@ -582,6 +582,7 @@ const ChildProfile: React.FC = () => {
           sports={child.sports}
           mapsLoaded={mapsLoaded}
           mapsLoadError={mapsLoadError}
+          userTimezone={userTimezone}
         />
       )}
 
@@ -591,6 +592,7 @@ const ChildProfile: React.FC = () => {
           onClose={() => setSelectedEvent(null)}
           mapsLoaded={mapsLoaded}
           mapsLoadError={mapsLoadError}
+          userTimezone={userTimezone}
         />
       )}
 
