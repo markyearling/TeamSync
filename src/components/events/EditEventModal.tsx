@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Autocomplete } from '@react-google-maps/api';
@@ -29,8 +29,38 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [userTimezone, setUserTimezone] = useState<string>('UTC');
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+
+  // Fetch user's timezone
+  useEffect(() => {
+    const fetchUserTimezone = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: userSettings, error } = await supabase
+          .from('user_settings')
+          .select('timezone')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user timezone:', error);
+          return;
+        }
+
+        if (userSettings?.timezone) {
+          setUserTimezone(userSettings.timezone);
+        }
+      } catch (error) {
+        console.error('Error fetching user timezone:', error);
+      }
+    };
+
+    fetchUserTimezone();
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -221,6 +251,12 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                   disabled={!mapsLoadError && !mapsLoaded}
                 />
               )}
+            </div>
+
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                <strong>Timezone:</strong> All times will be saved in your preferred timezone ({userTimezone}).
+              </p>
             </div>
           </div>
 

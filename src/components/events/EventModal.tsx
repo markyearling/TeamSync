@@ -23,6 +23,36 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const [userTimezone, setUserTimezone] = useState<string>('UTC');
+
+  // Fetch user's timezone
+  useEffect(() => {
+    const fetchUserTimezone = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: userSettings, error } = await supabase
+          .from('user_settings')
+          .select('timezone')
+          .eq('user_id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error fetching user timezone:', error);
+          return;
+        }
+
+        if (userSettings?.timezone) {
+          setUserTimezone(userSettings.timezone);
+        }
+      } catch (error) {
+        console.error('Error fetching user timezone:', error);
+      }
+    };
+
+    fetchUserTimezone();
+  }, []);
 
   // Check if user can edit this event
   useEffect(() => {
@@ -170,6 +200,25 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     window.location.reload();
   };
 
+  // Format date and time with user's timezone
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      timeZone: userTimezone
+    });
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      timeZone: userTimezone
+    });
+  };
+
   const ShareModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]" onClick={(e) => e.stopPropagation()}>
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
@@ -281,20 +330,14 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
               <div className="flex items-center text-gray-600 dark:text-gray-300">
                 <Calendar className="h-5 w-5 mr-3" />
                 <span>
-                  {event.startTime.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {formatDate(event.startTime)}
                 </span>
               </div>
 
               <div className="flex items-center text-gray-600 dark:text-gray-300">
                 <Clock className="h-5 w-5 mr-3" />
                 <span>
-                  {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
-                  {event.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  {formatTime(event.startTime)} - {formatTime(event.endTime)}
                 </span>
               </div>
 

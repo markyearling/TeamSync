@@ -12,6 +12,14 @@ interface EventCardProps {
 const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoadError }) => {
   const [showModal, setShowModal] = useState(false);
 
+  // Format time with user's timezone
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit'
+    });
+  };
+
   return (
     <>
       <div 
@@ -41,8 +49,8 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
             <div className="mt-2 flex items-center text-sm text-gray-500 dark:text-gray-400 space-x-4">
               <div className="flex items-center">
                 <Clock className="h-4 w-4 mr-1" />
-                {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - 
-                {event.endTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                {formatTime(event.startTime)} - 
+                {formatTime(event.endTime)}
               </div>
               {event.location && (
                 <div className="flex items-center">
