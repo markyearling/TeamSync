@@ -102,13 +102,28 @@ const GameChangerConnection: React.FC = () => {
 
   const validateIcsUrl = (url: string): boolean => {
     try {
-      const parsedUrl = new URL(url);
-      return (
-        parsedUrl.protocol === 'https:' &&
-        (parsedUrl.hostname.includes('gamechanger.io') || 
-         parsedUrl.hostname.includes('gc.com')) &&
-        url.endsWith('.ics')
-      );
+      // Handle webcal:// protocol by converting to https:// for URL parsing
+      let urlToValidate = url;
+      const isWebcal = url.startsWith('webcal://');
+      
+      if (isWebcal) {
+        urlToValidate = url.replace('webcal://', 'https://');
+      }
+      
+      const parsedUrl = new URL(urlToValidate);
+      
+      // Check hostname is from GameChanger
+      const validHostname = 
+        parsedUrl.hostname.includes('gamechanger.io') || 
+        parsedUrl.hostname.includes('gc.com');
+      
+      // If it's a webcal URL, we don't require the .ics extension
+      if (isWebcal) {
+        return validHostname;
+      }
+      
+      // For regular https URLs, we still check for .ics extension
+      return validHostname && url.endsWith('.ics');
     } catch {
       return false;
     }
@@ -120,7 +135,7 @@ const GameChangerConnection: React.FC = () => {
     setSuccess(null);
 
     if (!validateIcsUrl(icsUrl)) {
-      setError('Please enter a valid GameChanger calendar URL (must end with .ics)');
+      setError('Please enter a valid GameChanger calendar URL (must be from gamechanger.io or gc.com)');
       return;
     }
 
@@ -427,13 +442,13 @@ const GameChangerConnection: React.FC = () => {
                       id="ics-url"
                       value={icsUrl}
                       onChange={(e) => setIcsUrl(e.target.value)}
-                      placeholder="https://gc.com/team/calendar/12345.ics"
+                      placeholder="https://gc.com/team/calendar/12345.ics or webcal://gc.com/team/calendar/12345"
                       className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-orange-500 focus:ring-orange-500 dark:bg-gray-700 dark:text-white"
                       required
                     />
                   </div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    Enter the GameChanger calendar URL for your team. Events will be imported immediately, then you can map the team to your children's profiles.
+                    Enter the GameChanger calendar URL for your team. Both https:// and webcal:// URLs are supported. Events will be imported immediately, then you can map the team to your children's profiles.
                   </p>
                 </div>
 

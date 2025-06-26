@@ -1,5 +1,6 @@
 import ICAL from 'npm:ical.js@1.5.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { DateTime } from 'npm:luxon@3.4.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,8 +37,15 @@ Deno.serve(async (req) => {
 
     console.log('Fetching ICS file from:', icsUrl);
 
+    // Convert webcal:// to https:// if needed
+    let fetchUrl = icsUrl;
+    if (fetchUrl.startsWith('webcal://')) {
+      fetchUrl = fetchUrl.replace('webcal://', 'https://');
+      console.log('Converted webcal URL to https for fetching:', fetchUrl);
+    }
+
     // Fetch ICS file
-    const response = await fetch(icsUrl, {
+    const response = await fetch(fetchUrl, {
       headers: {
         'Accept': 'text/calendar',
         'Cache-Control': 'no-cache'
@@ -48,7 +56,7 @@ Deno.serve(async (req) => {
       console.error('Failed to fetch ICS file:', {
         status: response.status,
         statusText: response.statusText,
-        url: icsUrl
+        url: fetchUrl
       });
       throw new Error(`Failed to fetch calendar: ${response.status} ${response.statusText}`);
     }
@@ -96,7 +104,14 @@ Deno.serve(async (req) => {
       
       // Fallback to URL-based name if still no name found
       if (!calendarName) {
-        const teamIdFromUrl = icsUrl.split('/').pop()?.split('.')[0];
+        // Extract team ID from URL, handling both .ics and non-ics URLs
+        let teamIdFromUrl;
+        if (icsUrl.includes('.ics')) {
+          teamIdFromUrl = icsUrl.split('/').pop()?.split('.')[0];
+        } else {
+          // For webcal URLs without .ics extension, try to extract the last path segment
+          teamIdFromUrl = icsUrl.split('/').pop();
+        }
         calendarName = `GameChanger Team ${teamIdFromUrl}`;
       }
       
@@ -160,19 +175,82 @@ Deno.serve(async (req) => {
         
       const sport = teamData?.sport || 'Baseball';
 
+      // Get user's timezone from settings
+      let userTimezone = 'UTC';
+      try {
+        // First get the user_id from the profile
+        const { data: profileData, error: profileError } = await supabaseClient
+          .from('profiles')
+          .select('user_id')
+          .eq('id', profileId)
+          .single();
+          
+        if (profileError) throw profileError;
+        
+        // Then get the timezone from user_settings
+        const { data: userSettings, error: settingsError } = await supabaseClient
+          .from('user_settings')
+          .select('timezone')
+          .eq('user_id', profileData.user_id)
+          .single();
+          
+        if (settingsError) throw settingsError;
+        
+        userTimezone = userSettings?.timezone || 'UTC';
+        console.log(`Using user timezone: ${userTimezone}`);
+      } catch (error) {
+        console.error('Error getting user timezone, using UTC:', error);
+      }
+
       // Transform events for the specific profile
       const events = vevents.map(vevent => {
         const event = new ICAL.Event(vevent);
         
-        // Extract event type from summary (e.g., "Game", "Practice")
+        // Extract event type and opponent from summary
         let eventType = "Event";
+        let opponent = null;
         const summary = event.summary || '';
-        if (summary.toLowerCase().includes('game')) {
+        
+        // Check for game vs opponent pattern
+        const vsPattern = /\b(vs\.?|versus)\s+([^,]+)/i;
+        const vsMatch = summary.match(vsPattern);
+        
+        // Check for "at" pattern (e.g., "Team at Opponent")
+        const atPattern = /\b([^@]+?)\s+at\s+([^,]+)/i;
+        const atMatch = summary.match(atPattern);
+        
+        // Check for home/away pattern (e.g., "Team (Home) vs Opponent")
+        const homeAwayPattern = /\((?:home|away)\)\s*(?:vs\.?|versus)\s+([^,]+)/i;
+        const homeAwayMatch = summary.match(homeAwayPattern);
+        
+        // Determine if it's a game and extract opponent
+        if (summary.toLowerCase().includes('game') || 
+            vsMatch || 
+            atMatch || 
+            homeAwayMatch ||
+            summary.toLowerCase().includes('match')) {
           eventType = 'Game';
+          
+          if (vsMatch) {
+            opponent = vsMatch[2].trim();
+          } else if (atMatch) {
+            // If format is "Team at Opponent", the opponent is the second group
+            opponent = atMatch[2].trim();
+          } else if (homeAwayMatch) {
+            opponent = homeAwayMatch[1].trim();
+          }
         } else if (summary.toLowerCase().includes('practice')) {
           eventType = 'Practice';
         } else if (summary.toLowerCase().includes('tournament')) {
           eventType = 'Tournament';
+        } else if (summary.toLowerCase().includes('scrimmage')) {
+          eventType = 'Scrimmage';
+        }
+        
+        // Create a more detailed title
+        let title = eventType;
+        if (eventType === 'Game' && opponent) {
+          title = `Game vs ${opponent}`;
         }
         
         // Create a more detailed description
@@ -185,10 +263,8 @@ Deno.serve(async (req) => {
           }
         }
         
-        // Try to extract opponent information
-        const opponentMatch = summary.match(/vs\.?\s+([^,]+)/i) || summary.match(/([^,]+)\s+vs\.?/i);
-        if (opponentMatch && !description.includes('Opponent:')) {
-          const opponent = opponentMatch[1].trim();
+        // If opponent found but not in description, add it
+        if (opponent && !description.toLowerCase().includes('opponent') && !description.includes(opponent)) {
           description = description 
             ? `${description}\n\nOpponent: ${opponent}`
             : `Opponent: ${opponent}`;
@@ -203,11 +279,23 @@ Deno.serve(async (req) => {
             : `Score: ${score}`;
         }
         
+        // Convert times to user's timezone
+        const startDate = event.startDate.toJSDate();
+        const endDate = event.endDate.toJSDate();
+        
+        // Use Luxon for timezone conversion
+        const startInUserTz = DateTime.fromJSDate(startDate).setZone(userTimezone);
+        const endInUserTz = DateTime.fromJSDate(endDate).setZone(userTimezone);
+        
+        console.log(`Converting event time: 
+          Original: ${startDate.toISOString()} - ${endDate.toISOString()}
+          User TZ (${userTimezone}): ${startInUserTz.toISO()} - ${endInUserTz.toISO()}`);
+        
         return {
-          title: eventType,
+          title: title,
           description: description,
-          start_time: event.startDate.toJSDate().toISOString(),
-          end_time: event.endDate.toJSDate().toISOString(),
+          start_time: startInUserTz.toISO(),
+          end_time: endInUserTz.toISO(),
           location: event.location || '',
           sport: sport,
           color: '#F97316', // GameChanger orange

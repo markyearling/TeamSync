@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Globe, Lock, Mail, Moon, Sun, User, Phone, Calendar as CalendarIcon, Plus, Trash2, Save } from 'lucide-react';
+import { Bell, Globe, Lock, Mail, Moon, Sun, User, Phone, Calendar as CalendarIcon, Plus, Trash2, Save, Clock } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
 import { saveSettings, supabase } from '../lib/supabase';
@@ -22,6 +22,7 @@ const defaultSettings = {
   all_notifications: true,
   language: 'en',
   theme: 'light',
+  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   additional_emails: [] as string[]
 };
 
@@ -35,11 +36,19 @@ const Settings: React.FC = () => {
   const [settings, setSettings] = useState(defaultSettings);
   const [isSaving, setIsSaving] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [timezones, setTimezones] = useState<string[]>([]);
 
   useEffect(() => {
     checkAuth();
     loadUserData();
+    loadTimezones();
   }, []);
+
+  const loadTimezones = () => {
+    // Get a list of all available timezones
+    const allTimezones = Intl.supportedValuesOf('timeZone');
+    setTimezones(allTimezones);
+  };
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -68,6 +77,11 @@ const Settings: React.FC = () => {
       }
 
       if (settingsData) {
+        // If timezone is not set, use browser default
+        if (!settingsData.timezone) {
+          settingsData.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        }
+        
         setSettings(settingsData);
         if (settingsData.additional_emails) {
           setAdditionalEmails(
@@ -135,7 +149,7 @@ const Settings: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
         {hasUnsavedChanges && (
           <button
             onClick={handleSave}
@@ -296,6 +310,40 @@ const Settings: React.FC = () => {
                     >
                       Add
                     </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Timezone Settings</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center">
+                    <Clock className="h-5 w-5 text-gray-400 mr-3" />
+                    <div className="flex-1">
+                      <label htmlFor="timezone" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Your Timezone
+                      </label>
+                      <select
+                        id="timezone"
+                        value={settings.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
+                        onChange={(e) => handleInputChange('timezone', e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        {timezones.map(tz => (
+                          <option key={tz} value={tz}>
+                            {tz.replace(/_/g, ' ')}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        This timezone will be used for displaying events and syncing calendars
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-3 mt-2">
+                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                      Current time in your timezone: <strong>{new Date().toLocaleString(undefined, { timeZone: settings.timezone })}</strong>
+                    </p>
                   </div>
                 </div>
               </div>

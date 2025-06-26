@@ -102,13 +102,26 @@ const Playmetrics: React.FC = () => {
 
   const validateIcsUrl = (url: string): boolean => {
     try {
-      const parsedUrl = new URL(url);
-      return (
-        parsedUrl.protocol === 'https:' &&
-        parsedUrl.hostname === 'api.playmetrics.com' &&
-        parsedUrl.pathname.includes('/calendar/') &&
-        url.endsWith('.ics')
-      );
+      // Handle webcal:// protocol by converting to https:// for URL parsing
+      let urlToValidate = url;
+      const isWebcal = url.startsWith('webcal://');
+      
+      if (isWebcal) {
+        urlToValidate = url.replace('webcal://', 'https://');
+      }
+      
+      const parsedUrl = new URL(urlToValidate);
+      
+      // Check hostname is from Playmetrics
+      const validHostname = parsedUrl.hostname === 'api.playmetrics.com';
+      
+      // If it's a webcal URL, we don't require the .ics extension
+      if (isWebcal) {
+        return validHostname && parsedUrl.pathname.includes('/calendar/');
+      }
+      
+      // For regular https URLs, we still check for .ics extension
+      return validHostname && parsedUrl.pathname.includes('/calendar/') && url.endsWith('.ics');
     } catch {
       return false;
     }
@@ -426,13 +439,13 @@ const Playmetrics: React.FC = () => {
                       id="ics-url"
                       value={icsUrl}
                       onChange={(e) => setIcsUrl(e.target.value)}
-                      placeholder="https://api.playmetrics.com/calendar/1079/team/220548-46283CA0.ics"
+                      placeholder="https://api.playmetrics.com/calendar/1079/team/220548-46283CA0.ics or webcal://api.playmetrics.com/calendar/1079/team/220548"
                       className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-green-500 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
                       required
                     />
                   </div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    Enter the Playmetrics calendar URL for your team. Events will be imported immediately, then you can map the team to your children's profiles.
+                    Enter the Playmetrics calendar URL for your team. Both https:// and webcal:// URLs are supported. Events will be imported immediately, then you can map the team to your children's profiles.
                   </p>
                 </div>
 

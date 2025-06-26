@@ -32,6 +32,7 @@
     "@supabase/supabase-js": "^2.39.0",
     "ical.js": "^1.5.0",
     "lucide-react": "^0.292.0",
+    "luxon": "^3.4.4",
     "pkce-challenge": "^3.1.0",
     "query-string": "^8.1.0",
     "react": "^18.2.0",
@@ -41,6 +42,7 @@
   "devDependencies": {
     "@capacitor/android": "^5.7.8",
     "@capacitor/cli": "^5.5.1",
+    "@types/luxon": "^3.4.2",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
     "@typescript-eslint/eslint-plugin": "^6.10.0",
