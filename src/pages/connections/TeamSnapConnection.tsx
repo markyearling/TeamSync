@@ -223,13 +223,35 @@ const TeamSnapConnection: React.FC = () => {
       setSuccess(null);
       setRefreshingTeam(teamId);
       
-      const team = teams.find(t => t.id === teamId);
-      if (!team) return;
-
-      if (!team.mapped_profiles || team.mapped_profiles.length === 0) {
+      // Fetch the latest team data with profile mappings directly from the database
+      const { data: freshTeamData, error: freshTeamError } = await supabase
+        .from('platform_teams')
+        .select('id, team_name')
+        .eq('id', teamId)
+        .single();
+      
+      if (freshTeamError) throw freshTeamError;
+      if (!freshTeamData) throw new Error('Team not found');
+      
+      // Get the latest profile mappings for this team
+      const { data: freshProfileMappings, error: mappingsError } = await supabase
+        .from('profile_teams')
+        .select(`
+          profile_id,
+          profiles!inner(id, name, color)
+        `)
+        .eq('platform_team_id', teamId);
+      
+      if (mappingsError) throw mappingsError;
+      
+      // Check if there are any profile mappings
+      if (!freshProfileMappings || freshProfileMappings.length === 0) {
         setError('Please map this team to at least one child profile before syncing events.');
         return;
       }
+      
+      const mappedProfiles = freshProfileMappings.map(mapping => mapping.profiles);
+      console.log(`Found ${mappedProfiles.length} mapped profiles for team ${teamId}`);
 
       // Update team status to pending
       await supabase
@@ -240,7 +262,7 @@ const TeamSnapConnection: React.FC = () => {
       // Sync events using the TeamSnap service
       const totalEvents = await teamSnap.syncEventsForTeam(teamId);
 
-      setSuccess(`Team refreshed successfully! Synced ${totalEvents} events for ${team.mapped_profiles.length} profile(s).`);
+      setSuccess(`Team refreshed successfully! Synced ${totalEvents} events for ${mappedProfiles.length} profile(s).`);
       fetchTeams();
     } catch (err) {
       console.error('Error refreshing team:', err);
@@ -698,7 +720,7 @@ const TeamSnapConnection: React.FC = () => {
                           </button>
                           <button
                             onClick={() => handleRefresh(team.id)}
-                            disabled={refreshingTeam === team.id || !team.mapped_profiles || team.mapped_profiles.length === 0}
+                            disabled={refreshingTeam === team.id}
                             className="p-2 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Refresh team events"
                           >

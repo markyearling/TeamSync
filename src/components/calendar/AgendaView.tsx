@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Event } from '../../types';
 import { Calendar, MapPin, Clock } from 'lucide-react';
 import EventModal from '../events/EventModal';
+import { DateTime } from 'luxon';
 
 interface AgendaViewProps {
   currentDate: Date;
@@ -39,6 +40,15 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
   
   const dateKeys = Object.keys(eventsByDate).sort();
   const today = new Date().toISOString().split('T')[0];
+
+  // Format time with user's timezone
+  const formatTime = (date: Date) => {
+    return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString({
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   return (
     <div className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -110,16 +120,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
                         <div className="mt-2 flex flex-col sm:flex-row sm:space-x-4">
                           <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                             <Clock className="h-4 w-4 mr-1" />
-                            {event.startTime.toLocaleTimeString('en-US', { 
-                              hour: 'numeric', 
-                              minute: '2-digit',
-                              timeZone: userTimezone
-                            })} - 
-                            {event.endTime.toLocaleTimeString('en-US', { 
-                              hour: 'numeric', 
-                              minute: '2-digit',
-                              timeZone: userTimezone
-                            })}
+                            {formatTime(event.startTime)} - {formatTime(event.endTime)}
                           </div>
                           
                           {event.location && (
@@ -155,6 +156,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
           onClose={() => setSelectedEvent(null)}
           mapsLoaded={true}
           mapsLoadError={undefined}
+          userTimezone={userTimezone}
         />
       )}
     </div>

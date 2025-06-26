@@ -4,6 +4,7 @@ import { Event } from '../../types';
 import { GoogleMap } from '@react-google-maps/api';
 import { supabase } from '../../lib/supabase';
 import EditEventModal from './EditEventModal';
+import { DateTime } from 'luxon';
 
 interface EventModalProps {
   event: Event;
@@ -24,31 +25,6 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
-
-  // Fetch user's timezone
-  useEffect(() => {
-    const fetchUserTimezone = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const { data: userSettings, error } = await supabase
-          .from('user_settings')
-          .select('timezone')
-          .eq('user_id', user.id)
-          .single();
-
-        if (error) {
-          console.error('Error fetching user timezone:', error);
-          return;
-        }
-      } catch (error) {
-        console.error('Error fetching user timezone:', error);
-      }
-    };
-
-    fetchUserTimezone();
-  }, []);
 
   // Check if user can edit this event
   useEffect(() => {
@@ -198,20 +174,19 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
   // Format date and time with user's timezone
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
+    return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString({
       weekday: 'long',
       year: 'numeric',
       month: 'long',
-      day: 'numeric',
-      timeZone: userTimezone
+      day: 'numeric'
     });
   };
 
   const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
+    return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString({
+      hour: 'numeric',
       minute: '2-digit',
-      timeZone: userTimezone
+      hour12: true
     });
   };
 

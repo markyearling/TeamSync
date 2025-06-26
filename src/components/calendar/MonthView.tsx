@@ -139,6 +139,7 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events, userTimezone
           onClose={() => setSelectedEvent(null)}
           mapsLoaded={true}
           mapsLoadError={undefined}
+          userTimezone={userTimezone}
         />
       )}
     </div>
