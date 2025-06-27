@@ -15,20 +15,26 @@ const ResetPassword: React.FC = () => {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    // Check if we have the required tokens from the URL
+    // Check if we have the required token from the URL
+    const token = searchParams.get('token');
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
     
-    if (!accessToken || !refreshToken) {
+    if (!token && !accessToken) {
       setError('Invalid or expired reset link. Please request a new password reset.');
       return;
     }
 
-    // Set the session with the tokens from the URL
-    supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
+    // If we have access_token and refresh_token, set the session
+    if (accessToken) {
+      supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken || '',
+      }).catch(err => {
+        console.error('Error setting session:', err);
+        setError('Invalid or expired reset link. Please request a new password reset.');
+      });
+    }
   }, [searchParams]);
 
   const validatePassword = (pwd: string): string | null => {
@@ -67,11 +73,26 @@ const ResetPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: password
-      });
+      // Get the token from the URL
+      const token = searchParams.get('token');
+      
+      if (token) {
+        // If we have a token, use the recovery flow
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: token,
+          type: 'recovery',
+          new_password: password
+        });
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        // Otherwise use the updateUser method (for access_token flow)
+        const { error } = await supabase.auth.updateUser({
+          password: password
+        });
+
+        if (error) throw error;
+      }
 
       setSuccess(true);
       
