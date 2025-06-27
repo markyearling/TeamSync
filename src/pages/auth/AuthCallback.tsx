@@ -1,29 +1,44 @@
 import { useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
 
   useEffect(() => {
-    // Check if this is a password reset flow by examining the URL parameters
-    const token = searchParams.get('token');
-    const type = searchParams.get('type');
-    
-    if (type === 'recovery' && token) {
-      // For password reset flow, redirect to the reset password page with the token
-      navigate(`/auth/reset-password?token=${token}`);
-      return;
-    }
+    const handleCallback = async () => {
+      try {
+        // Check if there's a hash in the URL (Supabase appends tokens to the hash)
+        if (window.location.hash) {
+          // Parse the hash parameters (remove the leading '#')
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const type = hashParams.get('type');
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
 
-    // For normal sign-in flows, continue with the standard behavior
-    supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        navigate('/');
+          // If this is a password recovery flow
+          if (type === 'recovery' && accessToken && refreshToken) {
+            // Navigate to reset password page with the tokens
+            navigate(`/auth/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}`);
+            return;
+          }
+        }
+
+        // For normal sign-in flows or if no hash parameters found
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          navigate('/');
+        } else {
+          navigate('/auth/signin');
+        }
+      } catch (error) {
+        console.error('Error in auth callback:', error);
+        navigate('/auth/signin');
       }
-    });
-  }, [navigate, searchParams]);
+    };
+
+    handleCallback();
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

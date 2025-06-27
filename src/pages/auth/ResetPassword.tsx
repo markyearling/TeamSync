@@ -15,12 +15,20 @@ const ResetPassword: React.FC = () => {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    // Check if we have the required token from the URL
-    const token = searchParams.get('token');
+    // Check if we have the required tokens from the URL
+    const accessToken = searchParams.get('access_token');
+    const refreshToken = searchParams.get('refresh_token');
     
-    if (!token) {
+    if (!accessToken || !refreshToken) {
       setError('Invalid or expired reset link. Please request a new password reset.');
+      return;
     }
+
+    // Set the session with the tokens from the URL
+    supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
   }, [searchParams]);
 
   const validatePassword = (pwd: string): string | null => {
@@ -59,18 +67,8 @@ const ResetPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      // Get the token from the URL
-      const token = searchParams.get('token');
-      
-      if (!token) {
-        throw new Error('Reset token not found');
-      }
-
-      // Use the recovery flow with the token
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: 'recovery',
-        new_password: password
+      const { error } = await supabase.auth.updateUser({
+        password: password
       });
 
       if (error) throw error;
