@@ -12,31 +12,30 @@ interface WeekViewProps {
 const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone = 'UTC' }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   
-  // Get the start of the week (Sunday)
+  // Get the start of the week (Sunday) using Luxon with proper timezone handling
   const getStartOfWeek = (date: Date) => {
-    const newDate = new Date(date);
-    const day = newDate.getDay();
-    const diff = newDate.getDate() - day;
-    return new Date(newDate.setDate(diff));
+    const dt = DateTime.fromJSDate(date).setZone(userTimezone);
+    const startOfWeek = dt.startOf('week');
+    return startOfWeek.toJSDate();
   };
   
-  const startOfWeek = getStartOfWeek(new Date(currentDate));
+  const startOfWeek = getStartOfWeek(currentDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(startOfWeek);
-    day.setDate(startOfWeek.getDate() + i);
+    const day = DateTime.fromJSDate(startOfWeek).setZone(userTimezone).plus({ days: i }).toJSDate();
     return day;
   });
   
   const today = new Date();
-  const isToday = (date: Date) => 
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear();
+  const isToday = (date: Date) => {
+    const dateInTz = DateTime.fromJSDate(date).setZone(userTimezone);
+    const todayInTz = DateTime.fromJSDate(today).setZone(userTimezone);
+    return dateInTz.hasSame(todayInTz, 'day');
+  };
   
-  // Group events by date
+  // Group events by date using Luxon for consistent timezone handling
   const eventsByDate: Record<string, Event[]> = {};
   events.forEach(event => {
-    const dateKey = event.startTime.toISOString().split('T')[0];
+    const dateKey = DateTime.fromJSDate(event.startTime).setZone(userTimezone).toISODate();
     if (!eventsByDate[dateKey]) {
       eventsByDate[dateKey] = [];
     }
@@ -70,7 +69,7 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
                   isToday(day) ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
                 }`}
               >
-                {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                {DateTime.fromJSDate(day).setZone(userTimezone).toFormat('ccc')}
               </div>
               <div 
                 className={`text-lg font-semibold ${
@@ -79,7 +78,7 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
                     : 'text-gray-900 dark:text-white'
                 }`}
               >
-                {day.getDate()}
+                {DateTime.fromJSDate(day).setZone(userTimezone).toFormat('d')}
               </div>
             </div>
           ))}
@@ -117,7 +116,7 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
             
             {/* Day columns */}
             {weekDays.map((day, dayIndex) => {
-              const dateKey = day.toISOString().split('T')[0];
+              const dateKey = DateTime.fromJSDate(day).setZone(userTimezone).toISODate();
               const dayEvents = eventsByDate[dateKey] || [];
               
               return (
@@ -126,8 +125,10 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
                   className="h-full border-r border-gray-200 dark:border-gray-700 relative"
                 >
                   {dayEvents.map((event, eventIndex) => {
-                    const startHour = event.startTime.getHours() + (event.startTime.getMinutes() / 60);
-                    const endHour = event.endTime.getHours() + (event.endTime.getMinutes() / 60);
+                    const startHour = DateTime.fromJSDate(event.startTime).setZone(userTimezone).hour + 
+                                     (DateTime.fromJSDate(event.startTime).setZone(userTimezone).minute / 60);
+                    const endHour = DateTime.fromJSDate(event.endTime).setZone(userTimezone).hour + 
+                                   (DateTime.fromJSDate(event.endTime).setZone(userTimezone).minute / 60);
                     const duration = endHour - startHour;
                     
                     return (
@@ -178,7 +179,7 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
             <div 
               className="absolute w-full border-t-2 border-red-500 z-10"
               style={{ 
-                top: `${(today.getHours() + today.getMinutes() / 60) * 48}px`,
+                top: `${(DateTime.now().setZone(userTimezone).hour + DateTime.now().setZone(userTimezone).minute / 60) * 48}px`,
                 left: 0,
                 right: 0
               }}

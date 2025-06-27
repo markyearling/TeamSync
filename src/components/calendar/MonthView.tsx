@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Event } from '../../types';
 import EventModal from '../events/EventModal';
+import { DateTime } from 'luxon';
 
 interface MonthViewProps {
   currentDate: Date;
@@ -11,13 +12,13 @@ interface MonthViewProps {
 const MonthView: React.FC<MonthViewProps> = ({ currentDate, events, userTimezone = 'UTC' }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   
-  // Calculate grid days for the month view
+  // Calculate grid days for the month view using Luxon for consistent timezone handling
   const getDaysInMonth = (year: number, month: number) => {
-    return new Date(year, month + 1, 0).getDate();
+    return DateTime.local(year, month + 1).setZone(userTimezone).daysInMonth || 31;
   };
   
   const getFirstDayOfMonth = (year: number, month: number) => {
-    return new Date(year, month, 1).getDay();
+    return DateTime.local(year, month + 1, 1).setZone(userTimezone).weekday % 7;
   };
   
   const year = currentDate.getFullYear();
@@ -35,16 +36,22 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events, userTimezone
   
   // Previous month days
   for (let i = 0; i < firstDayOfMonth; i++) {
+    const date = DateTime.local(prevMonthYear, prevMonth + 1, daysInPrevMonth - firstDayOfMonth + i + 1)
+      .setZone(userTimezone)
+      .toJSDate();
     calendarDays.push({
-      date: new Date(prevMonthYear, prevMonth, daysInPrevMonth - firstDayOfMonth + i + 1),
+      date,
       isCurrentMonth: false,
     });
   }
   
   // Current month days
   for (let i = 1; i <= daysInMonth; i++) {
+    const date = DateTime.local(year, month + 1, i)
+      .setZone(userTimezone)
+      .toJSDate();
     calendarDays.push({
-      date: new Date(year, month, i),
+      date,
       isCurrentMonth: true,
     });
   }
@@ -55,16 +62,19 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events, userTimezone
   const nextMonthYear = month === 11 ? year + 1 : year;
   
   for (let i = 1; i <= remainingDays; i++) {
+    const date = DateTime.local(nextMonthYear, nextMonth + 1, i)
+      .setZone(userTimezone)
+      .toJSDate();
     calendarDays.push({
-      date: new Date(nextMonthYear, nextMonth, i),
+      date,
       isCurrentMonth: false,
     });
   }
   
-  // Group events by date
+  // Group events by date using Luxon for consistent timezone handling
   const eventsByDate: Record<string, Event[]> = {};
   events.forEach(event => {
-    const dateKey = event.startTime.toISOString().split('T')[0];
+    const dateKey = DateTime.fromJSDate(event.startTime).setZone(userTimezone).toISODate();
     if (!eventsByDate[dateKey]) {
       eventsByDate[dateKey] = [];
     }
@@ -74,12 +84,9 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events, userTimezone
   return (
     <div className="grid grid-cols-7 h-full border-b border-gray-200 dark:border-gray-700">
       {calendarDays.map((day, index) => {
-        const dateKey = day.date.toISOString().split('T')[0];
+        const dateKey = DateTime.fromJSDate(day.date).setZone(userTimezone).toISODate();
         const dayEvents = eventsByDate[dateKey] || [];
-        const isToday = 
-          today.getDate() === day.date.getDate() &&
-          today.getMonth() === day.date.getMonth() &&
-          today.getFullYear() === day.date.getFullYear();
+        const isToday = DateTime.fromJSDate(today).setZone(userTimezone).toISODate() === dateKey;
           
         return (
           <div 
@@ -98,7 +105,7 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events, userTimezone
                       : 'text-gray-400 dark:text-gray-500'
                 }`}
               >
-                {day.date.getDate()}
+                {DateTime.fromJSDate(day.date).setZone(userTimezone).toFormat('d')}
               </span>
             </div>
             

@@ -13,25 +13,27 @@ interface AgendaViewProps {
 const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezone = 'UTC' }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   
-  // Get the start of the month
-  const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  // Get the start of the month using Luxon with proper timezone handling
+  const startOfMonthLuxon = DateTime.fromJSDate(currentDate).setZone(userTimezone).startOf('month');
+  const startOfMonth = startOfMonthLuxon.toJSDate();
   
-  // Get the end of the month
-  const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+  // Get the end of the month using Luxon with proper timezone handling
+  const endOfMonthLuxon = DateTime.fromJSDate(currentDate).setZone(userTimezone).endOf('month');
+  const endOfMonth = endOfMonthLuxon.toJSDate();
   
-  // Filter events for the current month
+  // Filter events for the current month using Luxon for consistent timezone handling
   const monthEvents = events.filter(event => {
-    const eventDate = event.startTime;
-    return eventDate >= startOfMonth && eventDate <= endOfMonth;
+    const eventDateLuxon = DateTime.fromJSDate(event.startTime).setZone(userTimezone);
+    return eventDateLuxon >= startOfMonthLuxon && eventDateLuxon <= endOfMonthLuxon;
   });
   
   // Sort events by date
   monthEvents.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   
-  // Group events by date
+  // Group events by date using Luxon for consistent timezone handling
   const eventsByDate: Record<string, Event[]> = {};
   monthEvents.forEach(event => {
-    const dateKey = event.startTime.toISOString().split('T')[0];
+    const dateKey = DateTime.fromJSDate(event.startTime).setZone(userTimezone).toISODate();
     if (!eventsByDate[dateKey]) {
       eventsByDate[dateKey] = [];
     }
@@ -39,7 +41,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
   });
   
   const dateKeys = Object.keys(eventsByDate).sort();
-  const today = new Date().toISOString().split('T')[0];
+  const today = DateTime.now().setZone(userTimezone).toISODate();
 
   // Format time with user's timezone
   const formatTime = (date: Date) => {
@@ -54,7 +56,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
     <div className="divide-y divide-gray-200 dark:divide-gray-700">
       {dateKeys.length > 0 ? (
         dateKeys.map(dateKey => {
-          const date = new Date(dateKey);
+          const dateLuxon = DateTime.fromISO(dateKey).setZone(userTimezone);
           const isToday = dateKey === today;
           
           return (
@@ -66,7 +68,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
                     isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
                   }`}
                 >
-                  {date.toLocaleDateString('en-US', { 
+                  {dateLuxon.toLocaleString({ 
                     weekday: 'long', 
                     month: 'long', 
                     day: 'numeric' 

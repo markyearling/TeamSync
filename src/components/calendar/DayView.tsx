@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Event } from '../../types';
-import { MapPin } from 'lucide-react';
+import { MapPin, Clock } from 'lucide-react';
 import EventModal from '../events/EventModal';
 import { DateTime } from 'luxon';
 
@@ -12,20 +12,16 @@ interface DayViewProps {
 
 const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = 'UTC' }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const today = new Date();
-  const isToday = 
-    currentDate.getDate() === today.getDate() &&
-    currentDate.getMonth() === today.getMonth() &&
-    currentDate.getFullYear() === today.getFullYear();
   
-  // Get events for the current day
+  // Check if the current date is today using Luxon with proper timezone handling
+  const todayLuxon = DateTime.now().setZone(userTimezone);
+  const currentDateLuxon = DateTime.fromJSDate(currentDate).setZone(userTimezone);
+  const isToday = currentDateLuxon.hasSame(todayLuxon, 'day');
+  
+  // Get events for the current day using Luxon for consistent timezone handling
   const dayEvents = events.filter(event => {
-    const eventDate = event.startTime;
-    return (
-      eventDate.getDate() === currentDate.getDate() &&
-      eventDate.getMonth() === currentDate.getMonth() &&
-      eventDate.getFullYear() === currentDate.getFullYear()
-    );
+    const eventDateLuxon = DateTime.fromJSDate(event.startTime).setZone(userTimezone);
+    return eventDateLuxon.hasSame(currentDateLuxon, 'day');
   });
   
   // Sort events by start time
@@ -50,7 +46,7 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = '
         <div className="flex-1 px-4 py-3">
           <div className="text-center">
             <div className="text-sm text-gray-500 dark:text-gray-400">
-              {currentDate.toLocaleDateString('en-US', { weekday: 'long' })}
+              {currentDateLuxon.toFormat('EEEE')}
             </div>
             <div className={`inline-flex items-center justify-center ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>
               <span 
@@ -58,7 +54,7 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = '
                   isToday ? 'bg-blue-600 text-white w-10 h-10 rounded-full flex items-center justify-center' : ''
                 }`}
               >
-                {currentDate.getDate()}
+                {currentDateLuxon.toFormat('d')}
               </span>
             </div>
           </div>
@@ -96,8 +92,10 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = '
             
             {/* Events */}
             {dayEvents.map((event, eventIndex) => {
-              const startHour = event.startTime.getHours() + (event.startTime.getMinutes() / 60);
-              const endHour = event.endTime.getHours() + (event.endTime.getMinutes() / 60);
+              const startHour = DateTime.fromJSDate(event.startTime).setZone(userTimezone).hour + 
+                               (DateTime.fromJSDate(event.startTime).setZone(userTimezone).minute / 60);
+              const endHour = DateTime.fromJSDate(event.endTime).setZone(userTimezone).hour + 
+                             (DateTime.fromJSDate(event.endTime).setZone(userTimezone).minute / 60);
               const duration = endHour - startHour;
               
               return (
@@ -159,7 +157,7 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = '
               <div 
                 className="absolute w-full border-t-2 border-red-500 z-10"
                 style={{ 
-                  top: `${(today.getHours() + today.getMinutes() / 60) * 48}px`,
+                  top: `${(DateTime.now().setZone(userTimezone).hour + DateTime.now().setZone(userTimezone).minute / 60) * 48}px`,
                   left: 0,
                   right: 0
                 }}
