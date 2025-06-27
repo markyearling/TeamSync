@@ -23,7 +23,7 @@ const SignIn: React.FC = () => {
     };
 
     checkConnection();
-
+    
     // Check for error message in location state
     if (location.state?.error) {
       setError(location.state.error);
