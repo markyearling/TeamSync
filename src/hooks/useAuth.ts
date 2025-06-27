@@ -18,12 +18,8 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[useAuth.ts] Auth state changed:', event, session ? 'Session exists' : 'No session');
       
-      // Don't update user state if this is a password recovery event
-      if (event === 'PASSWORD_RECOVERY') {
-        console.log('[useAuth.ts] Password recovery flow detected, not updating user state');
-        return;
-      }
-      
+      // Always update the user state based on the current session
+      // This ensures password recovery and other auth events are properly handled
       setUser(session?.user ?? null);
       setLoading(false);
     });
