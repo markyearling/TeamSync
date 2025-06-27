@@ -1,5 +1,5 @@
 import React, { Suspense, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Calendar from './pages/Calendar';
@@ -68,12 +68,26 @@ const ErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
+
+  // Log the current path and authentication state
+  console.log(`[ProtectedRoute] Path: ${location.pathname}, User: ${user ? 'Authenticated' : 'Not authenticated'}, Loading: ${loading}`);
+
+  // Special case for reset password and auth callback routes
+  const isAuthRoute = location.pathname.includes('/auth/reset-password') || 
+                      location.pathname.includes('/auth/callback');
+  
+  if (isAuthRoute) {
+    console.log(`[ProtectedRoute] Auth route detected (${location.pathname}), bypassing protection`);
+    return <>{children}</>;
+  }
 
   if (loading) {
     return <LoadingSpinner />;
   }
 
   if (!user) {
+    console.log('[ProtectedRoute] No user, redirecting to sign in');
     return <Navigate to="/auth/signin" replace />;
   }
 

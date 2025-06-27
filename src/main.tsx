@@ -14,9 +14,16 @@ const reactRoot = createRoot(root);
 
 // Initialize Supabase auth state
 supabase.auth.onAuthStateChange((event, session) => {
+  console.log('[main.tsx] Auth state changed:', event, session ? 'Session exists' : 'No session');
+  
   if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
     // Delete any existing auth data
     window.localStorage.removeItem('supabase.auth.token');
+  }
+  
+  // Log if this is a password recovery flow
+  if (event === 'PASSWORD_RECOVERY') {
+    console.log('[main.tsx] Password recovery flow detected');
   }
 });
 
