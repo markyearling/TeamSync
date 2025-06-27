@@ -40,6 +40,13 @@ const SignIn: React.FC = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
+        // Check if we're in the reset password flow
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/auth/reset-password')) {
+          // Don't navigate away from reset password page
+          return;
+        }
+        
         navigate(returnTo);
       }
       setError(null);
