@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
+import { Loader2 } from 'lucide-react';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ const AuthCallback = () => {
             
             // Navigate to reset password page with tokens
             navigate(`/auth/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}`);
+            return;
           } catch (sessionError) {
             console.error('Error setting session:', sessionError);
             navigate('/auth/signin', { 
@@ -43,8 +45,8 @@ const AuthCallback = () => {
                 error: 'Invalid or expired reset link. Please request a new password reset.' 
               } 
             });
+            return;
           }
-          return;
         }
 
         // Check if there's a hash in the URL (Supabase sometimes appends tokens to the hash)
@@ -77,6 +79,7 @@ const AuthCallback = () => {
               
               // Navigate to reset password page with tokens
               navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`);
+              return;
             } catch (sessionError) {
               console.error('Error setting session from hash:', sessionError);
               navigate('/auth/signin', { 
@@ -84,8 +87,8 @@ const AuthCallback = () => {
                   error: 'Invalid or expired reset link. Please request a new password reset.' 
                 } 
               });
+              return;
             }
-            return;
           }
         }
 
@@ -120,8 +123,11 @@ const AuthCallback = () => {
   }, [navigate, searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+      <div className="text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400 mx-auto mb-4" />
+        <p className="text-gray-600 dark:text-gray-400">Processing authentication...</p>
+      </div>
     </div>
   );
 };
