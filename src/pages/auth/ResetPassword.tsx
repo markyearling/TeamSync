@@ -26,10 +26,15 @@ const ResetPassword: React.FC = () => {
       return;
     }
 
-    // Set the session with the tokens from the URL
-    supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
+    // Ensure any existing session is cleared first
+    supabase.auth.signOut().then(() => {
+      console.log('Existing session cleared before setting up password reset session');
+      
+      // Set the session with the tokens from the URL
+      return supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
     }).then(({ error }) => {
       if (error) {
         console.error('Error setting session:', error);
