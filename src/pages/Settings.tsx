@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Globe, Lock, Mail, Moon, Sun, User, Phone, Calendar as CalendarIcon, Plus, Trash2, Save, Clock } from 'lucide-react';
+import { Bell, Globe, Lock, Mail, Moon, Sun, User, Phone, Calendar as CalendarIcon, Plus, Trash2, Save, Clock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
 import { saveSettings, supabase } from '../lib/supabase';
@@ -37,6 +37,16 @@ const Settings: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [timezones, setTimezones] = useState<string[]>([]);
+  
+  // Password change state
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -146,8 +156,69 @@ const Settings: React.FC = () => {
     setHasUnsavedChanges(true);
   };
 
-  const handleChangePassword = () => {
-    navigate('/auth/forgot-password');
+  const validatePassword = (password: string): string | null => {
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters long';
+    }
+    if (!/[A-Z]/.test(password)) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!/[a-z]/.test(password)) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!/[0-9]/.test(password)) {
+      return 'Password must contain at least one number';
+    }
+    return null;
+  };
+
+  const handleChangePassword = async () => {
+    // Reset states
+    setPasswordError(null);
+    setPasswordSuccess(null);
+    
+    // Validate passwords
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match');
+      return;
+    }
+    
+    const validationError = validatePassword(newPassword);
+    if (validationError) {
+      setPasswordError(validationError);
+      return;
+    }
+    
+    setIsChangingPassword(true);
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+      
+      // Success
+      setPasswordSuccess('Password updated successfully! You will be signed out for security reasons.');
+      setNewPassword('');
+      setConfirmPassword('');
+      
+      // Sign out after 3 seconds
+      setTimeout(async () => {
+        await supabase.auth.signOut();
+        navigate('/auth/signin', { 
+          state: { 
+            message: 'Your password has been updated. Please sign in with your new password.' 
+          } 
+        });
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error updating password:', error);
+      setPasswordError(error instanceof Error ? error.message : 'Failed to update password');
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   return (
@@ -209,78 +280,7 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
               </div>
-{/*
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Notifications</h2>
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notification Methods</h3>
-                    <div className="space-y-2">
-                      <label className="flex items-center">
-                        <input 
-                          type="checkbox" 
-                          checked={settings.email_notifications}
-                          onChange={(e) => handleInputChange('email_notifications', e.target.checked)}
-                          className="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700" 
-                        />
-                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Email notifications</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input 
-                          type="checkbox" 
-                          checked={settings.sms_notifications}
-                          onChange={(e) => handleInputChange('sms_notifications', e.target.checked)}
-                          className="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700" 
-                        />
-                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">SMS notifications</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input 
-                          type="checkbox" 
-                          checked={settings.in_app_notifications}
-                          onChange={(e) => handleInputChange('in_app_notifications', e.target.checked)}
-                          className="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700" 
-                        />
-                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">In-app notifications</span>
-                      </label>
-                    </div>
-                  </div>
 
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notification Types</h3>
-                    <div className="space-y-2">
-                      <label className="flex items-center">
-                        <input 
-                          type="checkbox" 
-                          checked={settings.schedule_updates}
-                          onChange={(e) => handleInputChange('schedule_updates', e.target.checked)}
-                          className="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700" 
-                        />
-                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Schedule updates</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input 
-                          type="checkbox" 
-                          checked={settings.team_communications}
-                          onChange={(e) => handleInputChange('team_communications', e.target.checked)}
-                          className="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700" 
-                        />
-                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">Team communications</span>
-                      </label>
-                      <label className="flex items-center">
-                        <input 
-                          type="checkbox" 
-                          checked={settings.all_notifications}
-                          onChange={(e) => handleInputChange('all_notifications', e.target.checked)}
-                          className="rounded text-blue-600 focus:ring-blue-500 dark:bg-gray-700" 
-                        />
-                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">All notifications</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-*/}
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Additional Email Addresses</h3>
                 <div className="space-y-2">
@@ -351,35 +351,108 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
               </div>
-{/*
+
+              {/* Password Change Section */}
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Calendar Sync</h3>
-                <div className="space-y-2">
-                  <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    <CalendarIcon className="h-5 w-5 mr-2 text-red-600 dark:text-red-400" />
-                    Sync with Google Calendar
-                  </button>
-                  <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    <CalendarIcon className="h-5 w-5 mr-2" />
-                    Sync with Apple Calendar
-                  </button>
-                </div>
-              </div>
-*/}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Lock className="h-5 w-5 text-gray-400 mr-3" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Password</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Update your password</p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Lock className="h-5 w-5 text-gray-400 mr-3" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Password</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Update your password</p>
+                    </div>
                   </div>
+                  <button 
+                    onClick={() => setShowPasswordSection(!showPasswordSection)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500"
+                  >
+                    {showPasswordSection ? 'Cancel' : 'Change'}
+                  </button>
                 </div>
-                <button 
-                  onClick={handleChangePassword}
-                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500"
-                >
-                  Change
-                </button>
+
+                {showPasswordSection && (
+                  <div className="mt-4 space-y-4 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    {passwordSuccess && (
+                      <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-md p-4 flex items-start">
+                        <CheckCircle className="h-5 w-5 text-green-400 dark:text-green-300 mt-0.5 mr-3" />
+                        <p className="text-sm text-green-700 dark:text-green-300">{passwordSuccess}</p>
+                      </div>
+                    )}
+
+                    {passwordError && (
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4 flex items-start">
+                        <AlertCircle className="h-5 w-5 text-red-400 dark:text-red-300 mt-0.5 mr-3" />
+                        <p className="text-sm text-red-700 dark:text-red-300">{passwordError}</p>
+                      </div>
+                    )}
+
+                    <div>
+                      <label htmlFor="new-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        New Password
+                      </label>
+                      <div className="mt-1 relative rounded-md shadow-sm">
+                        <input
+                          id="new-password"
+                          type={showPassword ? "text" : "password"}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="block w-full pr-10 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                          placeholder="Enter new password"
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Password must be at least 8 characters with uppercase, lowercase, and number
+                      </p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Confirm New Password
+                      </label>
+                      <div className="mt-1 relative rounded-md shadow-sm">
+                        <input
+                          id="confirm-password"
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="block w-full pr-10 rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                          placeholder="Confirm new password"
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        onClick={handleChangePassword}
+                        disabled={isChangingPassword || !newPassword || !confirmPassword}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                      >
+                        {isChangingPassword ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                            Updating...
+                          </>
+                        ) : (
+                          'Update Password'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between">
