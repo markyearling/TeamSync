@@ -1,30 +1,43 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Check if there's a hash in the URL (Supabase appends tokens to the hash)
+        // First, check for password reset tokens in the URL query parameters
+        const accessToken = searchParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token');
+        const type = searchParams.get('type');
+
+        // If this is a password recovery flow with tokens in the query parameters
+        if (type === 'recovery' && accessToken && refreshToken) {
+          console.log('Password reset flow detected in query params');
+          navigate(`/auth/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}`);
+          return;
+        }
+
+        // Check if there's a hash in the URL (Supabase sometimes appends tokens to the hash)
         if (window.location.hash) {
           // Parse the hash parameters (remove the leading '#')
           const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const type = hashParams.get('type');
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
+          const hashType = hashParams.get('type');
+          const hashAccessToken = hashParams.get('access_token');
+          const hashRefreshToken = hashParams.get('refresh_token');
 
-          // If this is a password recovery flow
-          if (type === 'recovery' && accessToken && refreshToken) {
-            // Navigate to reset password page with the tokens
-            navigate(`/auth/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}`);
+          // If this is a password recovery flow with tokens in the hash
+          if (hashType === 'recovery' && hashAccessToken && hashRefreshToken) {
+            console.log('Password reset flow detected in hash');
+            navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`);
             return;
           }
         }
 
-        // For normal sign-in flows or if no hash parameters found
+        // For normal sign-in flows or if no recovery parameters found
         const { data } = await supabase.auth.getSession();
         if (data.session) {
           navigate('/');
@@ -38,7 +51,7 @@ const AuthCallback = () => {
     };
 
     handleCallback();
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

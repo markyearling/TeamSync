@@ -28,6 +28,11 @@ const ResetPassword: React.FC = () => {
     supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken,
+    }).then(({ error }) => {
+      if (error) {
+        console.error('Error setting session:', error);
+        setError('Invalid or expired reset link. Please request a new password reset.');
+      }
     });
   }, [searchParams]);
 
