@@ -16,11 +16,39 @@ const ResetPassword: React.FC = () => {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
+    // Log the full URL and search parameters for debugging
+    console.log('ResetPassword: Full URL:', window.location.href);
+    console.log('ResetPassword: URL hash:', window.location.hash);
+    console.log('ResetPassword: URL search params:', window.location.search);
+    
     // Check if we have the required tokens from the URL
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
     
+    console.log('ResetPassword: access_token from searchParams:', accessToken);
+    console.log('ResetPassword: refresh_token from searchParams:', refreshToken);
+    
+    // Check if tokens might be in the hash fragment
+    if (window.location.hash) {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const hashAccessToken = hashParams.get('access_token');
+      const hashRefreshToken = hashParams.get('refresh_token');
+      
+      console.log('ResetPassword: access_token from hash:', hashAccessToken);
+      console.log('ResetPassword: refresh_token from hash:', hashRefreshToken);
+      
+      // If tokens are in the hash but not in search params, use them
+      if (hashAccessToken && hashRefreshToken && (!accessToken || !refreshToken)) {
+        console.log('ResetPassword: Using tokens from hash instead of search params');
+        
+        // Redirect to the same page but with tokens in search params
+        navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`, { replace: true });
+        return;
+      }
+    }
+    
     if (!accessToken || !refreshToken) {
+      console.error('ResetPassword: Missing required tokens');
       setError('Invalid or expired reset link. Please request a new password reset.');
       setInitializing(false);
       return;
@@ -28,6 +56,8 @@ const ResetPassword: React.FC = () => {
 
     const setupResetSession = async () => {
       try {
+        console.log('ResetPassword: Setting up reset session with tokens');
+        
         // Explicitly clear any stored tokens from localStorage
         localStorage.removeItem('supabase.auth.token');
         localStorage.removeItem('sb-refresh-token');
@@ -35,20 +65,24 @@ const ResetPassword: React.FC = () => {
         
         // Ensure any existing session is cleared first
         await supabase.auth.signOut();
-        console.log('Existing session cleared before setting up password reset session');
+        console.log('ResetPassword: Existing session cleared before setting up password reset session');
         
         // Set the session with the tokens from the URL
-        const { error } = await supabase.auth.setSession({
+        const { data, error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
 
+        console.log('ResetPassword: setSession result:', { data, error });
+
         if (error) {
-          console.error('Error setting session:', error);
+          console.error('ResetPassword: Error setting session:', error);
           setError('Invalid or expired reset link. Please request a new password reset.');
+        } else {
+          console.log('ResetPassword: Session set successfully');
         }
       } catch (err) {
-        console.error('Exception setting session:', err);
+        console.error('ResetPassword: Exception setting session:', err);
         setError('Invalid or expired reset link. Please request a new password reset.');
       } finally {
         setInitializing(false);
@@ -56,7 +90,7 @@ const ResetPassword: React.FC = () => {
     };
 
     setupResetSession();
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) {
@@ -94,14 +128,19 @@ const ResetPassword: React.FC = () => {
     setLoading(true);
 
     try {
+      console.log('ResetPassword: Updating password');
+      
       // Update the user's password
-      const { error } = await supabase.auth.updateUser({
+      const { data, error } = await supabase.auth.updateUser({
         password: password
       });
+
+      console.log('ResetPassword: updateUser result:', { data, error });
 
       if (error) throw error;
 
       // Password updated successfully, now sign out to force re-authentication
+      console.log('ResetPassword: Password updated successfully, signing out');
       await supabase.auth.signOut();
       
       // Explicitly clear any stored tokens from localStorage again
@@ -121,6 +160,7 @@ const ResetPassword: React.FC = () => {
       }, 3000);
 
     } catch (err) {
+      console.error('ResetPassword: Error updating password:', err);
       setError(err instanceof Error ? err.message : 'An error occurred while updating your password');
     } finally {
       setLoading(false);
