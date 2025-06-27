@@ -146,6 +146,10 @@ const Settings: React.FC = () => {
     setHasUnsavedChanges(true);
   };
 
+  const handleChangePassword = () => {
+    navigate('/auth/forgot-password');
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -371,7 +375,7 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
                 <button 
-                  onClick={() => setHasUnsavedChanges(true)}
+                  onClick={handleChangePassword}
                   className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500"
                 >
                   Change
