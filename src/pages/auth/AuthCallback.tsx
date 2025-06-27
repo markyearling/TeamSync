@@ -17,13 +17,33 @@ const AuthCallback = () => {
         // If this is a password recovery flow with tokens in the query parameters
         if (type === 'recovery' && accessToken && refreshToken) {
           console.log('Password reset flow detected in query params');
-          // Set the session with the tokens
-          await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-          // Navigate to reset password page with tokens
-          navigate(`/auth/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}`);
+          try {
+            // Set the session with the tokens
+            const { error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+            
+            if (error) {
+              console.error('Error setting session:', error);
+              navigate('/auth/signin', { 
+                state: { 
+                  error: `Error setting session: ${error.message}. Please request a new password reset.` 
+                } 
+              });
+              return;
+            }
+            
+            // Navigate to reset password page with tokens
+            navigate(`/auth/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}`);
+          } catch (sessionError) {
+            console.error('Error setting session:', sessionError);
+            navigate('/auth/signin', { 
+              state: { 
+                error: 'Invalid or expired reset link. Please request a new password reset.' 
+              } 
+            });
+          }
           return;
         }
 
@@ -38,19 +58,49 @@ const AuthCallback = () => {
           // If this is a password recovery flow with tokens in the hash
           if (hashType === 'recovery' && hashAccessToken && hashRefreshToken) {
             console.log('Password reset flow detected in hash');
-            // Set the session with the tokens
-            await supabase.auth.setSession({
-              access_token: hashAccessToken,
-              refresh_token: hashRefreshToken,
-            });
-            // Navigate to reset password page with tokens
-            navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`);
+            try {
+              // Set the session with the tokens
+              const { error } = await supabase.auth.setSession({
+                access_token: hashAccessToken,
+                refresh_token: hashRefreshToken,
+              });
+              
+              if (error) {
+                console.error('Error setting session from hash:', error);
+                navigate('/auth/signin', { 
+                  state: { 
+                    error: `Error setting session: ${error.message}. Please request a new password reset.` 
+                  } 
+                });
+                return;
+              }
+              
+              // Navigate to reset password page with tokens
+              navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`);
+            } catch (sessionError) {
+              console.error('Error setting session from hash:', sessionError);
+              navigate('/auth/signin', { 
+                state: { 
+                  error: 'Invalid or expired reset link. Please request a new password reset.' 
+                } 
+              });
+            }
             return;
           }
         }
 
         // For normal sign-in flows or if no recovery parameters found
-        const { data } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting session:', error);
+          navigate('/auth/signin', { 
+            state: { 
+              error: 'Authentication error. Please sign in again.' 
+            } 
+          });
+          return;
+        }
+        
         if (data.session) {
           navigate('/');
         } else {
@@ -58,7 +108,11 @@ const AuthCallback = () => {
         }
       } catch (error) {
         console.error('Error in auth callback:', error);
-        navigate('/auth/signin');
+        navigate('/auth/signin', { 
+          state: { 
+            error: error instanceof Error ? error.message : 'An unexpected error occurred during authentication.' 
+          } 
+        });
       }
     };
 

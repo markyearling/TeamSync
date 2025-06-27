@@ -33,6 +33,9 @@ const ResetPassword: React.FC = () => {
         console.error('Error setting session:', error);
         setError('Invalid or expired reset link. Please request a new password reset.');
       }
+    }).catch(err => {
+      console.error('Exception setting session:', err);
+      setError('Invalid or expired reset link. Please request a new password reset.');
     });
   }, [searchParams]);
 

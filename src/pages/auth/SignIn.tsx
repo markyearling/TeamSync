@@ -24,6 +24,20 @@ const SignIn: React.FC = () => {
 
     checkConnection();
 
+    // Check for error message in location state
+    if (location.state?.error) {
+      setError(location.state.error);
+      // Clear the error from location state to prevent it from persisting
+      window.history.replaceState({}, document.title);
+    }
+
+    // Check for success message in location state
+    if (location.state?.message) {
+      // You could set a success message here if needed
+      // Clear the message from location state
+      window.history.replaceState({}, document.title);
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         navigate(returnTo);
@@ -32,7 +46,7 @@ const SignIn: React.FC = () => {
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, returnTo]);
+  }, [navigate, returnTo, location.state]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +102,10 @@ const SignIn: React.FC = () => {
 
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded relative" role="alert">
-              <p className="text-sm">{error}</p>
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 mr-2" />
+                <p className="text-sm">{error}</p>
+              </div>
             </div>
           )}
 
