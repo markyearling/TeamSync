@@ -138,34 +138,32 @@ const AppContent = () => {
   }
 
   return (
-    <Router>
-      <Routes>
-        <Route path="/auth/signin" element={<SignIn />} />
-        <Route path="/auth/signup" element={<SignUp />} />
-        <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-        <Route path="/auth/reset-password" element={<ResetPassword />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/connections/teamsnap/callback" element={<TeamSnapCallback />} />
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Dashboard />} />
-          <Route path="calendar" element={<Calendar />} />
-          <Route path="connections" element={<Connections />} />
-          <Route path="connections/teamsnap" element={<TeamSnapConnection />} />
-          <Route path="connections/playmetrics" element={<Playmetrics />} />
-          <Route path="connections/sportsengine" element={<SportsEngineConnection />} />
-          <Route path="connections/gamechanger" element={<GameChangerConnection />} />
-          <Route path="profiles" element={<Profiles />} />
-          <Route path="profiles/:id" element={<ChildProfile />} />
-          <Route path="friends" element={<Friends />} />
-          <Route path="settings" element={<Settings />} />
-          <Route path="*" element={<NotFound />} />
-        </Route>
-      </Routes>
-    </Router>
+    <Routes>
+      <Route path="/auth/signin" element={<SignIn />} />
+      <Route path="/auth/signup" element={<SignUp />} />
+      <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+      <Route path="/auth/reset-password" element={<ResetPassword />} />
+      <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/connections/teamsnap/callback" element={<TeamSnapCallback />} />
+      <Route path="/" element={
+        <ProtectedRoute>
+          <Layout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<Dashboard />} />
+        <Route path="calendar" element={<Calendar />} />
+        <Route path="connections" element={<Connections />} />
+        <Route path="connections/teamsnap" element={<TeamSnapConnection />} />
+        <Route path="connections/playmetrics" element={<Playmetrics />} />
+        <Route path="connections/sportsengine" element={<SportsEngineConnection />} />
+        <Route path="connections/gamechanger" element={<GameChangerConnection />} />
+        <Route path="profiles" element={<Profiles />} />
+        <Route path="profiles/:id" element={<ChildProfile />} />
+        <Route path="friends" element={<Friends />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="*" element={<NotFound />} />
+      </Route>
+    </Routes>
   );
 };
 
@@ -173,17 +171,19 @@ export default function App() {
   return (
     <ErrorBoundary>
       <div className="min-h-screen min-w-full bg-gray-50 dark:bg-gray-900">
-        <ThemeProvider>
-          <AppProvider>
-            <ProfilesProvider>
-              <MobileOptimizations>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <AppContent />
-                </Suspense>
-              </MobileOptimizations>
-            </ProfilesProvider>
-          </AppProvider>
-        </ThemeProvider>
+        <Router>
+          <ThemeProvider>
+            <AppProvider>
+              <ProfilesProvider>
+                <MobileOptimizations>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AppContent />
+                  </Suspense>
+                </MobileOptimizations>
+              </ProfilesProvider>
+            </AppProvider>
+          </ThemeProvider>
+        </Router>
       </div>
     </ErrorBoundary>
   );

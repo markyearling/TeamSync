@@ -3,9 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '../../lib/supabase';
+import { useTheme } from '../../context/ThemeContext';
 
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
+  const { isAuthPage } = useTheme();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {

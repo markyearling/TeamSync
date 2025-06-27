@@ -2,10 +2,12 @@ import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { Loader2 } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 const AuthCallback = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { isAuthPage } = useTheme();
 
   useEffect(() => {
     const handleCallback = async () => {
@@ -91,10 +93,10 @@ const AuthCallback = () => {
   }, [navigate, searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-600 dark:text-blue-400 mx-auto mb-4" />
-        <p className="text-gray-600 dark:text-gray-400">Processing authentication...</p>
+        <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+        <p className="text-gray-600">Processing authentication...</p>
       </div>
     </div>
   );
