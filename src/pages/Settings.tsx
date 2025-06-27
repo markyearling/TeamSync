@@ -205,7 +205,7 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
               </div>
-
+{/*
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                 <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Notifications</h2>
                 <div className="space-y-4">
@@ -276,7 +276,7 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
               </div>
-
+*/}
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Additional Email Addresses</h3>
                 <div className="space-y-2">
