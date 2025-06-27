@@ -19,7 +19,12 @@ const AuthCallback = () => {
         if (type === 'recovery' && accessToken && refreshToken) {
           console.log('Password reset flow detected in query params');
           
-          // Clear any existing session first
+          // Explicitly clear any stored tokens from localStorage
+          localStorage.removeItem('supabase.auth.token');
+          localStorage.removeItem('sb-refresh-token');
+          localStorage.removeItem('sb-access-token');
+          
+          // Clear any existing session
           await supabase.auth.signOut();
           console.log('Existing session cleared for password reset');
           
@@ -40,7 +45,12 @@ const AuthCallback = () => {
           if (hashType === 'recovery' && hashAccessToken && hashRefreshToken) {
             console.log('Password reset flow detected in hash');
             
-            // Clear any existing session first
+            // Explicitly clear any stored tokens from localStorage
+            localStorage.removeItem('supabase.auth.token');
+            localStorage.removeItem('sb-refresh-token');
+            localStorage.removeItem('sb-access-token');
+            
+            // Clear any existing session
             await supabase.auth.signOut();
             console.log('Existing session cleared for password reset');
             

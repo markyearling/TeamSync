@@ -26,26 +26,36 @@ const ResetPassword: React.FC = () => {
       return;
     }
 
-    // Ensure any existing session is cleared first
-    supabase.auth.signOut().then(() => {
-      console.log('Existing session cleared before setting up password reset session');
-      
-      // Set the session with the tokens from the URL
-      return supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-    }).then(({ error }) => {
-      if (error) {
-        console.error('Error setting session:', error);
+    const setupResetSession = async () => {
+      try {
+        // Explicitly clear any stored tokens from localStorage
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('sb-refresh-token');
+        localStorage.removeItem('sb-access-token');
+        
+        // Ensure any existing session is cleared first
+        await supabase.auth.signOut();
+        console.log('Existing session cleared before setting up password reset session');
+        
+        // Set the session with the tokens from the URL
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        if (error) {
+          console.error('Error setting session:', error);
+          setError('Invalid or expired reset link. Please request a new password reset.');
+        }
+      } catch (err) {
+        console.error('Exception setting session:', err);
         setError('Invalid or expired reset link. Please request a new password reset.');
+      } finally {
+        setInitializing(false);
       }
-      setInitializing(false);
-    }).catch(err => {
-      console.error('Exception setting session:', err);
-      setError('Invalid or expired reset link. Please request a new password reset.');
-      setInitializing(false);
-    });
+    };
+
+    setupResetSession();
   }, [searchParams]);
 
   const validatePassword = (pwd: string): string | null => {
@@ -93,6 +103,11 @@ const ResetPassword: React.FC = () => {
 
       // Password updated successfully, now sign out to force re-authentication
       await supabase.auth.signOut();
+      
+      // Explicitly clear any stored tokens from localStorage again
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('sb-refresh-token');
+      localStorage.removeItem('sb-access-token');
       
       setSuccess(true);
       
