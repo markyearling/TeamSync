@@ -17,6 +17,12 @@ const AuthCallback = () => {
         // If this is a password recovery flow with tokens in the query parameters
         if (type === 'recovery' && accessToken && refreshToken) {
           console.log('Password reset flow detected in query params');
+          // Set the session with the tokens
+          await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+          // Navigate to reset password page with tokens
           navigate(`/auth/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}`);
           return;
         }
@@ -32,6 +38,12 @@ const AuthCallback = () => {
           // If this is a password recovery flow with tokens in the hash
           if (hashType === 'recovery' && hashAccessToken && hashRefreshToken) {
             console.log('Password reset flow detected in hash');
+            // Set the session with the tokens
+            await supabase.auth.setSession({
+              access_token: hashAccessToken,
+              refresh_token: hashRefreshToken,
+            });
+            // Navigate to reset password page with tokens
             navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`);
             return;
           }
