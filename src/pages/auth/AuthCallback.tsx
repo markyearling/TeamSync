@@ -18,35 +18,10 @@ const AuthCallback = () => {
         // If this is a password recovery flow with tokens in the query parameters
         if (type === 'recovery' && accessToken && refreshToken) {
           console.log('Password reset flow detected in query params');
-          try {
-            // Set the session with the tokens
-            const { error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            });
-            
-            if (error) {
-              console.error('Error setting session:', error);
-              navigate('/auth/signin', { 
-                state: { 
-                  error: `Error setting session: ${error.message}. Please request a new password reset.` 
-                } 
-              });
-              return;
-            }
-            
-            // Navigate to reset password page with tokens
-            navigate(`/auth/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}`);
-            return;
-          } catch (sessionError) {
-            console.error('Error setting session:', sessionError);
-            navigate('/auth/signin', { 
-              state: { 
-                error: 'Invalid or expired reset link. Please request a new password reset.' 
-              } 
-            });
-            return;
-          }
+          
+          // Instead of setting the session, just navigate to reset password with tokens
+          navigate(`/auth/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}`);
+          return;
         }
 
         // Check if there's a hash in the URL (Supabase sometimes appends tokens to the hash)
@@ -60,35 +35,10 @@ const AuthCallback = () => {
           // If this is a password recovery flow with tokens in the hash
           if (hashType === 'recovery' && hashAccessToken && hashRefreshToken) {
             console.log('Password reset flow detected in hash');
-            try {
-              // Set the session with the tokens
-              const { error } = await supabase.auth.setSession({
-                access_token: hashAccessToken,
-                refresh_token: hashRefreshToken,
-              });
-              
-              if (error) {
-                console.error('Error setting session from hash:', error);
-                navigate('/auth/signin', { 
-                  state: { 
-                    error: `Error setting session: ${error.message}. Please request a new password reset.` 
-                  } 
-                });
-                return;
-              }
-              
-              // Navigate to reset password page with tokens
-              navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`);
-              return;
-            } catch (sessionError) {
-              console.error('Error setting session from hash:', sessionError);
-              navigate('/auth/signin', { 
-                state: { 
-                  error: 'Invalid or expired reset link. Please request a new password reset.' 
-                } 
-              });
-              return;
-            }
+            
+            // Instead of setting the session, just navigate to reset password with tokens
+            navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`);
+            return;
           }
         }
 

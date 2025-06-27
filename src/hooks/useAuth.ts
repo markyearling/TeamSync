@@ -15,11 +15,11 @@ export function useAuth() {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('[useAuth.ts] Auth state changed:', _event, session ? 'Session exists' : 'No session');
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[useAuth.ts] Auth state changed:', event, session ? 'Session exists' : 'No session');
       
       // Don't update user state if this is a password recovery event
-      if (_event === 'PASSWORD_RECOVERY') {
+      if (event === 'PASSWORD_RECOVERY') {
         console.log('[useAuth.ts] Password recovery flow detected, not updating user state');
         return;
       }
