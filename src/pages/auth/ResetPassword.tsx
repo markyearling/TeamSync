@@ -17,23 +17,9 @@ const ResetPassword: React.FC = () => {
   useEffect(() => {
     // Check if we have the required token from the URL
     const token = searchParams.get('token');
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
     
-    if (!token && !accessToken) {
+    if (!token) {
       setError('Invalid or expired reset link. Please request a new password reset.');
-      return;
-    }
-
-    // If we have access_token and refresh_token, set the session
-    if (accessToken) {
-      supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken || '',
-      }).catch(err => {
-        console.error('Error setting session:', err);
-        setError('Invalid or expired reset link. Please request a new password reset.');
-      });
     }
   }, [searchParams]);
 
@@ -76,23 +62,18 @@ const ResetPassword: React.FC = () => {
       // Get the token from the URL
       const token = searchParams.get('token');
       
-      if (token) {
-        // If we have a token, use the recovery flow
-        const { error } = await supabase.auth.verifyOtp({
-          token_hash: token,
-          type: 'recovery',
-          new_password: password
-        });
-
-        if (error) throw error;
-      } else {
-        // Otherwise use the updateUser method (for access_token flow)
-        const { error } = await supabase.auth.updateUser({
-          password: password
-        });
-
-        if (error) throw error;
+      if (!token) {
+        throw new Error('Reset token not found');
       }
+
+      // Use the recovery flow with the token
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'recovery',
+        new_password: password
+      });
+
+      if (error) throw error;
 
       setSuccess(true);
       
