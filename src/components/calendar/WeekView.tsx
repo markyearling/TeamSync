@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Event } from '../../types';
 import EventModal from '../events/EventModal';
+import { DateTime } from 'luxon';
 
 interface WeekViewProps {
   currentDate: Date;
@@ -13,9 +14,10 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
   
   // Get the start of the week (Sunday)
   const getStartOfWeek = (date: Date) => {
-    const day = date.getDay();
-    const diff = date.getDate() - day;
-    return new Date(date.setDate(diff));
+    const newDate = new Date(date);
+    const day = newDate.getDay();
+    const diff = newDate.getDate() - day;
+    return new Date(newDate.setDate(diff));
   };
   
   const startOfWeek = getStartOfWeek(new Date(currentDate));
@@ -43,6 +45,15 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
   
   // Generate time slots
   const timeSlots = Array.from({ length: 24 }, (_, i) => i);
+
+  // Format time with user's timezone
+  const formatTime = (date: Date) => {
+    return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString({
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -139,16 +150,7 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
                             )}
                           </div>
                           <div className="text-gray-600 dark:text-gray-300 text-xs mt-0.5">
-                            {event.startTime.toLocaleTimeString('en-US', { 
-                              hour: 'numeric', 
-                              minute: '2-digit',
-                              timeZone: userTimezone
-                            })} - 
-                            {event.endTime.toLocaleTimeString('en-US', { 
-                              hour: 'numeric', 
-                              minute: '2-digit',
-                              timeZone: userTimezone
-                            })}
+                            {formatTime(event.startTime)} - {formatTime(event.endTime)}
                           </div>
                           {duration > 0.75 && (
                             <div className="text-gray-600 dark:text-gray-300 text-xs mt-0.5 flex items-center">
@@ -193,6 +195,7 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
           onClose={() => setSelectedEvent(null)}
           mapsLoaded={true}
           mapsLoadError={undefined}
+          userTimezone={userTimezone}
         />
       )}
     </div>

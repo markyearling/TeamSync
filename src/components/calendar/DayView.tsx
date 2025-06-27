@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Event } from '../../types';
 import { MapPin } from 'lucide-react';
 import EventModal from '../events/EventModal';
+import { DateTime } from 'luxon';
 
 interface DayViewProps {
   currentDate: Date;
@@ -32,6 +33,15 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = '
   
   // Generate time slots
   const timeSlots = Array.from({ length: 24 }, (_, i) => i);
+
+  // Format time with user's timezone
+  const formatTime = (date: Date) => {
+    return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString({
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -116,16 +126,7 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = '
                       )}
                     </div>
                     <div className="text-gray-600 dark:text-gray-300 text-xs mt-1">
-                      {event.startTime.toLocaleTimeString('en-US', { 
-                        hour: 'numeric', 
-                        minute: '2-digit',
-                        timeZone: userTimezone
-                      })} - 
-                      {event.endTime.toLocaleTimeString('en-US', { 
-                        hour: 'numeric', 
-                        minute: '2-digit',
-                        timeZone: userTimezone
-                      })}
+                      {formatTime(event.startTime)} - {formatTime(event.endTime)}
                     </div>
                     {duration > 0.75 && event.location && (
                       <div className="text-gray-600 dark:text-gray-300 text-xs mt-1 flex items-center">
@@ -176,6 +177,7 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = '
           onClose={() => setSelectedEvent(null)}
           mapsLoaded={true}
           mapsLoadError={undefined}
+          userTimezone={userTimezone}
         />
       )}
     </div>
