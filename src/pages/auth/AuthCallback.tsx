@@ -24,10 +24,10 @@ const AuthCallback = () => {
         const code = searchParams.get('code');
         
         console.log('[AuthCallback] Query params check:');
-        console.log('  - access_token:', accessToken ? 'present' : 'missing');
-        console.log('  - refresh_token:', refreshToken ? 'present' : 'missing');
+        console.log('  - access_token:', accessToken ? 'present' : 'null');
+        console.log('  - refresh_token:', refreshToken ? 'present' : 'null');
         console.log('  - type:', type);
-        console.log('  - code:', code ? 'present' : 'missing');
+        console.log('  - code:', code ? 'present' : 'null');
 
         // If this is a password recovery flow with tokens in the query parameters
         if (type === 'recovery' && accessToken && refreshToken) {
@@ -57,8 +57,8 @@ const AuthCallback = () => {
 
           console.log('[AuthCallback] Hash params check:');
           console.log('  - type:', hashType);
-          console.log('  - access_token:', hashAccessToken ? 'present' : 'missing');
-          console.log('  - refresh_token:', hashRefreshToken ? 'present' : 'missing');
+          console.log('  - access_token:', hashAccessToken ? 'present' : 'null');
+          console.log('  - refresh_token:', hashRefreshToken ? 'present' : 'null');
 
           // If this is a password recovery flow with tokens in the hash
           if (hashType === 'recovery' && hashAccessToken && hashRefreshToken) {
@@ -98,6 +98,14 @@ const AuthCallback = () => {
             
             if (exchangeData?.session) {
               console.log('[AuthCallback] Successfully exchanged code for session');
+              
+              // Check if this is a recovery flow
+              if (type === 'recovery' || window.location.href.includes('type=recovery')) {
+                console.log('[AuthCallback] This is a recovery flow with code, redirecting to reset password');
+                navigate('/auth/reset-password', { replace: true });
+                return;
+              }
+              
               navigate('/');
               return;
             } else {
@@ -109,8 +117,17 @@ const AuthCallback = () => {
         }
 
         // Check if the URL contains "recovery" anywhere (fallback check)
-        if (window.location.href.includes('recovery')) {
+        if (window.location.href.includes('recovery') || window.location.href.includes('reset-password')) {
           console.log('[AuthCallback] Recovery keyword found in URL, but tokens not properly extracted');
+          
+          // Try to get the current session
+          const { data: sessionData } = await supabase.auth.getSession();
+          
+          if (sessionData?.session) {
+            console.log('[AuthCallback] Found existing session for recovery flow, redirecting to reset password');
+            navigate('/auth/reset-password', { replace: true });
+            return;
+          }
           
           // Clear any existing session
           await supabase.auth.signOut();

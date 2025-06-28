@@ -48,47 +48,59 @@ const ResetPassword: React.FC = () => {
         return;
       }
     }
-    
-    if (!accessToken || !refreshToken) {
-      console.error('ResetPassword: Missing required tokens');
-      setError('Invalid or expired reset link. Please request a new password reset.');
-      setInitializing(false);
-      return;
-    }
 
     const setupResetSession = async () => {
       try {
-        console.log('ResetPassword: Setting up reset session with tokens');
+        console.log('ResetPassword: Checking for valid session');
         
-        // Explicitly clear any stored tokens from localStorage
-        localStorage.removeItem('supabase.auth.token');
-        localStorage.removeItem('sb-refresh-token');
-        localStorage.removeItem('sb-access-token');
-        
-        // Ensure any existing session is cleared first
-        await supabase.auth.signOut();
-        console.log('ResetPassword: Existing session cleared before setting up password reset session');
-        
-        // Set the session with the tokens from the URL
-        const { data, error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
+        // First check if we have tokens in the URL
+        if (accessToken && refreshToken) {
+          console.log('ResetPassword: Found tokens in URL, setting up session');
+          
+          // Explicitly clear any stored tokens from localStorage
+          localStorage.removeItem('supabase.auth.token');
+          localStorage.removeItem('sb-refresh-token');
+          localStorage.removeItem('sb-access-token');
+          
+          // Ensure any existing session is cleared first
+          await supabase.auth.signOut();
+          console.log('ResetPassword: Existing session cleared before setting up password reset session');
+          
+          // Set the session with the tokens from the URL
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
 
-        console.log('ResetPassword: setSession result:', { 
-          success: !error, 
-          hasData: !!data,
-          error: error ? error.message : null
-        });
+          console.log('ResetPassword: setSession result:', { 
+            success: !error, 
+            hasData: !!data,
+            error: error ? error.message : null
+          });
 
-        if (error) {
-          console.error('ResetPassword: Error setting session:', error);
-          setError('Invalid or expired reset link. Please request a new password reset.');
+          if (error) {
+            console.error('ResetPassword: Error setting session:', error);
+            setError('Invalid or expired reset link. Please request a new password reset.');
+          } else {
+            console.log('ResetPassword: Session set successfully with tokens from URL');
+          }
         } else {
-          console.log('ResetPassword: Session set successfully');
+          // No tokens in URL, check if we have an active session already
+          console.log('ResetPassword: No tokens in URL, checking for existing session');
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error('ResetPassword: Error getting session:', sessionError);
+            setError('Invalid or expired reset link. Please request a new password reset.');
+          } else if (!sessionData.session) {
+            console.error('ResetPassword: No session found');
+            setError('Invalid or expired reset link. Please request a new password reset.');
+          } else {
+            console.log('ResetPassword: Found existing session, can proceed with password reset');
+          }
         }
       } catch (err) {
-        console.error('ResetPassword: Exception setting session:', err);
+        console.error('ResetPassword: Exception setting up session:', err);
         setError('Invalid or expired reset link. Please request a new password reset.');
       } finally {
         setInitializing(false);
