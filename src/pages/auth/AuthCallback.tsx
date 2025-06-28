@@ -33,15 +33,6 @@ const AuthCallback = () => {
         if (type === 'recovery' && accessToken && refreshToken) {
           console.log('[AuthCallback] Password reset flow detected in query params');
           
-          // Explicitly clear any stored tokens from localStorage
-          localStorage.removeItem('supabase.auth.token');
-          localStorage.removeItem('sb-refresh-token');
-          localStorage.removeItem('sb-access-token');
-          
-          // Clear any existing session
-          await supabase.auth.signOut();
-          console.log('[AuthCallback] Existing session cleared for password reset');
-          
           // Navigate to reset password with tokens
           navigate(`/auth/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}`, { replace: true });
           return;
@@ -63,15 +54,6 @@ const AuthCallback = () => {
           // If this is a password recovery flow with tokens in the hash
           if (hashType === 'recovery' && hashAccessToken && hashRefreshToken) {
             console.log('[AuthCallback] Password reset flow detected in hash');
-            
-            // Explicitly clear any stored tokens from localStorage
-            localStorage.removeItem('supabase.auth.token');
-            localStorage.removeItem('sb-refresh-token');
-            localStorage.removeItem('sb-access-token');
-            
-            // Clear any existing session
-            await supabase.auth.signOut();
-            console.log('[AuthCallback] Existing session cleared for password reset');
             
             // Navigate to reset password with tokens
             navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`, { replace: true });
@@ -128,12 +110,6 @@ const AuthCallback = () => {
             navigate('/auth/reset-password', { replace: true });
             return;
           }
-          
-          // Clear any existing session
-          await supabase.auth.signOut();
-          localStorage.removeItem('supabase.auth.token');
-          localStorage.removeItem('sb-refresh-token');
-          localStorage.removeItem('sb-access-token');
           
           // Redirect to forgot password page as fallback
           navigate('/auth/forgot-password', { 

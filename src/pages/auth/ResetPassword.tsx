@@ -59,15 +59,6 @@ const ResetPassword: React.FC = () => {
         if (accessToken && refreshToken) {
           console.log('ResetPassword: Found tokens in URL, setting up session');
           
-          // Explicitly clear any stored tokens from localStorage
-          localStorage.removeItem('supabase.auth.token');
-          localStorage.removeItem('sb-refresh-token');
-          localStorage.removeItem('sb-access-token');
-          
-          // Ensure any existing session is cleared first
-          await supabase.auth.signOut();
-          console.log('ResetPassword: Existing session cleared before setting up password reset session');
-          
           // Set the session with the tokens from the URL
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
@@ -166,11 +157,6 @@ const ResetPassword: React.FC = () => {
       // Password updated successfully, now sign out to force re-authentication
       console.log('ResetPassword: Password updated successfully, signing out');
       await supabase.auth.signOut();
-      
-      // Explicitly clear any stored tokens from localStorage again
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('sb-refresh-token');
-      localStorage.removeItem('sb-access-token');
       
       setSuccess(true);
       

@@ -16,21 +16,8 @@ const reactRoot = createRoot(root);
 supabase.auth.onAuthStateChange((event, session) => {
   console.log('[main.tsx] Auth state changed:', event, session ? 'Session exists' : 'No session');
   
-  if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-    // Delete any existing auth data
-    localStorage.removeItem('supabase.auth.token');
-    localStorage.removeItem('sb-refresh-token');
-    localStorage.removeItem('sb-access-token');
-  }
-  
-  // Log if this is a password recovery flow
-  if (event === 'PASSWORD_RECOVERY') {
-    console.log('[main.tsx] Password recovery flow detected');
-    // Clear any existing session data
-    localStorage.removeItem('supabase.auth.token');
-    localStorage.removeItem('sb-refresh-token');
-    localStorage.removeItem('sb-access-token');
-  }
+  // Don't manually clear tokens - let Supabase handle this
+  // This is important for PKCE flows like password reset
 });
 
 // Check URL for password reset parameters
@@ -39,12 +26,9 @@ const type = url.searchParams.get('type');
 const accessToken = url.searchParams.get('access_token');
 const refreshToken = url.searchParams.get('refresh_token');
 
-// If this is a password reset link, clear any existing session immediately
+// Log if this is a password recovery flow
 if (type === 'recovery' || (accessToken && refreshToken)) {
-  console.log('[main.tsx] Password reset parameters detected in URL, clearing session');
-  localStorage.removeItem('supabase.auth.token');
-  localStorage.removeItem('sb-refresh-token');
-  localStorage.removeItem('sb-access-token');
+  console.log('[main.tsx] Password reset parameters detected in URL');
 }
 
 reactRoot.render(
