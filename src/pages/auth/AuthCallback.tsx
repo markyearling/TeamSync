@@ -21,11 +21,13 @@ const AuthCallback = () => {
         const accessToken = searchParams.get('access_token');
         const refreshToken = searchParams.get('refresh_token');
         const type = searchParams.get('type');
+        const code = searchParams.get('code');
         
         console.log('[AuthCallback] Query params check:');
-        console.log('  - access_token:', accessToken);
-        console.log('  - refresh_token:', refreshToken);
+        console.log('  - access_token:', accessToken ? 'present' : 'missing');
+        console.log('  - refresh_token:', refreshToken ? 'present' : 'missing');
         console.log('  - type:', type);
+        console.log('  - code:', code ? 'present' : 'missing');
 
         // If this is a password recovery flow with tokens in the query parameters
         if (type === 'recovery' && accessToken && refreshToken) {
@@ -77,6 +79,35 @@ const AuthCallback = () => {
           }
         }
 
+        // Special handling for code parameter (OAuth or magic link)
+        if (code) {
+          console.log('[AuthCallback] Code parameter detected, likely OAuth or magic link flow');
+          try {
+            // Exchange the code for a session
+            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+            
+            console.log('[AuthCallback] Code exchange result:', {
+              success: !exchangeError,
+              hasSession: !!exchangeData?.session,
+              error: exchangeError ? exchangeError.message : null
+            });
+            
+            if (exchangeError) {
+              throw exchangeError;
+            }
+            
+            if (exchangeData?.session) {
+              console.log('[AuthCallback] Successfully exchanged code for session');
+              navigate('/');
+              return;
+            } else {
+              console.log('[AuthCallback] Code exchange successful but no session returned');
+            }
+          } catch (exchangeError) {
+            console.error('[AuthCallback] Error exchanging code for session:', exchangeError);
+          }
+        }
+
         // Check if the URL contains "recovery" anywhere (fallback check)
         if (window.location.href.includes('recovery')) {
           console.log('[AuthCallback] Recovery keyword found in URL, but tokens not properly extracted');
@@ -100,6 +131,17 @@ const AuthCallback = () => {
         // For normal sign-in flows or if no recovery parameters found
         console.log('[AuthCallback] No recovery flow detected, checking for normal session');
         const { data, error } = await supabase.auth.getSession();
+        
+        console.log('[AuthCallback] getSession result:', {
+          success: !error,
+          hasSession: !!data?.session,
+          error: error ? error.message : null,
+          sessionDetails: data?.session ? {
+            userId: data.session.user.id,
+            expiresAt: data.session.expires_at
+          } : null
+        });
+        
         if (error) {
           console.error('[AuthCallback] Error getting session:', error);
           navigate('/auth/signin', { 
