@@ -12,14 +12,24 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
+        console.log('[AuthCallback] Starting callback handler');
+        console.log('[AuthCallback] Full URL:', window.location.href);
+        console.log('[AuthCallback] URL hash:', window.location.hash);
+        console.log('[AuthCallback] URL search params:', window.location.search);
+        
         // First, check for password reset tokens in the URL query parameters
         const accessToken = searchParams.get('access_token');
         const refreshToken = searchParams.get('refresh_token');
         const type = searchParams.get('type');
+        
+        console.log('[AuthCallback] Query params check:');
+        console.log('  - access_token:', accessToken);
+        console.log('  - refresh_token:', refreshToken);
+        console.log('  - type:', type);
 
         // If this is a password recovery flow with tokens in the query parameters
         if (type === 'recovery' && accessToken && refreshToken) {
-          console.log('Password reset flow detected in query params');
+          console.log('[AuthCallback] Password reset flow detected in query params');
           
           // Explicitly clear any stored tokens from localStorage
           localStorage.removeItem('supabase.auth.token');
@@ -28,10 +38,10 @@ const AuthCallback = () => {
           
           // Clear any existing session
           await supabase.auth.signOut();
-          console.log('Existing session cleared for password reset');
+          console.log('[AuthCallback] Existing session cleared for password reset');
           
           // Navigate to reset password with tokens
-          navigate(`/auth/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}`);
+          navigate(`/auth/reset-password?access_token=${accessToken}&refresh_token=${refreshToken}`, { replace: true });
           return;
         }
 
@@ -43,9 +53,14 @@ const AuthCallback = () => {
           const hashAccessToken = hashParams.get('access_token');
           const hashRefreshToken = hashParams.get('refresh_token');
 
+          console.log('[AuthCallback] Hash params check:');
+          console.log('  - type:', hashType);
+          console.log('  - access_token:', hashAccessToken ? 'present' : 'missing');
+          console.log('  - refresh_token:', hashRefreshToken ? 'present' : 'missing');
+
           // If this is a password recovery flow with tokens in the hash
           if (hashType === 'recovery' && hashAccessToken && hashRefreshToken) {
-            console.log('Password reset flow detected in hash');
+            console.log('[AuthCallback] Password reset flow detected in hash');
             
             // Explicitly clear any stored tokens from localStorage
             localStorage.removeItem('supabase.auth.token');
@@ -54,18 +69,39 @@ const AuthCallback = () => {
             
             // Clear any existing session
             await supabase.auth.signOut();
-            console.log('Existing session cleared for password reset');
+            console.log('[AuthCallback] Existing session cleared for password reset');
             
             // Navigate to reset password with tokens
-            navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`);
+            navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`, { replace: true });
             return;
           }
         }
 
+        // Check if the URL contains "recovery" anywhere (fallback check)
+        if (window.location.href.includes('recovery')) {
+          console.log('[AuthCallback] Recovery keyword found in URL, but tokens not properly extracted');
+          
+          // Clear any existing session
+          await supabase.auth.signOut();
+          localStorage.removeItem('supabase.auth.token');
+          localStorage.removeItem('sb-refresh-token');
+          localStorage.removeItem('sb-access-token');
+          
+          // Redirect to forgot password page as fallback
+          navigate('/auth/forgot-password', { 
+            state: { 
+              error: 'Password reset link was invalid or expired. Please request a new one.' 
+            },
+            replace: true
+          });
+          return;
+        }
+
         // For normal sign-in flows or if no recovery parameters found
+        console.log('[AuthCallback] No recovery flow detected, checking for normal session');
         const { data, error } = await supabase.auth.getSession();
         if (error) {
-          console.error('Error getting session:', error);
+          console.error('[AuthCallback] Error getting session:', error);
           navigate('/auth/signin', { 
             state: { 
               error: 'Authentication error. Please sign in again.' 
@@ -75,12 +111,14 @@ const AuthCallback = () => {
         }
         
         if (data.session) {
+          console.log('[AuthCallback] Valid session found, navigating to dashboard');
           navigate('/');
         } else {
+          console.log('[AuthCallback] No session found, navigating to sign in');
           navigate('/auth/signin');
         }
       } catch (error) {
-        console.error('Error in auth callback:', error);
+        console.error('[AuthCallback] Error in auth callback:', error);
         navigate('/auth/signin', { 
           state: { 
             error: error instanceof Error ? error.message : 'An unexpected error occurred during authentication.' 

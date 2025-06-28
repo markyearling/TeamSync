@@ -27,8 +27,8 @@ const ResetPassword: React.FC = () => {
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
     
-    console.log('ResetPassword: access_token from searchParams:', accessToken);
-    console.log('ResetPassword: refresh_token from searchParams:', refreshToken);
+    console.log('ResetPassword: access_token from searchParams:', accessToken ? 'present' : 'missing');
+    console.log('ResetPassword: refresh_token from searchParams:', refreshToken ? 'present' : 'missing');
     
     // Check if tokens might be in the hash fragment
     if (window.location.hash) {
@@ -36,8 +36,8 @@ const ResetPassword: React.FC = () => {
       const hashAccessToken = hashParams.get('access_token');
       const hashRefreshToken = hashParams.get('refresh_token');
       
-      console.log('ResetPassword: access_token from hash:', hashAccessToken);
-      console.log('ResetPassword: refresh_token from hash:', hashRefreshToken);
+      console.log('ResetPassword: access_token from hash:', hashAccessToken ? 'present' : 'missing');
+      console.log('ResetPassword: refresh_token from hash:', hashRefreshToken ? 'present' : 'missing');
       
       // If tokens are in the hash but not in search params, use them
       if (hashAccessToken && hashRefreshToken && (!accessToken || !refreshToken)) {
@@ -75,7 +75,11 @@ const ResetPassword: React.FC = () => {
           refresh_token: refreshToken,
         });
 
-        console.log('ResetPassword: setSession result:', { data, error });
+        console.log('ResetPassword: setSession result:', { 
+          success: !error, 
+          hasData: !!data,
+          error: error ? error.message : null
+        });
 
         if (error) {
           console.error('ResetPassword: Error setting session:', error);
@@ -137,7 +141,11 @@ const ResetPassword: React.FC = () => {
         password: password
       });
 
-      console.log('ResetPassword: updateUser result:', { data, error });
+      console.log('ResetPassword: updateUser result:', { 
+        success: !error, 
+        hasData: !!data,
+        error: error ? error.message : null
+      });
 
       if (error) throw error;
 
