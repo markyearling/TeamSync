@@ -26,9 +26,11 @@ const ResetPassword: React.FC = () => {
     // Check if we have the required tokens from the URL
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
+    const code = searchParams.get('code');
     
     console.log('ResetPassword: access_token from searchParams:', accessToken ? 'present' : 'missing');
     console.log('ResetPassword: refresh_token from searchParams:', refreshToken ? 'present' : 'missing');
+    console.log('ResetPassword: code from searchParams:', code ? 'present' : 'missing');
     
     // Check if tokens might be in the hash fragment
     if (window.location.hash) {
