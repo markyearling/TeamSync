@@ -65,32 +65,28 @@ const AuthCallback = () => {
         }
 
         // CASE 2: Password Recovery Flow with code
-        // Check if this is a recovery flow with a code parameter
         if ((type === 'recovery' && code) || (hashType === 'recovery' && hashCode)) {
           console.log('[AuthCallback] Password reset flow detected with code');
           
-          const finalCode = code || hashCode;
+          // For recovery flow with code, we don't manually exchange the code
+          // Instead, we check if Supabase has already established a session
+          const { data: sessionData } = await supabase.auth.getSession();
           
-          try {
-            // Exchange the code for a session
-            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(finalCode);
-            
-            if (exchangeError) {
-              throw exchangeError;
-            }
-            
-            if (exchangeData?.session) {
-              console.log('[AuthCallback] Successfully exchanged code for session in recovery flow');
-              // Redirect to reset password page
-              navigate('/auth/reset-password', { replace: true });
-              return;
-            }
-          } catch (exchangeError) {
-            console.error('[AuthCallback] Error exchanging code in recovery flow:', exchangeError);
-            setError('Invalid or expired password reset link. Please request a new one.');
-            setProcessing(false);
+          if (sessionData?.session) {
+            console.log('[AuthCallback] Session already established for recovery flow');
+            navigate('/auth/reset-password', { replace: true });
             return;
           }
+          
+          // If no session, redirect to forgot password as fallback
+          console.log('[AuthCallback] No session found for recovery flow, redirecting to forgot password');
+          navigate('/auth/forgot-password', { 
+            state: { 
+              error: 'Password reset link was invalid or expired. Please request a new one.' 
+            },
+            replace: true
+          });
+          return;
         }
 
         // CASE 3: Standard OAuth or Magic Link Flow with code
