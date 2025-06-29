@@ -1,5 +1,5 @@
-import React, { Suspense, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { Suspense, useEffect, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Calendar from './pages/Calendar';
@@ -34,8 +34,8 @@ const LoadingSpinner = () => (
 );
 
 const ErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [hasError, setHasError] = React.useState(false);
-  const [errorMessage, setErrorMessage] = React.useState<string>('');
+  const [hasError, setHasError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   React.useEffect(() => {
     const handleError = (event: ErrorEvent) => {
@@ -95,9 +95,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppContent = () => {
-  const [initialized, setInitialized] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { isNative } = useCapacitor();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -115,6 +117,45 @@ const AppContent = () => {
 
     initializeApp();
   }, []);
+
+  // Check for password reset tokens in URL
+  useEffect(() => {
+    // Only run this check on the root path
+    if (location.pathname !== '/') {
+      return;
+    }
+
+    console.log('[App] Checking for password reset tokens on root path');
+
+    // Check URL search params for tokens
+    const searchParams = new URLSearchParams(location.search);
+    const accessToken = searchParams.get('access_token');
+    const refreshToken = searchParams.get('refresh_token');
+    const type = searchParams.get('type');
+
+    // Check URL hash for tokens (Supabase sometimes puts them here)
+    let hashAccessToken, hashRefreshToken, hashType;
+    if (location.hash) {
+      const hashParams = new URLSearchParams(location.hash.substring(1));
+      hashAccessToken = hashParams.get('access_token');
+      hashRefreshToken = hashParams.get('refresh_token');
+      hashType = hashParams.get('type');
+    }
+
+    // If we have tokens in either place and this is a recovery flow
+    if ((type === 'recovery' && accessToken && refreshToken) || 
+        (hashType === 'recovery' && hashAccessToken && hashRefreshToken)) {
+      
+      console.log('[App] Password reset tokens detected on root path, redirecting to reset password page');
+      
+      // Use the tokens from wherever they were found
+      const finalAccessToken = accessToken || hashAccessToken;
+      const finalRefreshToken = refreshToken || hashRefreshToken;
+      
+      // Redirect to reset password page with tokens
+      navigate(`/auth/reset-password?access_token=${finalAccessToken}&refresh_token=${finalRefreshToken}`, { replace: true });
+    }
+  }, [location, navigate]);
 
   if (error) {
     return (
