@@ -17,8 +17,8 @@ const ForgotPassword: React.FC = () => {
     setError(null);
 
     try {
-      // Use the current origin, which will be the Netlify URL in production
-      const redirectUrl = `${window.location.origin}/auth/reset-password`;
+      // Use the auth/callback endpoint for the redirect URL
+      const redirectUrl = `${window.location.origin}/auth/callback`;
       
       console.log('ForgotPassword: Sending reset password email with redirectUrl:', redirectUrl);
       
