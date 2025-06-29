@@ -33,13 +33,16 @@ const ResetPassword: React.FC = () => {
     console.log('ResetPassword: code from searchParams:', code ? 'present' : 'missing');
     
     // Check if tokens might be in the hash fragment
+    let hashAccessToken, hashRefreshToken, hashCode;
     if (window.location.hash) {
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const hashAccessToken = hashParams.get('access_token');
-      const hashRefreshToken = hashParams.get('refresh_token');
+      hashAccessToken = hashParams.get('access_token');
+      hashRefreshToken = hashParams.get('refresh_token');
+      hashCode = hashParams.get('code');
       
       console.log('ResetPassword: access_token from hash:', hashAccessToken ? 'present' : 'missing');
       console.log('ResetPassword: refresh_token from hash:', hashRefreshToken ? 'present' : 'missing');
+      console.log('ResetPassword: code from hash:', hashCode ? 'present' : 'missing');
       
       // If tokens are in the hash but not in search params, use them
       if (hashAccessToken && hashRefreshToken && (!accessToken || !refreshToken)) {
@@ -47,6 +50,15 @@ const ResetPassword: React.FC = () => {
         
         // Redirect to the same page but with tokens in search params
         navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`, { replace: true });
+        return;
+      }
+      
+      // If code is in the hash but not in search params, use it
+      if (hashCode && !code) {
+        console.log('ResetPassword: Using code from hash instead of search params');
+        
+        // Redirect to the same page but with code in search params
+        navigate(`/auth/reset-password?code=${hashCode}`, { replace: true });
         return;
       }
     }
@@ -58,6 +70,14 @@ const ResetPassword: React.FC = () => {
         // First check if we have tokens in the URL
         if (accessToken && refreshToken) {
           console.log('ResetPassword: Found tokens in URL, setting up session');
+          
+          // Explicitly clear any stored tokens from localStorage
+          localStorage.removeItem('supabase.auth.token');
+          localStorage.removeItem('sb-refresh-token');
+          localStorage.removeItem('sb-access-token');
+          
+          // Ensure any existing session is cleared first
+          await supabase.auth.signOut();
           
           // Set the session with the tokens from the URL
           const { data, error } = await supabase.auth.setSession({
@@ -77,9 +97,43 @@ const ResetPassword: React.FC = () => {
           } else {
             console.log('ResetPassword: Session set successfully with tokens from URL');
           }
+        } 
+        // Check if we have a code parameter
+        else if (code || hashCode) {
+          console.log('ResetPassword: Found code in URL, exchanging for session');
+          
+          const finalCode = code || hashCode;
+          
+          // Explicitly clear any stored tokens from localStorage
+          localStorage.removeItem('supabase.auth.token');
+          localStorage.removeItem('sb-refresh-token');
+          localStorage.removeItem('sb-access-token');
+          
+          // Ensure any existing session is cleared first
+          await supabase.auth.signOut();
+          
+          // Exchange the code for a session
+          const { data, error } = await supabase.auth.exchangeCodeForSession(finalCode);
+          
+          console.log('ResetPassword: exchangeCodeForSession result:', { 
+            success: !error, 
+            hasData: !!data,
+            hasSession: !!data?.session,
+            error: error ? error.message : null
+          });
+          
+          if (error) {
+            console.error('ResetPassword: Error exchanging code for session:', error);
+            setError('Invalid or expired reset link. Please request a new password reset.');
+          } else if (!data.session) {
+            console.error('ResetPassword: No session returned from code exchange');
+            setError('Invalid or expired reset link. Please request a new password reset.');
+          } else {
+            console.log('ResetPassword: Successfully exchanged code for session');
+          }
         } else {
-          // No tokens in URL, check if we have an active session already
-          console.log('ResetPassword: No tokens in URL, checking for existing session');
+          // No tokens or code in URL, check if we have an active session already
+          console.log('ResetPassword: No tokens or code in URL, checking for existing session');
           const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
           
           if (sessionError) {
