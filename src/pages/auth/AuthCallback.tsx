@@ -68,25 +68,61 @@ const AuthCallback = () => {
         if ((type === 'recovery' && code) || (hashType === 'recovery' && hashCode)) {
           console.log('[AuthCallback] Password reset flow detected with code');
           
-          // For recovery flow with code, we don't manually exchange the code
-          // Instead, we check if Supabase has already established a session
-          const { data: sessionData } = await supabase.auth.getSession();
+          const finalCode = code || hashCode;
           
-          if (sessionData?.session) {
-            console.log('[AuthCallback] Session already established for recovery flow');
-            navigate('/auth/reset-password', { replace: true });
+          try {
+            // Explicitly clear any stored tokens from localStorage
+            localStorage.removeItem('supabase.auth.token');
+            localStorage.removeItem('sb-refresh-token');
+            localStorage.removeItem('sb-access-token');
+            
+            // Ensure any existing session is cleared first
+            await supabase.auth.signOut();
+            
+            // Exchange the code for a session
+            const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(finalCode);
+            
+            console.log('[AuthCallback] Code exchange result:', {
+              success: !exchangeError,
+              hasSession: !!data?.session,
+              error: exchangeError ? exchangeError.message : null
+            });
+            
+            if (exchangeError) {
+              console.error('[AuthCallback] Error exchanging code for session:', exchangeError);
+              navigate('/auth/forgot-password', { 
+                state: { 
+                  error: 'Password reset link was invalid or expired. Please request a new one.' 
+                },
+                replace: true
+              });
+              return;
+            }
+            
+            if (data?.session) {
+              console.log('[AuthCallback] Successfully exchanged code for session, redirecting to reset password');
+              navigate('/auth/reset-password', { replace: true });
+              return;
+            } else {
+              console.log('[AuthCallback] Code exchange successful but no session returned');
+              navigate('/auth/forgot-password', { 
+                state: { 
+                  error: 'Password reset link was invalid or expired. Please request a new one.' 
+                },
+                replace: true
+              });
+              return;
+            }
+          } catch (exchangeError) {
+            console.error('[AuthCallback] Error exchanging code for session:', exchangeError);
+            navigate('/auth/forgot-password', { 
+              state: { 
+                error: 'Password reset link was invalid or expired. Please request a new one.' 
+              },
+              replace: true
+            });
             return;
           }
-          
-          // If no session, redirect to forgot password as fallback
-          console.log('[AuthCallback] No session found for recovery flow, redirecting to forgot password');
-          navigate('/auth/forgot-password', { 
-            state: { 
-              error: 'Password reset link was invalid or expired. Please request a new one.' 
-            },
-            replace: true
-          });
-          return;
         }
 
         // CASE 3: Standard OAuth or Magic Link Flow with code
