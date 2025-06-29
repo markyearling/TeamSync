@@ -102,7 +102,7 @@ const AppContent = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const initializeApp = async () => {
+    const initializeConnection = async () => {
       try {
         const isConnected = await testConnection();
         if (!isConnected) {
@@ -115,7 +115,7 @@ const AppContent = () => {
       }
     };
 
-    initializeApp();
+    initializeConnection();
   }, []);
 
   // Check for password reset tokens in URL
