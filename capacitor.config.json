@@ -1,6 +1,6 @@
 {
   "appId": "com.teamsync.app",
-  "appName": "TeamSync",
+  "appName": "FamSink",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"

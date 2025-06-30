@@ -1,4 +1,4 @@
-# TeamSync
+# FamSink
 
 A comprehensive sports schedule management app for families.
 

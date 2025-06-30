@@ -478,7 +478,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             <div className="flex items-center">
               {children}
               <div className="ml-4 md:ml-6">
-                <h1 className="text-xl font-semibold text-gray-900 dark:text-white">TeamSync</h1>
+                <h1 className="text-xl font-semibold text-gray-900 dark:text-white">FamSink</h1>
               </div>
             </div>
             

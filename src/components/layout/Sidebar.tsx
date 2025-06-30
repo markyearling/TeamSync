@@ -58,7 +58,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
             <Calendar className="h-5 w-5 text-white" />
           </div>
-          <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">TeamSync</span>
+          <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">FamSink</span>
         </div>
         <button 
           type="button" 
