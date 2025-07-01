@@ -1,5 +1,5 @@
 {
-  "appId": "com.teamsync.app",
+  "appId": "com.yearling.famsink",
   "appName": "FamSink",
   "webDir": "dist",
   "server": {
@@ -26,7 +26,11 @@
       "backgroundColor": "#2563eb"
     },
     "PushNotifications": {
-      "presentationOptions": ["badge", "sound", "alert"]
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
     },
     "LocalNotifications": {
       "smallIcon": "ic_stat_icon_config_sample",
