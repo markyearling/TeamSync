@@ -12,6 +12,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useProfiles } from '../../context/ProfilesContext';
+import { useCapacitor } from '../../hooks/useCapacitor';
 
 interface SidebarProps {
   onClose: () => void;
@@ -21,6 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const { profiles, friendsProfiles } = useProfiles();
   const navigate = useNavigate();
   const [connectionsOpen, setConnectionsOpen] = useState(false);
+  const { isIOS } = useCapacitor();
   
   const navigation = [
     { name: 'Dashboard', icon: Home, href: '/' },
@@ -53,7 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-white dark:bg-gray-800">
-      <div className="flex items-center justify-between px-4 py-5">
+      <div className={`flex items-center justify-between px-4 py-5 ${isIOS ? 'pt-[env(safe-area-inset-top)]' : ''}`}>
         <div className="flex items-center">
           <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
             <Calendar className="h-5 w-5 text-white" />
