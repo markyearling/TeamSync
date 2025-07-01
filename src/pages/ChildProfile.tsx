@@ -544,94 +544,92 @@ const ChildProfile: React.FC = () => {
       {/* Calendar Section */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center space-x-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2">
               {/* Calendar Navigation */}
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={navigatePrevious}
-                  className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  <ChevronLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                </button>
-                <button
-                  onClick={navigateToday}
-                  className="px-3 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
-                >
-                  Today
-                </button>
-                <button
-                  onClick={navigateNext}
-                  className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-                >
-                  <ChevronRight className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                </button>
-                <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 ml-2">
-                  {renderTitle()}
-                </h2>
-              </div>
-
               <button
-                onClick={() => setFilterOpen(!filterOpen)}
-                className="flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 text-sm text-gray-700 dark:text-gray-300"
+                onClick={navigatePrevious}
+                className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                <Filter className="h-4 w-4 mr-1" />
-                Filter
+                <ChevronLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
               </button>
-              <div className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-1 flex">
-                <button
-                  onClick={() => setView('month')}
-                  className={`p-1 rounded ${
-                    view === 'month' 
-                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
-                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
-                  }`}
-                  title="Month view"
-                >
-                  <Calendar className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={() => setView('week')}
-                  className={`p-1 rounded ${
-                    view === 'week' 
-                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
-                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
-                  }`}
-                  title="Week view"
-                >
-                  <div className="w-5 h-5 flex flex-col justify-center items-center">
-                    <div className="w-4 h-0.5 bg-current mb-0.5"></div>
-                    <div className="w-4 h-0.5 bg-current mb-0.5"></div>
-                    <div className="w-4 h-0.5 bg-current"></div>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setView('day')}
-                  className={`p-1 rounded ${
-                    view === 'day' 
-                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
-                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
-                  }`}
-                  title="Day view"
-                >
-                  <div className="w-5 h-5 flex flex-col justify-center items-center">
-                    <div className="w-4 h-0.5 bg-current mb-0.5"></div>
-                    <div className="w-4 h-0.5 bg-current mb-0.5"></div>
-                    <div className="w-4 h-0.5 bg-current"></div>
-                  </div>
-                </button>
-                <button
-                  onClick={() => setView('agenda')}
-                  className={`p-1 rounded ${
-                    view === 'agenda' 
-                      ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
-                      : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
-                  }`}
-                  title="List view"
-                >
-                  <LayoutList className="h-5 w-5" />
-                </button>
-              </div>
+              <button
+                onClick={navigateToday}
+                className="px-3 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+              >
+                Today
+              </button>
+              <button
+                onClick={navigateNext}
+                className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <ChevronRight className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              </button>
+              <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 ml-2">
+                {renderTitle()}
+              </h2>
+            </div>
+
+            <button
+              onClick={() => setFilterOpen(!filterOpen)}
+              className="flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 text-sm text-gray-700 dark:text-gray-300"
+            >
+              <Filter className="h-4 w-4 mr-1" />
+              Filter
+            </button>
+            <div className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-1 flex flex-wrap">
+              <button
+                onClick={() => setView('month')}
+                className={`p-1 rounded ${
+                  view === 'month' 
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
+                }`}
+                title="Month view"
+              >
+                <Calendar className="h-5 w-5" />
+              </button>
+              <button
+                onClick={() => setView('week')}
+                className={`p-1 rounded ${
+                  view === 'week' 
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
+                }`}
+                title="Week view"
+              >
+                <div className="w-5 h-5 flex flex-col justify-center items-center">
+                  <div className="w-4 h-0.5 bg-current mb-0.5"></div>
+                  <div className="w-4 h-0.5 bg-current mb-0.5"></div>
+                  <div className="w-4 h-0.5 bg-current"></div>
+                </div>
+              </button>
+              <button
+                onClick={() => setView('day')}
+                className={`p-1 rounded ${
+                  view === 'day' 
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
+                }`}
+                title="Day view"
+              >
+                <div className="w-5 h-5 flex flex-col justify-center items-center">
+                  <div className="w-4 h-0.5 bg-current mb-0.5"></div>
+                  <div className="w-4 h-0.5 bg-current mb-0.5"></div>
+                  <div className="w-4 h-0.5 bg-current"></div>
+                </div>
+              </button>
+              <button
+                onClick={() => setView('agenda')}
+                className={`p-1 rounded ${
+                  view === 'agenda' 
+                    ? 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400' 
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600'
+                }`}
+                title="List view"
+              >
+                <LayoutList className="h-5 w-5" />
+              </button>
             </div>
             <button
               onClick={() => setShowAddEventModal(true)}
