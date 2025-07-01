@@ -57,8 +57,7 @@ const MobileOptimizations: React.FC<MobileOptimizationsProps> = ({ children }) =
         }
         
         .ios {
-          padding-top: var(--safe-area-inset-top, 0);
-          padding-bottom: var(--safe-area-inset-bottom, 0);
+          /* Removed padding-top and padding-bottom to handle in the Header component */
         }
         
         .mobile-app input,

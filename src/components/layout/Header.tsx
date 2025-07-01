@@ -8,6 +8,7 @@ import ChatModal from '../chat/ChatModal';
 import { supabase } from '../../lib/supabase';
 import EventModal from '../events/EventModal';
 import { Event } from '../../types';
+import { useCapacitor } from '../../hooks/useCapacitor';
 
 interface HeaderProps {
   children?: ReactNode;
@@ -30,6 +31,7 @@ interface Friend {
 const Header: React.FC<HeaderProps> = ({ children }) => {
   const { user } = useApp();
   const { theme, toggleTheme } = useTheme();
+  const { isIOS } = useCapacitor();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
@@ -472,7 +474,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
   return (
     <>
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10">
+      <header className={`bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10 ${isIOS ? 'pt-[env(safe-area-inset-top)]' : ''}`}>
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center">
