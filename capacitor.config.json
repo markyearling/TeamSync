@@ -2,6 +2,7 @@
   "appId": "com.yearling.famsink",
   "appName": "FamSink",
   "webDir": "dist",
+  "bundledWebRuntime": false,
   "server": {
     "androidScheme": "https"
   },
