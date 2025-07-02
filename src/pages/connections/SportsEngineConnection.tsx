@@ -49,10 +49,16 @@ const SportsEngineConnection: React.FC = () => {
 
   const fetchTeams = async () => {
     try {
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
       const { data: teamsData, error: teamsError } = await supabase
         .from('platform_teams')
         .select('*')
         .eq('platform', 'SportsEngine')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (teamsError) throw teamsError;

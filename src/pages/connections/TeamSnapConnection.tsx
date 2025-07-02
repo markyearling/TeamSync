@@ -90,11 +90,17 @@ const TeamSnapConnection: React.FC = () => {
         return;
       }
 
-      // Check if we have any TeamSnap teams
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
+      // Check if we have any TeamSnap teams for the current user
       const { data: teamsData, error: teamsError } = await supabase
         .from('platform_teams')
         .select('*')
         .eq('platform', 'TeamSnap')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (teamsError) throw teamsError;
@@ -120,10 +126,16 @@ const TeamSnapConnection: React.FC = () => {
         return;
       }
 
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
       const { data: teamsData, error: teamsError } = await supabase
         .from('platform_teams')
         .select('*')
         .eq('platform', 'TeamSnap')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (teamsError) throw teamsError;
@@ -194,11 +206,17 @@ const TeamSnapConnection: React.FC = () => {
       setError(null);
       setSuccess(null);
 
-      // Delete all TeamSnap teams and their associated data
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
+      // Delete all TeamSnap teams and their associated data for the current user
       const { error: deleteError } = await supabase
         .from('platform_teams')
         .delete()
-        .eq('platform', 'TeamSnap');
+        .eq('platform', 'TeamSnap')
+        .eq('user_id', user.id);
 
       if (deleteError) throw deleteError;
 
