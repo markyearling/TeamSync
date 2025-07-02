@@ -25,6 +25,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
   const [canEdit, setCanEdit] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Check if user can edit this event
   useEffect(() => {
@@ -118,6 +119,20 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
       }
     }
   }, [mapRef, mapCenter, mapsLoaded, mapsLoadError]);
+
+  // Handle click outside to close modal
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
 
   const handleMapLoad = (map: google.maps.Map) => {
     setMapRef(map);
@@ -253,7 +268,11 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   return (
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+        <div 
+          ref={modalRef}
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full h-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col" 
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <div className="flex items-center space-x-2">
               <span 
@@ -296,7 +315,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
             </div>
           </div>
 
-          <div className="p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="space-y-4">
               <div className="flex items-center text-gray-600 dark:text-gray-300">
                 <Calendar className="h-5 w-5 mr-3" />
