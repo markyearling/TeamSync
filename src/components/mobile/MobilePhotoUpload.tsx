@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Upload, Image } from 'lucide-react';
+import { Camera, Upload, Image, AlertCircle } from 'lucide-react';
 import { useCamera } from '../../hooks/useCamera';
 import { useCapacitor } from '../../hooks/useCapacitor';
 
@@ -12,22 +12,29 @@ const MobilePhotoUpload: React.FC<MobilePhotoUploadProps> = ({
   currentPhotoUrl, 
   onPhotoChange 
 }) => {
-  const { takePhoto, selectFromGallery, isLoading } = useCamera();
+  const { takePhoto, selectFromGallery, isLoading, error } = useCamera();
   const { isNative } = useCapacitor();
   const [showOptions, setShowOptions] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleTakePhoto = async () => {
+    setErrorMessage(null);
     const photoDataUrl = await takePhoto();
     if (photoDataUrl) {
       onPhotoChange(photoDataUrl);
+    } else if (error) {
+      setErrorMessage(error);
     }
     setShowOptions(false);
   };
 
   const handleSelectFromGallery = async () => {
+    setErrorMessage(null);
     const photoDataUrl = await selectFromGallery();
     if (photoDataUrl) {
       onPhotoChange(photoDataUrl);
+    } else if (error) {
+      setErrorMessage(error);
     }
     setShowOptions(false);
   };
@@ -102,6 +109,13 @@ const MobilePhotoUpload: React.FC<MobilePhotoUploadProps> = ({
           <Camera className="h-4 w-4 text-gray-600 dark:text-gray-300" />
         )}
       </button>
+
+      {errorMessage && (
+        <div className="absolute -bottom-20 right-0 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md p-2 shadow-lg text-xs text-red-700 dark:text-red-300 w-48 flex items-start">
+          <AlertCircle className="h-3 w-3 mt-0.5 mr-1 flex-shrink-0" />
+          <span>{errorMessage}</span>
+        </div>
+      )}
 
       {showOptions && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-50">
