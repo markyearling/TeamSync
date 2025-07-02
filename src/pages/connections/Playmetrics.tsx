@@ -441,7 +441,7 @@ const Playmetrics: React.FC = () => {
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
           <div className="px-6 py-8 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
+            <div className="flex flex-wrap items-center gap-4">
               <div className="h-12 w-12 rounded-lg overflow-hidden">
                 <img 
                   src="https://play-lh.googleusercontent.com/3qlMAhClWu_R_XMqFx_8afl4ZiMQpDmw0Xfyb6OyTHAv3--KRr6yxmvmPr0gzQlKJWQ" 
@@ -449,7 +449,7 @@ const Playmetrics: React.FC = () => {
                   className="h-full w-full object-cover"
                 />
               </div>
-              <div className="ml-4">
+              <div>
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Connect to Playmetrics</h1>
                 <p className="mt-1 text-gray-500 dark:text-gray-400">
                   Import your team schedules from Playmetrics calendars
@@ -527,7 +527,7 @@ const Playmetrics: React.FC = () => {
                       key={team.id}
                       className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col sm:flex-row sm:items-start">
                         <div className="flex items-center flex-1">
                           <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
                           <div className="flex-1">
@@ -564,7 +564,7 @@ const Playmetrics: React.FC = () => {
                               </div>
                             ) : (
                               <div className="flex items-center space-x-2">
-                                <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                                <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
                                   {team.team_name}
                                 </h3>
                                 <button
@@ -579,7 +579,7 @@ const Playmetrics: React.FC = () => {
                             
                             {/* Event count and profile mappings */}
                             <div className="mt-2 space-y-1">
-                              <div className="flex items-center space-x-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-xs text-gray-500 dark:text-gray-400">
                                   {team.event_count || 0} events imported
                                 </span>
@@ -594,7 +594,7 @@ const Playmetrics: React.FC = () => {
                               </div>
                               
                               {team.mapped_profiles && team.mapped_profiles.length > 0 ? (
-                                <div className="flex items-center space-x-2">
+                                <div className="flex flex-wrap items-center gap-2 mt-2">
                                   {team.mapped_profiles.map(profile => (
                                     <span
                                       key={profile.id}
@@ -631,7 +631,7 @@ const Playmetrics: React.FC = () => {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex flex-wrap justify-end gap-2 mt-2 sm:mt-0">
                           <button
                             onClick={() => handleOpenMapping(team.id)}
                             className="p-2 text-gray-400 dark:text-gray-500 hover:text-green-500 dark:hover:text-green-400"
