@@ -19,6 +19,25 @@ const SignUp: React.FC = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Custom theme that matches the app's blue color scheme
+  const customTheme = {
+    ...ThemeSupa,
+    default: {
+      colors: {
+        ...ThemeSupa.default.colors,
+        brand: '#2563eb',
+        brandAccent: '#1d4ed8',
+      },
+    },
+    dark: {
+      colors: {
+        ...ThemeSupa.dark.colors,
+        brand: '#2563eb',
+        brandAccent: '#1d4ed8',
+      },
+    },
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -35,7 +54,7 @@ const SignUp: React.FC = () => {
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <Auth
             supabaseClient={supabase}
-            appearance={{ theme: ThemeSupa }}
+            appearance={{ theme: customTheme }}
             providers={[]}
             redirectTo={`${window.location.origin}/auth/callback`}
             view="sign_up"
