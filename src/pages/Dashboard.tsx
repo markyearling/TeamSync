@@ -66,9 +66,16 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchConnectedPlatforms = async () => {
       try {
+        // Get the current user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) return;
+
+        // Get platforms connected by the current user
         const { data, error } = await supabase
           .from('platform_teams')
           .select('platform')
+          .eq('user_id', user.id)
           .limit(1000);
 
         if (error) throw error;

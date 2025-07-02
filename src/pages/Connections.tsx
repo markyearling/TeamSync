@@ -80,10 +80,16 @@ const Connections: React.FC = () => {
     try {
       setLoading(true);
       
-      // Get all platform teams
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+      
+      // Get all platform teams for the current user
       const { data: teamsData, error: teamsError } = await supabase
         .from('platform_teams')
         .select('platform, team_name, sync_status, last_synced')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (teamsError) throw teamsError;
@@ -184,11 +190,17 @@ const Connections: React.FC = () => {
       const platform = connectedPlatforms.find(p => p.id === platformId);
       if (!platform) return;
 
-      // Get all teams for this platform
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
+      // Get all teams for this platform and this user
       const { data: teams, error: teamsError } = await supabase
         .from('platform_teams')
         .select('id, team_name')
-        .eq('platform', platform.name);
+        .eq('platform', platform.name)
+        .eq('user_id', user.id);
 
       if (teamsError) throw teamsError;
 
