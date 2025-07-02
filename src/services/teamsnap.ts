@@ -24,17 +24,18 @@ export class TeamSnapService {
   async initiateOAuth(): Promise<string> {
     try {
       // Generate PKCE challenge
-      const challenge = pkceChallenge();
+      const codeVerifier = generateCodeVerifier();
+      const codeChallenge = generateCodeChallenge(codeVerifier);
       
       // Store code verifier in localStorage
-      localStorage.setItem('teamsnap_code_verifier', challenge.code_verifier);
+      localStorage.setItem('teamsnap_code_verifier', codeVerifier);
       
       // Build authorization URL
       const params = new URLSearchParams({
         client_id: this.clientId,
         redirect_uri: this.redirectUri,
         response_type: 'code',
-        code_challenge: challenge.code_challenge,
+        code_challenge: codeChallenge,
         code_challenge_method: 'S256',
         scope: 'read write'
       });
@@ -469,9 +470,9 @@ export class TeamSnapService {
           end_time: event.end_date || event.start_date,
           location: event.location_name || '',
           sport: platformTeam.sport || 'Unknown',
-          color: '#7C3AED', // TeamSnap purple
+          color: '#F97316', // TeamSnap orange
           platform: 'TeamSnap',
-          platform_color: '#7C3AED',
+          platform_color: '#F97316',
           platform_team_id: teamId,
           profile_id: profileId // This is the key - we now have a valid profile_id
         };

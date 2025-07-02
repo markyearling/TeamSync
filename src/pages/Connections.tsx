@@ -32,7 +32,7 @@ const Connections: React.FC = () => {
       id: 1,
       name: 'TeamSnap',
       icon: Users,
-      color: '#7C3AED', // Purple
+      color: '#F97316', // Orange
       connected: false,
       hasIssue: false,
     },
