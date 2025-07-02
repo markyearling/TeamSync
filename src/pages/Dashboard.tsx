@@ -44,7 +44,7 @@ const Dashboard: React.FC = () => {
           .from('user_settings')
           .select('timezone')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error('Error fetching user timezone:', error);
