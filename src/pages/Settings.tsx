@@ -120,9 +120,22 @@ const Settings: React.FC = () => {
     setHasUnsavedChanges(true);
   };
 
-  const handlePhotoChange = (file: File) => {
-    setPhotoFile(file);
-    setHasUnsavedChanges(true);
+  const handlePhotoChange = (fileOrDataUrl: File | string) => {
+    if (typeof fileOrDataUrl === 'string') {
+      // Handle data URL (from mobile camera)
+      // Convert data URL to File object
+      fetch(fileOrDataUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], "profile-photo.jpg", { type: "image/jpeg" });
+          setPhotoFile(file);
+          setHasUnsavedChanges(true);
+        });
+    } else {
+      // Handle File object (from web file input)
+      setPhotoFile(fileOrDataUrl);
+      setHasUnsavedChanges(true);
+    }
   };
 
   const handleSave = async () => {
