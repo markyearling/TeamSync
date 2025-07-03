@@ -4,7 +4,7 @@ import { Bell, Globe, Lock, Mail, Moon, Sun, User, Phone, Calendar as CalendarIc
 import { useTheme } from '../context/ThemeContext';
 import { saveSettings, supabase } from '../lib/supabase';
 import { useCapacitor } from '../hooks/useCapacitor';
-import MobilePhotoUpload from './components/mobile/MobilePhotoUpload';
+import MobilePhotoUpload from '../components/mobile/MobilePhotoUpload';
 
 interface AdditionalEmail {
   id: string;
