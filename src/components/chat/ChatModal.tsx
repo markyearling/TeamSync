@@ -427,15 +427,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const markConversationAsRead = async (conversationId: string, userId: string) => {
     try {
       // Mark all messages from the other person as read
-      const { error } = await supabase
+      const { error: countError } = await supabase
         .from('messages')
         .update({ read: true })
         .eq('conversation_id', conversationId)
         .neq('sender_id', userId)
         .eq('read', false);
         
-      if (error) {
-        console.error('Error marking conversation as read:', error);
+      if (countError) {
+        console.error('Error marking conversation as read:', countError);
       }
       
       // Use the database function to ensure all messages are marked as read
@@ -495,8 +495,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     <div 
       className="fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
       style={{ 
-        top: 'var(--safe-area-inset-top, 0px)', 
-        bottom: 'var(--safe-area-inset-bottom, 0px)' 
+        top: 'env(safe-area-inset-top, 0px)', 
+        bottom: 'env(safe-area-inset-bottom, 0px)' 
       }}
     >
       <div 
