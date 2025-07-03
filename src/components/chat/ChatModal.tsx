@@ -52,6 +52,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const emoticonRef = useRef<HTMLDivElement>(null);
   const subscriptionRef = useRef<any>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Popular emoticons organized by category
   const emoticons = {
@@ -62,6 +63,20 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     'Hearts': ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️'],
     'Objects': ['🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🥅', '⛳']
   };
+
+  // Handle clicks outside the modal
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
 
   // Auto-scroll to bottom function
   const scrollToBottom = (behavior: 'smooth' | 'auto' = 'auto') => {
@@ -487,8 +502,17 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl h-[600px] flex flex-col">
+    <div 
+      className="fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+      style={{ 
+        top: 'var(--safe-area-inset-top, 0px)', 
+        bottom: 'var(--safe-area-inset-bottom, 0px)' 
+      }}
+    >
+      <div 
+        ref={modalRef}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl md:h-auto md:max-h-[90vh] flex flex-col"
+      >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <div className="flex items-center space-x-3">

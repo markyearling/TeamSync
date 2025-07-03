@@ -33,6 +33,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
 
   // Available sports list
   const availableSports = [
@@ -51,6 +52,20 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
     { name: 'Unknown', color: '#64748B' },
     { name: 'Other', color: '#64748B' }
   ];
+
+  // Handle clicks outside the modal
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -197,8 +212,17 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
   }, {} as Record<string, Team[]>);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
+    <div 
+      className="fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+      style={{ 
+        top: 'var(--safe-area-inset-top, 0px)', 
+        bottom: 'var(--safe-area-inset-bottom, 0px)' 
+      }}
+    >
+      <div 
+        ref={modalRef}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:max-h-[90vh] overflow-auto"
+      >
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Map Teams</h3>
           <button

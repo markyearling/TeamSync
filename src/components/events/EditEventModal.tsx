@@ -33,6 +33,21 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Handle clicks outside the modal
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -84,8 +99,17 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full h-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col">
+    <div 
+      className="fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" 
+      style={{ 
+        top: 'var(--safe-area-inset-top, 0px)', 
+        bottom: 'var(--safe-area-inset-bottom, 0px)' 
+      }}
+    >
+      <div 
+        ref={modalRef}
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col"
+      >
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <div className="flex items-center">
