@@ -520,7 +520,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               
               {/* Search Results Dropdown */}
               {showSearchResults && searchResults.length > 0 && (
-                <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto">
+                <div className="absolute right-0 mt-2 w-full sm:w-96 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto">
                   <div className="py-2 px-3 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Search Results ({searchResults.length})
@@ -611,7 +611,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 </button>
                 
                 {notificationsOpen && (
-                  <div className="absolute right-0 mt-2 w-full max-w-xs sm:max-w-sm md:w-96 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                  <div className="absolute right-0 mt-2 w-full md:w-96 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
                     <NotificationCenter 
                       onClose={() => setNotificationsOpen(false)} 
                       onOpenChat={handleOpenChatFromNotification}
@@ -638,7 +638,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 </button>
                 
                 {friendsOpen && (
-                  <div className="absolute right-0 mt-2 w-full max-w-xs sm:max-w-sm origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <div className="absolute right-0 mt-2 w-full md:w-80 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                     <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                       <div className="flex justify-between items-center mb-3">
                         <h3 className="text-sm font-medium text-gray-900 dark:text-white">Friends ({friends.length})</h3>
