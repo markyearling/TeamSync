@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import NotificationCenter from '../notifications/NotificationCenter';
+import FriendsListModal from '../friends/FriendsListModal';
 import ChatModal from '../chat/ChatModal';
 import { supabase } from '../../lib/supabase';
 import EventModal from '../events/EventModal';
@@ -31,7 +32,7 @@ interface Friend {
 const Header: React.FC<HeaderProps> = ({ children }) => {
   const { user } = useApp();
   const { theme, toggleTheme } = useTheme();
-  const { isIOS } = useCapacitor();
+  const { isIOS, isNative } = useCapacitor();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
@@ -378,7 +379,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         (friendsData || []).map(async (friendship) => {
           const friend = friendUsers.find(u => u.id === friendship.friend_id) || {
             id: friendship.friend_id,
-            full_name: 'No name set',
+            full_name: undefined,
             profile_photo_url: undefined
           };
 
@@ -454,14 +455,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     setSelectedEvent(event);
     setSearchQuery('');
     setShowSearchResults(false);
-  };
-
-  const getRoleIcon = (role: string) => {
-    return role === 'administrator' ? '👑' : role === 'viewer' ? '👁️' : '💬';
-  };
-
-  const getRoleLabel = (role: string) => {
-    return role === 'administrator' ? 'Admin' : role === 'viewer' ? 'Viewer' : 'Friend';
   };
 
   const formatEventDate = (date: Date) => {
@@ -611,12 +604,21 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 </button>
                 
                 {notificationsOpen && (
-                  <div className="absolute right-0 mt-2 w-full md:w-96 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                    <NotificationCenter 
-                      onClose={() => setNotificationsOpen(false)} 
-                      onOpenChat={handleOpenChatFromNotification}
-                    />
-                  </div>
+                  isNative ? (
+                    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-800">
+                      <NotificationCenter 
+                        onClose={() => setNotificationsOpen(false)} 
+                        onOpenChat={handleOpenChatFromNotification}
+                      />
+                    </div>
+                  ) : (
+                    <div className="absolute right-0 mt-2 w-full md:w-96 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                      <NotificationCenter 
+                        onClose={() => setNotificationsOpen(false)} 
+                        onOpenChat={handleOpenChatFromNotification}
+                      />
+                    </div>
+                  )
                 )}
               </div>
 
@@ -638,115 +640,33 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 </button>
                 
                 {friendsOpen && (
-                  <div className="absolute right-0 mt-2 w-full md:w-80 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                      <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-sm font-medium text-gray-900 dark:text-white">Friends ({friends.length})</h3>
-                        <button
-                          onClick={handleManageFriends}
-                          className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                        >
-                          Manage
-                        </button>
-                      </div>
-                      
-                      {/* Search Input */}
-                      {friends.length > 0 && (
-                        <div className="relative">
-                          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                            <Search className="h-4 w-4 text-gray-400" />
-                          </div>
-                          <input
-                            type="text"
-                            value={friendSearchQuery}
-                            onChange={(e) => setFriendSearchQuery(e.target.value)}
-                            placeholder="Search friends..."
-                            className="block w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white bg-white dark:bg-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-                      )}
+                  isNative ? (
+                    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-800">
+                      <FriendsListModal
+                        friends={friends}
+                        filteredFriends={filteredFriends}
+                        friendSearchQuery={friendSearchQuery}
+                        setFriendSearchQuery={setFriendSearchQuery}
+                        onFriendClick={handleFriendClick}
+                        onManageFriends={handleManageFriends}
+                        onClose={() => setFriendsOpen(false)}
+                        loadingFriends={loadingFriends}
+                      />
                     </div>
-                    
-                    <div className="max-h-64 overflow-y-auto">
-                      {loadingFriends ? (
-                        <div className="px-4 py-6 text-center">
-                          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
-                        </div>
-                      ) : filteredFriends.length > 0 ? (
-                        <>
-                          {friendSearchQuery && filteredFriends.length !== friends.length && (
-                            <div className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700">
-                              {filteredFriends.length} of {friends.length} friends
-                            </div>
-                          )}
-                          {filteredFriends.map((friend) => (
-                            <button
-                              key={friend.id}
-                              onClick={() => handleFriendClick(friend)}
-                              className="w-full px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-600 last:border-b-0 text-left"
-                            >
-                              <div className="flex items-center">
-                                <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-500 flex items-center justify-center mr-3 relative">
-                                  {friend.friend.profile_photo_url ? (
-                                    <img 
-                                      src={friend.friend.profile_photo_url} 
-                                      alt="" 
-                                      className="w-8 h-8 rounded-full object-cover" 
-                                    />
-                                  ) : (
-                                    <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                                      {(friend.friend.full_name || 'U').charAt(0).toUpperCase()}
-                                    </span>
-                                  )}
-                                  {/* Unread message indicator */}
-                                  {(friend.unreadCount || 0) > 0 && (
-                                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white font-medium">
-                                      {friend.unreadCount! > 9 ? '9+' : friend.unreadCount}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className={`text-sm font-medium truncate ${
-                                    (friend.unreadCount || 0) > 0 
-                                      ? 'font-bold text-gray-900 dark:text-white' 
-                                      : 'text-gray-900 dark:text-white'
-                                  }`}>
-                                    {friend.friend.full_name || 'No name set'}
-                                  </div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
-                                    <span className="mr-1">{getRoleIcon(friend.role)}</span>
-                                    {getRoleLabel(friend.role)}
-                                    {(friend.unreadCount || 0) > 0 && (
-                                      <span className="ml-2 text-blue-600 dark:text-blue-400 font-medium">
-                                        {friend.unreadCount} new message{friend.unreadCount! > 1 ? 's' : ''}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </>
-                      ) : friends.length > 0 ? (
-                        <div className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
-                          <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">No friends found</p>
-                          <p className="text-xs">Try a different search term</p>
-                        </div>
-                      ) : (
-                        <div className="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
-                          <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                          <p className="text-sm">No friends added yet</p>
-                          <button
-                            onClick={handleManageFriends}
-                            className="mt-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-                          >
-                            Add friends
-                          </button>
-                        </div>
-                      )}
+                  ) : (
+                    <div className="absolute right-0 mt-2 w-full md:w-80 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                      <FriendsListModal
+                        friends={friends}
+                        filteredFriends={filteredFriends}
+                        friendSearchQuery={friendSearchQuery}
+                        setFriendSearchQuery={setFriendSearchQuery}
+                        onFriendClick={handleFriendClick}
+                        onManageFriends={handleManageFriends}
+                        onClose={() => setFriendsOpen(false)}
+                        loadingFriends={loadingFriends}
+                      />
                     </div>
-                  </div>
+                  )
                 )}
               </div>
               

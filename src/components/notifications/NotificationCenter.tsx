@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, Check, UserPlus, Calendar, MessageSquare, Clock, Trash2, BookMarked as MarkAsRead } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useCapacitor } from '../../hooks/useCapacitor';
 
 interface Notification {
   id: string;
@@ -24,6 +25,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const subscriptionRef = useRef<any>(null);
+  const { isNative } = useCapacitor();
 
   useEffect(() => {
     fetchNotifications();
@@ -275,8 +277,13 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
+  // Determine container styling based on whether we're on mobile or desktop
+  const containerClasses = isNative
+    ? "flex flex-col h-full w-full"
+    : "w-full";
+
   return (
-    <div className="w-full max-w-xs sm:max-w-sm md:w-96 bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+    <div className={containerClasses}>
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
         <div className="flex items-center">
@@ -316,7 +323,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
       </div>
 
       {/* Content */}
-      <div className="max-h-96 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="px-4 py-6 text-center">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
@@ -403,6 +410,17 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
           </div>
         )}
       </div>
+
+      {isNative && (
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={onClose}
+            className="w-full py-2 px-4 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md text-center"
+          >
+            Close
+          </button>
+        </div>
+      )}
     </div>
   );
 };

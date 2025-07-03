@@ -82,6 +82,28 @@ const MobileOptimizations: React.FC<MobileOptimizationsProps> = ({ children }) =
         .mobile-app {
           scroll-behavior: smooth;
         }
+
+        /* Fix for modals on mobile */
+        .mobile-app .fixed {
+          position: fixed !important;
+        }
+        
+        /* Ensure proper safe area insets */
+        .mobile-app .safe-area-top {
+          padding-top: var(--safe-area-inset-top);
+        }
+        
+        .mobile-app .safe-area-bottom {
+          padding-bottom: var(--safe-area-inset-bottom);
+        }
+        
+        .mobile-app .safe-area-left {
+          padding-left: var(--safe-area-inset-left);
+        }
+        
+        .mobile-app .safe-area-right {
+          padding-right: var(--safe-area-inset-right);
+        }
       `;
       document.head.appendChild(style);
 
