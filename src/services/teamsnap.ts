@@ -1,4 +1,4 @@
-import { generateCodeVerifier, generateCodeChallenge } from 'oauth-pkce';
+import * as oauthPkce from 'oauth-pkce';
 import { supabase } from '../lib/supabase';
 
 const TEAMSNAP_AUTH_URL = 'https://auth.teamsnap.com/oauth/authorize';
@@ -24,8 +24,8 @@ export class TeamSnapService {
   async initiateOAuth(): Promise<string> {
     try {
       // Generate PKCE challenge
-      const codeVerifier = generateCodeVerifier();
-      const codeChallenge = generateCodeChallenge(codeVerifier);
+      const codeVerifier = oauthPkce.generateCodeVerifier();
+      const codeChallenge = oauthPkce.generateCodeChallenge(codeVerifier);
       
       // Store code verifier in localStorage
       localStorage.setItem('teamsnap_code_verifier', codeVerifier);
