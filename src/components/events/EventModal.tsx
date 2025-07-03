@@ -123,7 +123,8 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   // Handle click outside to close modal
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      // Only close if edit modal is not open
+      if (!showEditModal && modalRef.current && !modalRef.current.contains(e.target as Node)) {
         onClose();
       }
     };
@@ -132,7 +133,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [onClose]);
+  }, [onClose, showEditModal]);
 
   const handleMapLoad = (map: google.maps.Map) => {
     setMapRef(map);

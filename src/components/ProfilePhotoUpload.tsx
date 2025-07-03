@@ -44,6 +44,7 @@ const ProfilePhotoUpload: React.FC<ProfilePhotoUploadProps> = ({ currentPhotoUrl
 
   // Use mobile component for native apps
   if (isNative) {
+    console.log('Using MobilePhotoUpload component for native app');
     return (
       <MobilePhotoUpload 
         currentPhotoUrl={previewUrl}
