@@ -605,7 +605,12 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 
                 {notificationsOpen && (
                   isNative ? (
-                    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-800">
+                    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-800" style={{
+                      top: 'env(safe-area-inset-top, 0px)',
+                      bottom: 'env(safe-area-inset-bottom, 0px)',
+                      left: 'env(safe-area-inset-left, 0px)',
+                      right: 'env(safe-area-inset-right, 0px)'
+                    }}>
                       <NotificationCenter 
                         onClose={() => setNotificationsOpen(false)} 
                         onOpenChat={handleOpenChatFromNotification}
@@ -641,7 +646,12 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 
                 {friendsOpen && (
                   isNative ? (
-                    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-800">
+                    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-800" style={{
+                      top: 'env(safe-area-inset-top, 0px)', 
+                      bottom: 'env(safe-area-inset-bottom, 0px)',
+                      left: 'env(safe-area-inset-left, 0px)',
+                      right: 'env(safe-area-inset-right, 0px)'
+                    }}>
                       <FriendsListModal
                         friends={friends}
                         filteredFriends={filteredFriends}
