@@ -64,20 +64,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     'Objects': ['🎉', '🎊', '🎈', '🎁', '🏆', '🥇', '🥈', '🥉', '⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🥅', '⛳']
   };
 
-  // Handle clicks outside the modal
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [onClose]);
-
   // Auto-scroll to bottom function
   const scrollToBottom = (behavior: 'smooth' | 'auto' = 'auto') => {
     if (messagesContainerRef.current) {
@@ -105,6 +91,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       if (emoticonRef.current && !emoticonRef.current.contains(event.target as Node)) {
         setShowEmoticons(false);
       }
+      
+      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+        onClose();
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -116,7 +106,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         subscriptionRef.current.unsubscribe();
       }
     };
-  }, [friend.friend_id]);
+  }, [friend.friend_id, onClose]);
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
@@ -503,7 +493,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
   return (
     <div 
-      className="fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+      className="fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
       style={{ 
         top: 'var(--safe-area-inset-top, 0px)', 
         bottom: 'var(--safe-area-inset-bottom, 0px)' 
@@ -511,7 +501,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     >
       <div 
         ref={modalRef}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl md:h-auto md:max-h-[90vh] flex flex-col"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl md:h-auto md:max-h-[90vh] flex flex-col p-4"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Check, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
@@ -35,6 +35,20 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
   const [syncing, setSyncing] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
 
+  // Handle clicks outside the modal
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [onClose]);
+
   // Available sports list
   const availableSports = [
     { name: 'Soccer', color: '#10B981' },
@@ -52,20 +66,6 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
     { name: 'Unknown', color: '#64748B' },
     { name: 'Other', color: '#64748B' }
   ];
-
-  // Handle clicks outside the modal
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [onClose]);
 
   useEffect(() => {
     const fetchTeams = async () => {
