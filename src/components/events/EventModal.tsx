@@ -268,10 +268,17 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
   return (
     <>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div 
+        className="fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+        style={{ 
+          top: 'var(--safe-area-inset-top, 0px)', 
+          bottom: 'var(--safe-area-inset-bottom, 0px)' 
+        }} 
+        onClick={onClose}
+      >
         <div 
           ref={modalRef}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full h-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col" 
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col" 
           onClick={(e) => e.stopPropagation()}
         >
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">

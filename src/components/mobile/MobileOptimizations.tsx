@@ -20,6 +20,8 @@ const MobileOptimizations: React.FC<MobileOptimizationsProps> = ({ children }) =
         // Add iOS-specific safe area handling
         document.documentElement.style.setProperty('--safe-area-inset-top', 'env(safe-area-inset-top)');
         document.documentElement.style.setProperty('--safe-area-inset-bottom', 'env(safe-area-inset-bottom)');
+        document.documentElement.style.setProperty('--safe-area-inset-left', 'env(safe-area-inset-left)');
+        document.documentElement.style.setProperty('--safe-area-inset-right', 'env(safe-area-inset-right)');
       }
       
       if (isAndroid) {
