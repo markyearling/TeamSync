@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Globe, Lock, Mail, Moon, Sun, User, Phone, Calendar as CalendarIcon, Plus, Trash2, Save, Clock, Eye, EyeOff, AlertCircle, CheckCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
 import { saveSettings, supabase } from '../lib/supabase';
+import { useCapacitor } from '../hooks/useCapacitor';
+import MobilePhotoUpload from './components/mobile/MobilePhotoUpload';
 
 interface AdditionalEmail {
   id: string;
@@ -29,6 +30,7 @@ const defaultSettings = {
 const Settings: React.FC = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { isNative } = useCapacitor();
   const [additionalEmails, setAdditionalEmails] = useState<AdditionalEmail[]>([]);
   const [newEmail, setNewEmail] = useState('');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -36,7 +38,9 @@ const Settings: React.FC = () => {
   const [settings, setSettings] = useState(defaultSettings);
   const [isSaving, setIsSaving] = useState(false);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [timezones, setTimezones] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Password change state
   const [showPasswordSection, setShowPasswordSection] = useState(false);
@@ -53,6 +57,11 @@ const Settings: React.FC = () => {
     loadUserData();
     loadTimezones();
   }, []);
+
+  // Update photoPreview when settings.profile_photo_url changes
+  useEffect(() => {
+    setPhotoPreview(settings.profile_photo_url);
+  }, [settings.profile_photo_url]);
 
   const loadTimezones = () => {
     // Get a list of all available timezones
@@ -93,6 +102,8 @@ const Settings: React.FC = () => {
         }
         
         setSettings(settingsData);
+        setPhotoPreview(settingsData.profile_photo_url);
+        
         if (settingsData.additional_emails) {
           setAdditionalEmails(
             settingsData.additional_emails.map((email: string) => ({
@@ -123,6 +134,8 @@ const Settings: React.FC = () => {
   const handlePhotoChange = (fileOrDataUrl: File | string) => {
     if (typeof fileOrDataUrl === 'string') {
       // Handle data URL (from mobile camera)
+      setPhotoPreview(fileOrDataUrl);
+      
       // Convert data URL to File object
       fetch(fileOrDataUrl)
         .then(res => res.blob())
@@ -134,7 +147,22 @@ const Settings: React.FC = () => {
     } else {
       // Handle File object (from web file input)
       setPhotoFile(fileOrDataUrl);
+      
+      // Create a preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(fileOrDataUrl);
+      
       setHasUnsavedChanges(true);
+    }
+  };
+
+  const handleWebFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handlePhotoChange(file);
     }
   };
 
@@ -256,10 +284,45 @@ const Settings: React.FC = () => {
             <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Account Settings</h2>
             <div className="space-y-4">
               <div className="flex items-start space-x-4">
-                <ProfilePhotoUpload 
-                  currentPhotoUrl={settings.profile_photo_url} 
-                  onPhotoChange={handlePhotoChange} 
-                />
+                {isNative ? (
+                  <MobilePhotoUpload
+                    currentPhotoUrl={photoPreview}
+                    onPhotoChange={handlePhotoChange}
+                  />
+                ) : (
+                  <div className="relative">
+                    <div className="h-32 w-32 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-700">
+                      {photoPreview ? (
+                        <img
+                          src={photoPreview}
+                          alt="Profile"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="h-full w-full flex items-center justify-center text-gray-400 dark:text-gray-500">
+                          <User className="h-8 w-8" />
+                        </div>
+                      )}
+                    </div>
+                    <label
+                      htmlFor="photo-upload"
+                      className="absolute bottom-0 right-0 bg-white dark:bg-gray-700 rounded-full p-2 shadow-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600"
+                    >
+                      <Plus className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                      <input
+                        ref={fileInputRef}
+                        id="photo-upload"
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleWebFileChange}
+                      />
+                    </label>
+                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                      Click to upload photo
+                    </p>
+                  </div>
+                )}
                 <div className="flex-1">
                   <div className="space-y-4">
                     <div>
