@@ -585,7 +585,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             <div className="flex items-center gap-x-4">
               <button
                 onClick={toggleTheme}
-                className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {theme === 'dark' ? (
                   <Sun className="h-5 w-5" />
@@ -598,7 +598,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               <div className="relative" ref={notificationsRef}>
                 <button
                   type="button"
-                  className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={toggleNotifications}
                 >
                   <span className="sr-only">View notifications</span>
@@ -624,7 +624,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               <div className="relative" ref={friendsDropdownRef}>
                 <button
                   type="button"
-                  className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={toggleFriends}
                 >
                   <span className="sr-only">View friends</span>
@@ -753,7 +753,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               <div className="relative">
                 <button
                   type="button"
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={toggleUserMenu}
                 >
                   <span className="sr-only">Open user menu</span>

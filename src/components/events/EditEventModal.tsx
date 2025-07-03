@@ -3,6 +3,7 @@ import { X, Calendar as CalendarIcon, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Autocomplete } from '@react-google-maps/api';
 import { Event } from '../../types';
+import { useCapacitor } from '../../hooks/useCapacitor';
 
 interface EditEventModalProps {
   event: Event;
@@ -31,6 +32,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isNative } = useCapacitor();
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -98,17 +100,26 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     }
   };
 
+  // Determine modal styling based on whether we're on mobile or desktop
+  const modalContainerClasses = isNative
+    ? "fixed inset-0 z-[60] flex flex-col bg-white dark:bg-gray-800 overflow-hidden"
+    : "fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4";
+
+  const modalContentClasses = isNative
+    ? "flex flex-col h-full w-full overflow-hidden"
+    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col";
+
   return (
     <div 
-      className="fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-[60] p-4" 
+      className={modalContainerClasses}
       style={{ 
-        top: 'var(--safe-area-inset-top, 0px)', 
-        bottom: 'var(--safe-area-inset-bottom, 0px)' 
+        top: isNative ? 'var(--safe-area-inset-top, 0px)' : 0, 
+        bottom: isNative ? 'var(--safe-area-inset-bottom, 0px)' : 0 
       }}
     >
       <div 
         ref={modalRef}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col"
+        className={modalContentClasses}
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
@@ -161,6 +172,42 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               />
             </div>
 
+            <div>
+              <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Location
+              </label>
+              {mapsLoaded && !mapsLoadError ? (
+                <Autocomplete
+                  onLoad={autocomplete => {
+                    autocompleteRef.current = autocomplete;
+                  }}
+                  onPlaceChanged={onPlaceSelected}
+                  options={{ types: ['establishment', 'geocode'] }}
+                >
+                  <input
+                    type="text"
+                    id="location"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    placeholder="Start typing to search locations..."
+                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  />
+                </Autocomplete>
+              ) : (
+                <input
+                  type="text"
+                  id="location"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleInputChange}
+                  placeholder={mapsLoadError ? "Maps unavailable - enter location manually" : "Loading places search..."}
+                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  disabled={!mapsLoadError && !mapsLoaded}
+                />
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -211,42 +258,6 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                 <option value="120">2 hours</option>
                 <option value="180">3 hours</option>
               </select>
-            </div>
-
-            <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Location
-              </label>
-              {mapsLoaded && !mapsLoadError ? (
-                <Autocomplete
-                  onLoad={autocomplete => {
-                    autocompleteRef.current = autocomplete;
-                  }}
-                  onPlaceChanged={onPlaceSelected}
-                  options={{ types: ['establishment', 'geocode'] }}
-                >
-                  <input
-                    type="text"
-                    id="location"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleInputChange}
-                    placeholder="Start typing to search locations..."
-                    className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  />
-                </Autocomplete>
-              ) : (
-                <input
-                  type="text"
-                  id="location"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  placeholder={mapsLoadError ? "Maps unavailable - enter location manually" : "Loading places search..."}
-                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                  disabled={!mapsLoadError && !mapsLoaded}
-                />
-              )}
             </div>
 
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">

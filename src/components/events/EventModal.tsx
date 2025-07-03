@@ -5,6 +5,7 @@ import { GoogleMap } from '@react-google-maps/api';
 import { supabase } from '../../lib/supabase';
 import EditEventModal from './EditEventModal';
 import { DateTime } from 'luxon';
+import { useCapacitor } from '../../hooks/useCapacitor';
 
 interface EventModalProps {
   event: Event;
@@ -26,6 +27,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   const [canEdit, setCanEdit] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const { isNative } = useCapacitor();
 
   // Check if user can edit this event
   useEffect(() => {
@@ -266,19 +268,28 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     </div>
   );
 
+  // Determine modal styling based on whether we're on mobile or desktop
+  const modalContainerClasses = isNative
+    ? "fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-800 overflow-hidden"
+    : "fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4";
+
+  const modalContentClasses = isNative
+    ? "flex flex-col h-full w-full overflow-hidden"
+    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col";
+
   return (
     <>
       <div 
-        className="fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
+        className={modalContainerClasses}
         style={{ 
-          top: 'var(--safe-area-inset-top, 0px)', 
-          bottom: 'var(--safe-area-inset-bottom, 0px)' 
+          top: isNative ? 'var(--safe-area-inset-top, 0px)' : 0, 
+          bottom: isNative ? 'var(--safe-area-inset-bottom, 0px)' : 0 
         }} 
-        onClick={onClose}
+        onClick={isNative ? undefined : onClose}
       >
         <div 
           ref={modalRef}
-          className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col" 
+          className={modalContentClasses}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
