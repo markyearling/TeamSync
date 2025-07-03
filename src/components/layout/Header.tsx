@@ -47,6 +47,8 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
+  const friendsDropdownRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   
   const toggleNotifications = () => setNotificationsOpen(!notificationsOpen);
@@ -180,6 +182,14 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowSearchResults(false);
+      }
+      
+      if (friendsDropdownRef.current && !friendsDropdownRef.current.contains(event.target as Node)) {
+        setFriendsOpen(false);
+      }
+      
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
       }
     };
 
@@ -357,7 +367,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
           
           return {
             id: friendId,
-            full_name: settings?.full_name || 'No name set',
+            full_name: settings?.full_name,
             profile_photo_url: settings?.profile_photo_url
           };
         });
@@ -572,27 +582,27 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               )}
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-x-4">
               <button
                 onClick={toggleTheme}
-                className="relative rounded-full p-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {theme === 'dark' ? (
-                  <Sun className="h-6 w-6" />
+                  <Sun className="h-5 w-5" />
                 ) : (
-                  <Moon className="h-6 w-6" />
+                  <Moon className="h-5 w-5" />
                 )}
               </button>
 
               {/* Notifications */}
-              <div className="relative">
+              <div className="relative" ref={notificationsRef}>
                 <button
                   type="button"
-                  className="relative rounded-full bg-white dark:bg-gray-700 p-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={toggleNotifications}
                 >
                   <span className="sr-only">View notifications</span>
-                  <Bell className="h-6 w-6" />
+                  <Bell className="h-5 w-5" />
                   {notificationCount > 0 && (
                     <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white font-medium">
                       {notificationCount > 99 ? '99+' : notificationCount}
@@ -601,22 +611,24 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 </button>
                 
                 {notificationsOpen && (
-                  <NotificationCenter 
-                    onClose={() => setNotificationsOpen(false)} 
-                    onOpenChat={handleOpenChatFromNotification}
-                  />
+                  <div className="absolute right-0 mt-2 w-full max-w-xs sm:max-w-sm md:w-96 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                    <NotificationCenter 
+                      onClose={() => setNotificationsOpen(false)} 
+                      onOpenChat={handleOpenChatFromNotification}
+                    />
+                  </div>
                 )}
               </div>
 
               {/* Friends Dropdown */}
-              <div className="relative">
+              <div className="relative" ref={friendsDropdownRef}>
                 <button
                   type="button"
-                  className="relative rounded-full bg-white dark:bg-gray-700 p-1 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={toggleFriends}
                 >
                   <span className="sr-only">View friends</span>
-                  <Users className="h-6 w-6" />
+                  <Users className="h-5 w-5" />
                   {/* Show total unread messages count */}
                   {friends.some(f => (f.unreadCount || 0) > 0) && (
                     <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white font-medium">
@@ -626,7 +638,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 </button>
                 
                 {friendsOpen && (
-                  <div className="absolute right-0 mt-2 w-80 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                  <div className="absolute right-0 mt-2 w-full max-w-xs sm:max-w-sm origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                     <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                       <div className="flex justify-between items-center mb-3">
                         <h3 className="text-sm font-medium text-gray-900 dark:text-white">Friends ({friends.length})</h3>
@@ -741,7 +753,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               <div className="relative">
                 <button
                   type="button"
-                  className="flex rounded-full bg-white dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-gray-700 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={toggleUserMenu}
                 >
                   <span className="sr-only">Open user menu</span>

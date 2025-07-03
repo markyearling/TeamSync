@@ -401,8 +401,8 @@ const ChildProfile: React.FC = () => {
     <div className="space-y-6">
       {/* Profile Header */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center flex-wrap gap-4">
             <div className="h-20 w-20 rounded-full overflow-hidden flex items-center justify-center relative">
               {child.photo_url ? (
                 <img 
@@ -424,7 +424,7 @@ const ChildProfile: React.FC = () => {
                 </div>
               )}
             </div>
-            <div className="ml-6">
+            <div>
               <div className="flex items-center space-x-2">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{child.name}</h1>
                 {isFriendProfile && (
@@ -460,7 +460,7 @@ const ChildProfile: React.FC = () => {
               )}
             </div>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap justify-end gap-2">
             <button
               onClick={() => setShowTeamMapping(true)}
               className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"

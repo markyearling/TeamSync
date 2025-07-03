@@ -276,7 +276,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="absolute right-0 mt-2 w-96 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+    <div className="w-full max-w-xs sm:max-w-sm md:w-96 bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
         <div className="flex items-center">
