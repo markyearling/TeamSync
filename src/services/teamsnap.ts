@@ -1,4 +1,3 @@
-import * as oauthPkce from 'oauth-pkce';
 import { supabase } from '../lib/supabase';
 
 const TEAMSNAP_AUTH_URL = 'https://auth.teamsnap.com/oauth/authorize';
@@ -21,11 +20,32 @@ export class TeamSnapService {
     this.redirectUri = config.redirectUri;
   }
 
+  // Manual PKCE implementation using browser's crypto API
+  private generateCodeVerifier(): string {
+    const array = new Uint8Array(32);
+    window.crypto.getRandomValues(array);
+    return this.base64URLEncode(array);
+  }
+
+  private async generateCodeChallenge(codeVerifier: string): Promise<string> {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(codeVerifier);
+    const digest = await window.crypto.subtle.digest('SHA-256', data);
+    return this.base64URLEncode(new Uint8Array(digest));
+  }
+
+  private base64URLEncode(array: Uint8Array): string {
+    return btoa(String.fromCharCode(...array))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+  }
+
   async initiateOAuth(): Promise<string> {
     try {
-      // Generate PKCE challenge
-      const codeVerifier = oauthPkce.generateCodeVerifier();
-      const codeChallenge = oauthPkce.generateCodeChallenge(codeVerifier);
+      // Generate PKCE challenge using browser crypto API
+      const codeVerifier = this.generateCodeVerifier();
+      const codeChallenge = await this.generateCodeChallenge(codeVerifier);
       
       // Store code verifier in localStorage
       localStorage.setItem('teamsnap_code_verifier', codeVerifier);
