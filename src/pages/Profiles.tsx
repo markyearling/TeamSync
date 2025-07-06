@@ -230,12 +230,27 @@ const Profiles: React.FC = () => {
                     {!child.isOwnProfile && (
                       <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
                         <div className="flex items-center text-yellow-800 dark:text-yellow-200">
-                          <Crown className="h-4 w-4 mr-2" />
-                          <span className="text-xs font-medium">Administrator Access</span>
+                          {profile.accessRole === 'administrator' ? (
+                            <>
+                              <Crown className="h-4 w-4 mr-2" />
+                              <span className="text-xs font-medium">Administrator Access</span>
+                            </>
+                          ) : (
+                            <>
+                              <Eye className="h-4 w-4 mr-2" />
+                              <span className="text-xs font-medium">Viewer Access</span>
+                            </>
+                          )}
                         </div>
                         <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                          You can view and manage all aspects of this profile
-                        </p>
+                          {profile.accessRole === 'administrator'
+                            ? 'You can view and manage all aspects of this profile'
+                            : 'You can view but not edit this profile'}
+                        {profile.accessRole === 'administrator' ? (
+                          <Crown className="h-2.5 w-2.5 text-white" />
+                        ) : (
+                          <Eye className="h-2.5 w-2.5 text-white" />
+                        )}
                       </div>
                     )}
 

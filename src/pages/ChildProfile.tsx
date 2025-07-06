@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AddEventModal from '../components/events/AddEventModal';
 import EventModal from '../components/events/EventModal';
-import { Filter, Calendar, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users, ChevronLeft, ChevronRight, Crown } from 'lucide-react';
+import { Filter, Calendar, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users, ChevronLeft, ChevronRight, Crown, Eye } from 'lucide-react';
 import { useProfiles } from '../context/ProfilesContext';
 import { Child, Event } from '../types';
 import { supabase } from '../lib/supabase';

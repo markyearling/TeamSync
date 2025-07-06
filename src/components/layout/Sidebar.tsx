@@ -215,7 +215,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                   )}
                   {/* Administrator badge */}
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full flex items-center justify-center">
-                    <span className="text-xs text-white">👑</span>
+                    <span className="text-xs text-white">{child.accessRole === 'administrator' ? '👑' : '👁️'}</span>
                   </div>
                 </div>
                 <div className="flex-1 text-left">
