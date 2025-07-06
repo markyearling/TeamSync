@@ -8,12 +8,12 @@ export interface Child {
   sports: { name: string; color: string }[];
   eventCount: number;
   photo_url?: string;
+  user_id?: string; // The user ID who owns this profile
   notes?: string;
   ownerName?: string; // For friends' children
   ownerPhoto?: string; // For friends' children
   accessRole?: 'viewer' | 'administrator'; // For friends' children
   isOwnProfile?: boolean; // To distinguish between own and friends' profiles
-  user_id?: string; // The user ID who owns this profile
 }
 
 export interface Platform {
