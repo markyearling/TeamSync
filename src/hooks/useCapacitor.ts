@@ -50,6 +50,14 @@ export const useCapacitor = () => {
         // Handle keyboard events
         Keyboard.addListener('keyboardWillShow', info => {
           console.log('Keyboard will show with height:', info.keyboardHeight);
+          
+          // Adjust scroll position to keep focused element visible
+          const activeElement = document.activeElement as HTMLElement;
+          if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+            setTimeout(() => {
+              activeElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          }
         });
 
         Keyboard.addListener('keyboardDidShow', info => {

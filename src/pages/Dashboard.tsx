@@ -14,6 +14,9 @@ import { useCapacitor } from '../hooks/useCapacitor';
 // Define libraries outside component to prevent recreation on each render
 const libraries: Libraries = ['places', 'marker'];
 
+// Minimum time between refreshes in milliseconds (5 seconds)
+const MIN_REFRESH_INTERVAL = 5000;
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { profiles, friendsProfiles } = useProfiles();
@@ -25,7 +28,8 @@ const Dashboard: React.FC = () => {
   const [isPulling, setIsPulling] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [lastRefreshedDate, setLastRefreshedDate] = useState<Date | null>(null);
+  const [lastRefreshInProgress, setLastRefreshInProgress] = useState(false);
   const [touchStartY, setTouchStartY] = useState(0);
   const { isNative } = useCapacitor();
 
@@ -70,10 +74,10 @@ const Dashboard: React.FC = () => {
 
   // Format the last refreshed time
   const formatLastRefreshed = () => {
-    if (!lastRefreshed) return null;
+    if (!lastRefreshedDate) return null;
     
     const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - lastRefreshed.getTime()) / 1000);
+    const diffInSeconds = Math.floor((now.getTime() - lastRefreshedDate.getTime()) / 1000);
     
     if (diffInSeconds < 60) {
       return 'Just now';
@@ -86,6 +90,56 @@ const Dashboard: React.FC = () => {
     } else {
       const days = Math.floor(diffInSeconds / 86400);
       return `${days}d ago`;
+    }
+  };
+
+  // Fetch last dashboard refresh time
+  const fetchLastRefreshTime = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: userSettings, error } = await supabase
+        .from('user_settings')
+        .select('last_dashboard_refresh')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching last refresh time:', error);
+        return;
+      }
+
+      if (userSettings?.last_dashboard_refresh) {
+        setLastRefreshedDate(new Date(userSettings.last_dashboard_refresh));
+        console.log('Last dashboard refresh:', new Date(userSettings.last_dashboard_refresh));
+      }
+    } catch (error) {
+      console.error('Error fetching last refresh time:', error);
+    }
+  }, []);
+
+  // Update last dashboard refresh time in database
+  const updateLastRefreshTime = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const now = new Date();
+      
+      const { error } = await supabase
+        .from('user_settings')
+        .update({ last_dashboard_refresh: now.toISOString() })
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error updating last refresh time:', error);
+        return;
+      }
+
+      setLastRefreshedDate(now);
+    } catch (error) {
+      console.error('Error updating last refresh time:', error);
     }
   };
 
@@ -239,6 +293,9 @@ const Dashboard: React.FC = () => {
   // Main effect - only runs when dependencies actually change
   useEffect(() => {
     let isMounted = true;
+    
+    // Fetch last refresh time when component mounts
+    fetchLastRefreshTime();
 
     const fetchAllData = async () => {
       try {
@@ -262,16 +319,43 @@ const Dashboard: React.FC = () => {
     };
 
     fetchAllData();
+    
+    // Set up interval to update the "time ago" display
+    const intervalId = setInterval(() => {
+      if (lastRefreshedDate) {
+        // Force re-render to update the "time ago" display
+        setLastRefreshedDate(new Date(lastRefreshedDate));
+      }
+    }, 60000); // Update every minute
 
     return () => {
       isMounted = false;
+      clearInterval(intervalId);
     };
-  }, [fetchOwnEvents, fetchFriendsEvents, friendsProfiles]); // Re-run when friendsProfiles changes
+  }, [fetchOwnEvents, fetchFriendsEvents, friendsProfiles, fetchLastRefreshTime]); // Re-run when friendsProfiles changes
 
   // Function to sync all platform events
   const syncAllPlatformEvents = async () => {
     try {
+      // Prevent rapid refreshes
+      if (isRefreshing || lastRefreshInProgress) {
+        console.log('Refresh already in progress, skipping');
+        return;
+      }
+      
+      // Check if we've refreshed recently
+      if (lastRefreshedDate) {
+        const timeSinceLastRefresh = Date.now() - lastRefreshedDate.getTime();
+        if (timeSinceLastRefresh < MIN_REFRESH_INTERVAL) {
+          console.log(`Refreshed too recently (${timeSinceLastRefresh}ms ago), skipping`);
+          setIsPulling(false);
+          setPullDistance(0);
+          return;
+        }
+      }
+      
       setIsRefreshing(true);
+      setLastRefreshInProgress(true);
       
       // Get the current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -478,13 +562,14 @@ const Dashboard: React.FC = () => {
       await fetchOwnEvents();
       await fetchFriendsEvents();
       
-      // Update last refreshed time
-      setLastRefreshed(new Date());
+      // Update last refreshed time in state and database
+      await updateLastRefreshTime();
       
     } catch (error) {
       console.error('Error syncing platform events:', error);
     } finally {
       setIsRefreshing(false);
+      setLastRefreshInProgress(false);
       setIsPulling(false);
       setPullDistance(0);
     }
@@ -609,16 +694,19 @@ const Dashboard: React.FC = () => {
           <div className="text-sm text-gray-500 dark:text-gray-400">
             {new Date().toLocaleDateString('en-US', { 
               weekday: 'long', 
-              year: 'numeric', 
               month: 'long', 
-              day: 'numeric' 
+            day: 'numeric',
+            year: 'numeric'
             })}
           </div>
-          {lastRefreshed && (
-            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-              Last refreshed: {formatLastRefreshed()}
-            </div>
-          )}
+        {lastRefreshedDate && (
+          <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
+            <span>Last refreshed: {formatLastRefreshed()}</span>
+            {isRefreshing && (
+              <RefreshCw className="ml-2 h-3 w-3 animate-spin text-blue-500" />
+            )}
+          </div>
+        )}
         </div>
       </div>
 
@@ -752,9 +840,17 @@ const Dashboard: React.FC = () => {
             <CalendarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">Connected Platforms</h2>
           </div>
-          <a href="/connections" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
-            Manage <ArrowRight className="ml-1 h-4 w-4" />
-          </a>
+          <div className="flex items-center space-x-2">
+            {isRefreshing && (
+              <div className="text-xs text-blue-600 dark:text-blue-400 flex items-center">
+                <RefreshCw className="h-3 w-3 animate-spin mr-1" />
+                Syncing...
+              </div>
+            )}
+            <a href="/connections" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
+              Manage <ArrowRight className="ml-1 h-4 w-4" />
+            </a>
+          </div>
         </div>
         <div className="px-4 py-5 sm:px-6 space-y-4">
           {connectedPlatforms.length > 0 ? (
@@ -771,32 +867,6 @@ const Dashboard: React.FC = () => {
             </div>
           )}
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-          <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
-              <CalendarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
-              <h2 className="text-lg font-medium text-gray-900 dark:text-white">Connected Platforms</h2>
-            </div>
-            <a href="/connections" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
-              Manage <ArrowRight className="ml-1 h-4 w-4" />
-            </a>
-          </div>
-          <div className="px-4 py-5 sm:px-6 space-y-4">
-            {connectedPlatforms.length > 0 ? (
-              connectedPlatforms.map(platform => (
-                <ConnectedPlatform 
-                  key={platform.id} 
-                  platform={platform} 
-                  onManage={() => handleManagePlatform(platform.name)}
-                />
-              ))
-            ) : (
-              <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                No platforms connected yet. Visit the Connections page to connect your sports platforms.
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Upcoming Events */}
@@ -806,11 +876,6 @@ const Dashboard: React.FC = () => {
             <CalendarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">
               Upcoming Events
-              {isRefreshing && (
-                <span className="ml-2 inline-block">
-                  <RefreshCw className="h-4 w-4 text-blue-500 animate-spin inline-block" />
-                </span>
-              )}
             </h2>
           </div>
           <a href="/calendar" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
