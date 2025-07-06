@@ -398,6 +398,9 @@ const ChildProfile: React.FC = () => {
 
   const isFriendProfile = !child.isOwnProfile;
 
+  // Define canEdit based on profile ownership and access role
+  const canEdit = child.isOwnProfile || (isFriendProfile && child.accessRole === 'administrator');
+
   // Format time with user's timezone
   const formatTime = (date: Date) => {
     return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString({
