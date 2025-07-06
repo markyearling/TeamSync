@@ -205,7 +205,8 @@ const Dashboard: React.FC = () => {
 
     } catch (error) {
       console.error('💥 DASHBOARD: Error fetching friends events:', error);
-  }, []);
+    }
+  }, [friendsProfiles]);
 
   // Main effect - only runs when dependencies actually change
   useEffect(() => {
