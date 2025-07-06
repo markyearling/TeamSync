@@ -319,6 +319,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           color: profile.color,
           photo_url: profile.photo_url,
           notes: profile.notes,
+          user_id: profile.user_id, // Explicitly include user_id
           sports: profile.profile_sports?.map(sport => ({
             name: sport.sport,
             color: sport.color
@@ -368,17 +369,41 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
 
       // Check if this is a friend's profile
       const isOwnProfile = profile.user_id === user.id;
+      
+      // Log the profile data with user_id for debugging
+      console.log('🔍 getProfile DEBUG:', {
+        profileId: id,
+        profileUserId: profile.user_id,
+        currentUserId: user.id,
+        isOwnProfile
+      });
+      
       let ownerName = undefined;
       let ownerPhoto = undefined;
+      let accessRole = undefined;
 
       if (!isOwnProfile) {
         // Check if we have access to this profile through friendship cache
         const friendship = friendshipCache.find(f => f.friend_user_id === profile.user_id);
+        
+        console.log('🔍 getProfile FRIENDSHIP DEBUG:', {
+          friendship,
+          friendshipCache,
+          lookingForUserId: profile.user_id
+        });
+        
         if (!friendship) {
           throw new Error('Access denied: No friendship found');
         }
         
         ownerName = friendship.friend_name;
+        accessRole = friendship.role;
+        
+        console.log('🔍 getProfile ACCESS DEBUG:', {
+          ownerName,
+          accessRole,
+          friendUserId: profile.user_id
+        });
         // We can get owner photo from user_settings if needed
       }
 
@@ -386,9 +411,12 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         id: profile.id,
         name: profile.name,
         age: profile.age,
+        user_id: profile.user_id, // Explicitly include user_id
         color: profile.color,
         photo_url: profile.photo_url,
         notes: profile.notes,
+        user_id: profile.user_id, // Explicitly include user_id
+        user_id: profile.user_id, // Explicitly include user_id
         sports: profile.profile_sports?.map(sport => ({
           name: sport.sport,
           color: sport.color
@@ -396,7 +424,8 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         eventCount: 0,
         isOwnProfile,
         ownerName,
-        ownerPhoto
+        ownerPhoto,
+        accessRole
       };
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : 'Failed to fetch profile');
