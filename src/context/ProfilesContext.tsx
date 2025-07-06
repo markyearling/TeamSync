@@ -158,6 +158,11 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
 
       console.log('🤝 PROFILES: Found friendships where user is friend:', friendships?.length || 0);
       console.log('🤝 PROFILES: Friendship details:', friendships);
+      
+      // Log each friendship's user_id and role for debugging
+      friendships?.forEach(friendship => {
+        console.log(`🔍 FRIENDSHIP DEBUG: user_id=${friendship.user_id}, role=${friendship.role}`);
+      });
 
       if (!friendships || friendships.length === 0) {
         console.log('❌ PROFILES: No friendships found where user is friend');
@@ -259,6 +264,11 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       });
       
       console.log('👥 PROFILES: Accessible friendships from fresh data:', accessibleFriendships);
+      
+      // Log each accessible friendship's role for debugging
+      accessibleFriendships.forEach(friendship => {
+        console.log(`🔑 ACCESS DEBUG: user=${friendship.friend_name}, user_id=${friendship.friend_user_id}, role=${friendship.role}`);
+      });
 
       if (accessibleFriendships.length === 0) {
         console.log('❌ PROFILES: No administrator or viewer access found in fresh friendship data');
@@ -298,6 +308,9 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
 
       const formattedFriendsProfiles: Child[] = friendProfilesData?.map(profile => {
         const friendship = accessibleFriendships.find(f => f.friend_user_id === profile.user_id);
+        
+        // Log the profile and its assigned access role
+        console.log(`👤 PROFILE DEBUG: profile_id=${profile.id}, user_id=${profile.user_id}, found_friendship=${!!friendship}, accessRole=${friendship?.role}`);
         
         return {
           id: profile.id,

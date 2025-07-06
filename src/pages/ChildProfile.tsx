@@ -120,6 +120,16 @@ const ChildProfile: React.FC = () => {
           });
           setSelectedSports(profile.sports.map(sport => sport.name));
           setPhotoPreview(profile.photo_url || null);
+          
+          // Log the profile data with access role for debugging
+          console.log('🔍 CHILD PROFILE DEBUG:', {
+            id: profile.id,
+            name: profile.name,
+            isOwnProfile: profile.isOwnProfile,
+            ownerName: profile.ownerName,
+            accessRole: profile.accessRole,
+            user_id: profile.user_id
+          });
 
           // Fetch events for this profile
           const { data: eventData, error: eventError } = await supabase
@@ -396,6 +406,16 @@ const ChildProfile: React.FC = () => {
       hour12: true
     });
   };
+  
+  // Log the current child state with access role for debugging
+  console.log('👀 CHILD PROFILE RENDER:', {
+    id: child?.id,
+    name: child?.name,
+    isOwnProfile: child?.isOwnProfile,
+    ownerName: child?.ownerName,
+    accessRole: child?.accessRole,
+    canEdit: canEdit
+  });
 
   return (
     <div className="space-y-6">

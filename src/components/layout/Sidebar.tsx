@@ -229,6 +229,18 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
           </div>
         </div>
       )}
+      
+      {/* Debug info for friend profiles */}
+      <div className="mt-4 px-3 text-xs text-gray-400 dark:text-gray-500">
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-2">
+          <p>Debug: Friend Profiles</p>
+          {friendsProfiles.map((profile) => (
+            <div key={profile.id} className="mt-1">
+              {profile.name} ({profile.ownerName}): {profile.accessRole || 'no role'}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
