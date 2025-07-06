@@ -463,7 +463,7 @@ const Dashboard: React.FC = () => {
                             {child.ownerName}
                           </span>
                           <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {child.accessRole === 'administrator' ? '👑 Admin' : '👁️ Viewer'} access
+                            {child.accessRole === 'administrator' ? '👑 Admin' : child.accessRole === 'viewer' ? '👁️ Viewer' : '💬 Friend'} access
                           </span>
                         </div>
                         <div className="flex items-center mt-1">

@@ -252,23 +252,23 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       console.log('👥 PROFILES: Fetching friends profiles for user:', userId);
       console.log('👥 PROFILES: Using fresh friendship data:', freshFriendshipData);
       
-      // Filter friendship data for administrator access only
-      const administratorFriendships = freshFriendshipData.filter(f => {
+      // Filter friendship data for administrator and viewer access
+      const accessibleFriendships = freshFriendshipData.filter(f => {
         console.log(`👥 PROFILES: Checking friendship - User: ${f.friend_name}, Role: ${f.role}`);
-        return f.role === 'administrator';
+        return f.role === 'administrator' || f.role === 'viewer';
       });
       
-      console.log('👑 PROFILES: Administrator friendships from fresh data:', administratorFriendships);
+      console.log('👥 PROFILES: Accessible friendships from fresh data:', accessibleFriendships);
 
-      if (administratorFriendships.length === 0) {
-        console.log('❌ PROFILES: No administrator access found in fresh friendship data');
+      if (accessibleFriendships.length === 0) {
+        console.log('❌ PROFILES: No administrator or viewer access found in fresh friendship data');
         setFriendsProfiles([]);
         return;
       }
 
       // Get user IDs where we have administrator access
-      const adminUserIds = administratorFriendships.map(f => f.friend_user_id);
-      console.log('👑 PROFILES: User IDs where we have admin access:', adminUserIds);
+      const accessibleUserIds = accessibleFriendships.map(f => f.friend_user_id);
+      console.log('👥 PROFILES: User IDs where we have access:', accessibleUserIds);
 
       // Get all profiles for users where we have administrator access
       const { data: friendProfilesData, error: friendProfilesError } = await supabase
@@ -286,7 +286,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
             color
           )
         `)
-        .in('user_id', adminUserIds);
+        .in('user_id', accessibleUserIds);
 
       if (friendProfilesError) {
         console.error('❌ PROFILES: Error fetching friend profiles:', friendProfilesError);
@@ -297,7 +297,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       console.log('✅ PROFILES: Friend profiles data:', friendProfilesData);
 
       const formattedFriendsProfiles: Child[] = friendProfilesData?.map(profile => {
-        const friendship = administratorFriendships.find(f => f.friend_user_id === profile.user_id);
+        const friendship = accessibleFriendships.find(f => f.friend_user_id === profile.user_id);
         
         return {
           id: profile.id,
@@ -313,7 +313,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           eventCount: 0,
           isOwnProfile: false,
           ownerName: friendship?.friend_name || 'Friend',
-          ownerPhoto: undefined, // We can add this later if needed
+          ownerPhoto: undefined,
           accessRole: friendship?.role
         };
       }) || [];

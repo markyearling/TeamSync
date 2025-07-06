@@ -529,7 +529,10 @@ const Calendar: React.FC = () => {
                       style={{ backgroundColor: profile.color }}
                     ></span>
                     {profile.name}
-                    <span className="ml-1 text-xs text-blue-600 dark:text-blue-400">({profile.ownerName})</span>
+                    <span className="ml-1 text-xs text-blue-600 dark:text-blue-400">
+                      ({profile.ownerName}) 
+                      {profile.accessRole === 'administrator' ? '👑' : profile.accessRole === 'viewer' ? '👁️' : '💬'}
+                    </span>
                   </label>
                 </div>
               ))}

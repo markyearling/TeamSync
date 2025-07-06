@@ -429,7 +429,7 @@ const ChildProfile: React.FC = () => {
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{child.name}</h1>
                 {isFriendProfile && (
                   <span className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs px-2 py-1 rounded-full font-medium">
-                    {child.ownerName}'s child
+                    {child.ownerName}'s child {child.accessRole === 'administrator' ? '(Admin)' : '(Viewer)'}
                   </span>
                 )}
               </div>
@@ -450,11 +450,22 @@ const ChildProfile: React.FC = () => {
               {isFriendProfile && (
                 <div className="mt-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2">
                   <div className="flex items-center text-yellow-800 dark:text-yellow-200">
-                    <Crown className="h-4 w-4 mr-2" />
-                    <span className="text-xs font-medium">Administrator Access</span>
+                    {child.accessRole === 'administrator' ? (
+                      <>
+                        <Crown className="h-4 w-4 mr-2" />
+                        <span className="text-xs font-medium">Administrator Access</span>
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="h-4 w-4 mr-2" />
+                        <span className="text-xs font-medium">Viewer Access</span>
+                      </>
+                    )}
                   </div>
                   <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                    You have full management access to this profile
+                    {child.accessRole === 'administrator' 
+                      ? 'You have full management access to this profile' 
+                      : 'You can view but not edit this profile'}
                   </p>
                 </div>
               )}
@@ -465,6 +476,7 @@ const ChildProfile: React.FC = () => {
               onClick={() => setShowTeamMapping(true)}
               className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Map teams"
+             disabled={isFriendProfile && child.accessRole !== 'administrator'}
             >
               <Users className="h-5 w-5" />
             </button>
@@ -472,6 +484,7 @@ const ChildProfile: React.FC = () => {
               onClick={handleEdit}
               className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Edit profile"
+             disabled={isFriendProfile && child.accessRole !== 'administrator'}
             >
               <Pencil className="h-5 w-5" />
             </button>
@@ -479,6 +492,7 @@ const ChildProfile: React.FC = () => {
               onClick={() => setShowDeleteModal(true)}
               className="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Delete profile"
+             disabled={isFriendProfile && child.accessRole !== 'administrator'}
             >
               <Trash2 className="h-5 w-5" />
             </button>
@@ -636,6 +650,7 @@ const ChildProfile: React.FC = () => {
               className={`px-4 py-2 text-white rounded-md hover:opacity-90 flex items-center ${
                 isFriendProfile ? 'bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-800' : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800'
               }`}
+             disabled={isFriendProfile && child.accessRole !== 'administrator'}
             >
               <Plus className="h-5 w-5 mr-2" />
               Add Event
@@ -959,11 +974,22 @@ const ChildProfile: React.FC = () => {
                 {isFriendProfile && (
                   <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                     <div className="flex items-center text-yellow-800 dark:text-yellow-200 mb-2">
-                      <Crown className="h-5 w-5 mr-2" />
-                      <span className="font-medium">Administrator Access</span>
+                      {child.accessRole === 'administrator' ? (
+                        <>
+                          <Crown className="h-5 w-5 mr-2" />
+                          <span className="font-medium">Administrator Access</span>
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-5 w-5 mr-2" />
+                          <span className="font-medium">Viewer Access</span>
+                        </>
+                      )}
                     </div>
                     <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                      You are editing {child.ownerName}'s child profile. Any changes you make will be visible to them.
+                      {child.accessRole === 'administrator'
+                        ? `You are editing ${child.ownerName}'s child profile. Any changes you make will be visible to them.`
+                        : `You are viewing ${child.ownerName}'s child profile. You cannot make changes with your current access level.`}
                     </p>
                   </div>
                 )}
