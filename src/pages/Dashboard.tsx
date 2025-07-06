@@ -313,19 +313,14 @@ const Dashboard: React.FC = () => {
             upcomingEvents
               .filter(e => e.isToday)
               .map(event => (
-                <div key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`} className="relative">
-                  {!event.isOwnEvent && (
-                    <div className="absolute top-2 right-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full z-10">
-                      {event.ownerName}'s schedule
-                    </div>
-                  )}
-                  <EventCard 
-                    event={event} 
-                    mapsLoaded={mapsLoaded}
-                    mapsLoadError={mapsLoadError}
-                    userTimezone={userTimezone}
-                  />
-                </div>
+                // Remove the wrapping div here
+                <EventCard
+                  key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`}
+                  event={event}
+                  mapsLoaded={mapsLoaded}
+                  mapsLoadError={mapsLoadError}
+                  userTimezone={userTimezone}
+                />
               ))
           ) : (
             <div className="flex flex-col items-center justify-center p-6 text-center">
@@ -468,19 +463,14 @@ const Dashboard: React.FC = () => {
             .filter(e => !e.isToday)
             .slice(0, 8)
             .map(event => (
-              <div key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`} className="relative">
-                {!event.isOwnEvent && (
-                  <div className="absolute top-2 right-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full z-10">
-                    {event.ownerName}'s schedule
-                  </div>
-                )}
-                <EventCard 
-                  event={event} 
-                  mapsLoaded={mapsLoaded}
-                  mapsLoadError={mapsLoadError}
-                  userTimezone={userTimezone}
-                />
-              </div>
+              // Remove the wrapping div here
+              <EventCard
+                key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`}
+                event={event}
+                mapsLoaded={mapsLoaded}
+                mapsLoadError={mapsLoadError}
+                userTimezone={userTimezone}
+              />
             ))}
           {upcomingEvents.filter(e => !e.isToday).length === 0 && (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">

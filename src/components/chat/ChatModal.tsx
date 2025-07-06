@@ -493,7 +493,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
   return (
     <div 
-      className="fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-50" 
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6"
       style={{ 
         top: 'env(safe-area-inset-top, 0px)', 
         bottom: 'env(safe-area-inset-bottom, 0px)' 
@@ -501,7 +501,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     >
       <div 
         ref={modalRef}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl md:h-auto md:max-h-[90vh] flex flex-col p-4"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl h-full max-h-full overflow-hidden flex flex-col"
+        //className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl md:h-auto md:max-h-[90vh] flex flex-col p-4"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">

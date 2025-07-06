@@ -480,7 +480,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-16 items-center justify-between pt-[env(safe-area-inset-top)]">
-            <div className="flex items-center">
+            <div className="flex items-center space-x-3">
               {children}
               <div className="ml-4 md:ml-6">
                 <h1 className="text-xl font-semibold text-gray-900 dark:text-white">FamSink</h1>
@@ -575,7 +575,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               )}
             </div>
             
-            <div className="flex items-center gap-x-4">
+            <div className="ml-auto flex items-center space-x-3">
               <button
                 onClick={toggleTheme}
                 className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
