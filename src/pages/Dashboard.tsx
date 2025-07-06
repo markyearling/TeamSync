@@ -15,10 +15,9 @@ const libraries: Libraries = ['places', 'marker'];
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { profiles } = useProfiles();
+  const { profiles, friendsProfiles } = useProfiles();
   const [events, setEvents] = useState<Event[]>([]);
   const [friendsEvents, setFriendsEvents] = useState<Event[]>([]);
-  const [friendsProfiles, setFriendsProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [connectedPlatforms, setConnectedPlatforms] = useState<Platform[]>([]);
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
@@ -162,86 +161,17 @@ const Dashboard: React.FC = () => {
   }, [profileIds, profiles]);
 
   // Fetch friends events - only when user changes
-  const fetchFriendsEvents = useCallback(async (userId: string) => {
+  const fetchFriendsEvents = useCallback(async () => {
+    if (friendsProfiles.length === 0) {
+      setFriendsEvents([]);
+      return;
+    }
+
     try {
-      console.log('🔍 DASHBOARD: Fetching friends events for user:', userId);
-      
-      // Get friendships where current user has granted access to friends
-      const { data: friendships, error: friendshipsError } = await supabase
-        .from('friendships')
-        .select('friend_id, role')
-        .eq('user_id', userId)
-        .in('role', ['viewer', 'administrator']);
-
-      if (friendshipsError) {
-        console.error('❌ DASHBOARD: Error fetching friendships:', friendshipsError);
-        return;
-      }
-
-      if (!friendships || friendships.length === 0) {
-        console.log('❌ DASHBOARD: No friendships with viewer/admin access found');
-        setFriendsEvents([]);
-        setFriendsProfiles([]);
-        return;
-      }
-
-      const friendUserIds = friendships.map(f => f.friend_id);
-      console.log('👥 DASHBOARD: Friend user IDs:', friendUserIds);
-
-      // Get user settings and profiles in parallel
-      const [userSettingsResult, friendProfilesResult] = await Promise.all([
-        supabase
-          .from('user_settings')
-          .select('user_id, full_name, profile_photo_url')
-          .in('user_id', friendUserIds),
-        supabase
-          .from('profiles')
-          .select('id, name, user_id')
-          .in('user_id', friendUserIds)
-      ]);
-
-      if (userSettingsResult.error) {
-        console.error('❌ DASHBOARD: Error fetching user settings:', userSettingsResult.error);
-        return;
-      }
-
-      if (friendProfilesResult.error) {
-        console.error('❌ DASHBOARD: Error fetching friend profiles:', friendProfilesResult.error);
-        return;
-      }
-
-      const { data: userSettings } = userSettingsResult;
-      const { data: friendProfiles } = friendProfilesResult;
-
-      if (!friendProfiles || friendProfiles.length === 0) {
-        console.log('❌ DASHBOARD: No friend profiles found');
-        setFriendsEvents([]);
-        setFriendsProfiles([]);
-        return;
-      }
-
-      // Transform friend profiles
-      const transformedFriendProfiles = friendProfiles.map(profile => {
-        const friendship = friendships.find(f => f.friend_id === profile.user_id);
-        const userSetting = userSettings?.find(us => us.user_id === profile.user_id);
-        
-        return {
-          ...profile,
-          age: 0,
-          color: '#64748B',
-          photo_url: null,
-          sports: [],
-          eventCount: 0,
-          ownerName: userSetting?.full_name || 'Friend',
-          ownerPhoto: userSetting?.profile_photo_url,
-          accessRole: friendship?.role
-        };
-      });
-
-      setFriendsProfiles(transformedFriendProfiles);
+      console.log('🔍 DASHBOARD: Fetching friends events for profiles:', friendsProfiles.length);
 
       // Get events for friend profiles
-      const friendProfileIds = friendProfiles.map(p => p.id);
+      const friendProfileIds = friendsProfiles.map(p => p.id);
       if (friendProfileIds.length > 0) {
         const { data: friendEventData, error: eventsError } = await supabase
           .from('events')
@@ -254,8 +184,8 @@ const Dashboard: React.FC = () => {
           return;
         }
 
-        const formattedFriendEvents = friendEventData.map(event => {
-          const profile = transformedFriendProfiles.find(p => p.id === event.profile_id);
+        const formattedFriendEvents = friendEventData.map((event) => {
+          const profile = friendsProfiles.find(p => p.id === event.profile_id);
           return {
             ...event,
             id: event.id,
@@ -275,7 +205,6 @@ const Dashboard: React.FC = () => {
 
     } catch (error) {
       console.error('💥 DASHBOARD: Error fetching friends events:', error);
-    }
   }, []);
 
   // Main effect - only runs when dependencies actually change
@@ -292,7 +221,7 @@ const Dashboard: React.FC = () => {
         await fetchOwnEvents();
 
         // Fetch friends events
-        await fetchFriendsEvents(user.id);
+        await fetchFriendsEvents();
 
       } catch (error) {
         console.error('❌ DASHBOARD: Error in main fetch:', error);
@@ -308,7 +237,7 @@ const Dashboard: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [fetchOwnEvents, fetchFriendsEvents]); // Only re-run when these callbacks change
+  }, [fetchOwnEvents, fetchFriendsEvents, friendsProfiles]); // Re-run when friendsProfiles changes
 
   // Combine all events for display
   const allEvents = [...events, ...friendsEvents];
@@ -319,12 +248,7 @@ const Dashboard: React.FC = () => {
     .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 
   // Calculate event counts for each child (own and friends)
-  const allProfiles = [
-    ...profiles.map(p => ({ ...p, isOwnProfile: true })),
-    ...friendsProfiles.map(p => ({ ...p, isOwnProfile: false }))
-  ];
-
-  const profilesWithEventCounts = allProfiles.map(profile => ({
+  const profilesWithEventCounts = [...profiles, ...friendsProfiles].map(profile => ({
     ...profile,
     eventCount: allEvents.filter(event => 
       event.child.id === profile.id && 

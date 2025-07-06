@@ -24,10 +24,9 @@ const libraries: Libraries = ['places', 'marker'];
 type ViewType = 'month' | 'week' | 'day' | 'agenda';
 
 const Calendar: React.FC = () => {
-  const { profiles } = useProfiles();
+  const { profiles, friendsProfiles } = useProfiles();
   const [events, setEvents] = useState<Event[]>([]);
   const [friendsEvents, setFriendsEvents] = useState<Event[]>([]);
-  const [friendsProfiles, setFriendsProfiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<ViewType>('month');
@@ -111,92 +110,22 @@ const Calendar: React.FC = () => {
   }, [profileIds, profiles]);
 
   // Fetch friends events - only when user changes or showFriendsEvents changes
-  const fetchFriendsEvents = useCallback(async (userId: string) => {
+  const fetchFriendsEvents = useCallback(async () => {
     if (!showFriendsEvents) {
       setFriendsEvents([]);
-      setFriendsProfiles([]);
+      return;
+    }
+    
+    if (friendsProfiles.length === 0) {
+      setFriendsEvents([]);
       return;
     }
 
     try {
-      console.log('🔍 CALENDAR: Fetching friends events for user:', userId);
-      
-      // Get friendships where current user has granted access to friends
-      const { data: friendships, error: friendshipsError } = await supabase
-        .from('friendships')
-        .select('friend_id, role')
-        .eq('user_id', userId)
-        .in('role', ['viewer', 'administrator']);
-
-      if (friendshipsError) {
-        console.error('❌ CALENDAR: Error fetching friendships:', friendshipsError);
-        return;
-      }
-
-      if (!friendships || friendships.length === 0) {
-        console.log('❌ CALENDAR: No friendships with viewer/admin access found');
-        setFriendsEvents([]);
-        setFriendsProfiles([]);
-        return;
-      }
-
-      const friendUserIds = friendships.map(f => f.friend_id);
-      console.log('👥 CALENDAR: Friend user IDs:', friendUserIds);
-
-      // Get user settings and profiles in parallel
-      const [userSettingsResult, friendProfilesResult] = await Promise.all([
-        supabase
-          .from('user_settings')
-          .select('user_id, full_name, profile_photo_url')
-          .in('user_id', friendUserIds),
-        supabase
-          .from('profiles')
-          .select('id, name, user_id')
-          .in('user_id', friendUserIds)
-      ]);
-
-      if (userSettingsResult.error) {
-        console.error('❌ CALENDAR: Error fetching user settings:', userSettingsResult.error);
-        return;
-      }
-
-      if (friendProfilesResult.error) {
-        console.error('❌ CALENDAR: Error fetching friend profiles:', friendProfilesResult.error);
-        return;
-      }
-
-      const { data: userSettings } = userSettingsResult;
-      const { data: friendProfiles } = friendProfilesResult;
-
-      if (!friendProfiles || friendProfiles.length === 0) {
-        console.log('❌ CALENDAR: No friend profiles found');
-        setFriendsEvents([]);
-        setFriendsProfiles([]);
-        return;
-      }
-
-      // Transform friend profiles
-      const transformedFriendProfiles = friendProfiles.map(profile => {
-        const friendship = friendships.find(f => f.friend_id === profile.user_id);
-        const userSetting = userSettings?.find(us => us.user_id === profile.user_id);
-        
-        return {
-          ...profile,
-          age: 0,
-          color: '#64748B',
-          photo_url: null,
-          sports: [],
-          eventCount: 0,
-          ownerName: userSetting?.full_name || 'Friend',
-          ownerPhoto: userSetting?.profile_photo_url,
-          accessRole: friendship?.role
-        };
-      });
-
-      setFriendsProfiles(transformedFriendProfiles);
+      console.log('🔍 CALENDAR: Fetching friends events for profiles:', friendsProfiles.length);
 
       // Get events for friend profiles
-      const friendProfileIds = friendProfiles.map(p => p.id);
+      const friendProfileIds = friendsProfiles.map(p => p.id);
       if (friendProfileIds.length > 0) {
         const { data: friendEventData, error: eventsError } = await supabase
           .from('events')
@@ -209,8 +138,8 @@ const Calendar: React.FC = () => {
           return;
         }
 
-        const formattedFriendEvents = friendEventData.map(event => {
-          const profile = transformedFriendProfiles.find(p => p.id === event.profile_id);
+        const formattedFriendEvents = friendEventData.map((event) => {
+          const profile = friendsProfiles.find(p => p.id === event.profile_id);
           return {
             ...event,
             id: event.id,
@@ -229,9 +158,8 @@ const Calendar: React.FC = () => {
       }
 
     } catch (error) {
-      console.error('💥 CALENDAR: Error fetching friends events:', error);
     }
-  }, [showFriendsEvents]);
+  }, [showFriendsEvents, friendsProfiles]);
 
   // Main effect - only runs when dependencies actually change
   useEffect(() => {
@@ -247,7 +175,7 @@ const Calendar: React.FC = () => {
         await fetchOwnEvents();
 
         // Fetch friends events
-        await fetchFriendsEvents(user.id);
+        await fetchFriendsEvents();
 
       } catch (error) {
         console.error('❌ CALENDAR: Error in main fetch:', error);
@@ -263,7 +191,7 @@ const Calendar: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [fetchOwnEvents, fetchFriendsEvents]); // Only re-run when these callbacks change
+  }, [fetchOwnEvents, fetchFriendsEvents, friendsProfiles, showFriendsEvents]); // Re-run when friendsProfiles or showFriendsEvents changes
 
   // Initialize selected profiles when profiles change
   useEffect(() => {
@@ -357,10 +285,7 @@ const Calendar: React.FC = () => {
   };
 
   // Combine all profiles for filter display
-  const allProfiles = [
-    ...profiles.map(p => ({ ...p, isOwnProfile: true })),
-    ...friendsProfiles.map(p => ({ ...p, isOwnProfile: false }))
-  ];
+  const allProfiles = [...profiles, ...friendsProfiles];
 
   if (loading) {
     return (
@@ -457,7 +382,7 @@ const Calendar: React.FC = () => {
           <div>
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your Children</h3>
             <div className="space-y-2">
-              {allProfiles.filter(p => p.isOwnProfile).map(profile => (
+              {profiles.map(profile => (
                 <div key={profile.id} className="flex items-center">
                   <input 
                     id={`child-${profile.id}`} 
