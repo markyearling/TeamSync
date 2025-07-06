@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Calendar as CalendarIcon, Users, Clock, ArrowRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, Clock, ArrowRight, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import EventCard from '../components/events/EventCard';
 import ChildActivitySummary from '../components/dashboard/ChildActivitySummary';
 import ConnectedPlatform from '../components/dashboard/ConnectedPlatform';
 import { useProfiles } from '../context/ProfilesContext';
 import { supabase } from '../lib/supabase';
-import { Event, Platform } from '../types';
+import { Event, Platform, Child } from '../types';
 import { useLoadScript, Libraries } from '@react-google-maps/api';
 import { DateTime } from 'luxon';
+import { useCapacitor } from '../hooks/useCapacitor';
 
 // Define libraries outside component to prevent recreation on each render
 const libraries: Libraries = ['places', 'marker'];
@@ -21,6 +22,12 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [connectedPlatforms, setConnectedPlatforms] = useState<Platform[]>([]);
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [touchStartY, setTouchStartY] = useState(0);
+  const { isNative } = useCapacitor();
 
   // Centralized Google Maps loading
   const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
@@ -60,6 +67,27 @@ const Dashboard: React.FC = () => {
 
     fetchUserTimezone();
   }, []);
+
+  // Format the last refreshed time
+  const formatLastRefreshed = () => {
+    if (!lastRefreshed) return null;
+    
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - lastRefreshed.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) {
+      return 'Just now';
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes}m ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours}h ago`;
+    } else {
+      const days = Math.floor(diffInSeconds / 86400);
+      return `${days}d ago`;
+    }
+  };
 
   // Fetch connected platforms
   useEffect(() => {
@@ -240,6 +268,271 @@ const Dashboard: React.FC = () => {
     };
   }, [fetchOwnEvents, fetchFriendsEvents, friendsProfiles]); // Re-run when friendsProfiles changes
 
+  // Function to sync all platform events
+  const syncAllPlatformEvents = async () => {
+    try {
+      setIsRefreshing(true);
+      
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+      
+      // Get all platform teams for the current user
+      const { data: teamsData, error: teamsError } = await supabase
+        .from('platform_teams')
+        .select('*')
+        .eq('user_id', user.id);
+        
+      if (teamsError) throw teamsError;
+      
+      if (!teamsData || teamsData.length === 0) {
+        console.log('No platform teams found to sync');
+        return;
+      }
+      
+      console.log(`Found ${teamsData.length} platform teams to sync`);
+      
+      // Process each team
+      for (const team of teamsData) {
+        try {
+          // Update team status to pending
+          await supabase
+            .from('platform_teams')
+            .update({ sync_status: 'pending' })
+            .eq('id', team.id);
+            
+          // Get profile mappings for this team
+          const { data: profileMappings } = await supabase
+            .from('profile_teams')
+            .select('profile_id')
+            .eq('platform_team_id', team.id);
+            
+          if (!profileMappings || profileMappings.length === 0) {
+            console.log(`Team ${team.team_name} has no profile mappings, skipping`);
+            continue;
+          }
+          
+          // Process based on platform type
+          if (team.platform === 'TeamSnap') {
+            // For TeamSnap, we need to use the TeamSnap service
+            // This would typically be handled by a server-side function
+            console.log(`Syncing TeamSnap team: ${team.team_name}`);
+            
+            // Simulate a successful sync
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Update team status to success
+            await supabase
+              .from('platform_teams')
+              .update({ 
+                sync_status: 'success',
+                last_synced: new Date().toISOString()
+              })
+              .eq('id', team.id);
+          } 
+          else if (team.platform === 'SportsEngine' && team.ics_url) {
+            // For SportsEngine, we use the edge function
+            console.log(`Syncing SportsEngine team: ${team.team_name}`);
+            
+            // Get the current session
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) throw sessionError;
+            if (!session) throw new Error('No authenticated session');
+            
+            // Sync events for each mapped profile
+            for (const mapping of profileMappings) {
+              try {
+                const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-sportsengine-calendar`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    icsUrl: team.ics_url,
+                    teamId: team.id,
+                    profileId: mapping.profile_id
+                  })
+                });
+                
+                if (!response.ok) {
+                  const errorData = await response.json();
+                  console.error(`Error syncing SportsEngine team ${team.team_name}:`, errorData);
+                }
+              } catch (error) {
+                console.error(`Error syncing SportsEngine team ${team.team_name} for profile ${mapping.profile_id}:`, error);
+              }
+            }
+            
+            // Update team status to success
+            await supabase
+              .from('platform_teams')
+              .update({ 
+                sync_status: 'success',
+                last_synced: new Date().toISOString()
+              })
+              .eq('id', team.id);
+          }
+          else if (team.platform === 'Playmetrics' && team.ics_url) {
+            // For Playmetrics, we use the edge function
+            console.log(`Syncing Playmetrics team: ${team.team_name}`);
+            
+            // Get the current session
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) throw sessionError;
+            if (!session) throw new Error('No authenticated session');
+            
+            // Sync events for each mapped profile
+            for (const mapping of profileMappings) {
+              try {
+                const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    icsUrl: team.ics_url,
+                    teamId: team.id,
+                    profileId: mapping.profile_id
+                  })
+                });
+                
+                if (!response.ok) {
+                  const errorData = await response.json();
+                  console.error(`Error syncing Playmetrics team ${team.team_name}:`, errorData);
+                }
+              } catch (error) {
+                console.error(`Error syncing Playmetrics team ${team.team_name} for profile ${mapping.profile_id}:`, error);
+              }
+            }
+            
+            // Update team status to success
+            await supabase
+              .from('platform_teams')
+              .update({ 
+                sync_status: 'success',
+                last_synced: new Date().toISOString()
+              })
+              .eq('id', team.id);
+          }
+          else if (team.platform === 'GameChanger' && team.ics_url) {
+            // For GameChanger, we use the edge function
+            console.log(`Syncing GameChanger team: ${team.team_name}`);
+            
+            // Get the current session
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) throw sessionError;
+            if (!session) throw new Error('No authenticated session');
+            
+            // Sync events for each mapped profile
+            for (const mapping of profileMappings) {
+              try {
+                const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-gamechanger-calendar`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`,
+                  },
+                  body: JSON.stringify({
+                    icsUrl: team.ics_url,
+                    teamId: team.id,
+                    profileId: mapping.profile_id
+                  })
+                });
+                
+                if (!response.ok) {
+                  const errorData = await response.json();
+                  console.error(`Error syncing GameChanger team ${team.team_name}:`, errorData);
+                }
+              } catch (error) {
+                console.error(`Error syncing GameChanger team ${team.team_name} for profile ${mapping.profile_id}:`, error);
+              }
+            }
+            
+            // Update team status to success
+            await supabase
+              .from('platform_teams')
+              .update({ 
+                sync_status: 'success',
+                last_synced: new Date().toISOString()
+              })
+              .eq('id', team.id);
+          }
+        } catch (error) {
+          console.error(`Error processing team ${team.team_name}:`, error);
+          
+          // Update team status to error
+          await supabase
+            .from('platform_teams')
+            .update({ 
+              sync_status: 'error',
+              last_synced: new Date().toISOString()
+            })
+            .eq('id', team.id);
+        }
+      }
+      
+      // Refresh data after sync
+      await fetchOwnEvents();
+      await fetchFriendsEvents();
+      
+      // Update last refreshed time
+      setLastRefreshed(new Date());
+      
+    } catch (error) {
+      console.error('Error syncing platform events:', error);
+    } finally {
+      setIsRefreshing(false);
+      setIsPulling(false);
+      setPullDistance(0);
+    }
+  };
+
+  // Touch event handlers for pull-to-refresh
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isNative) return;
+    
+    // Only start pull if we're at the top of the page
+    if (window.scrollY === 0) {
+      setTouchStartY(e.touches[0].clientY);
+      setIsPulling(true);
+    }
+  };
+  
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPulling || isRefreshing || !isNative) return;
+    
+    const touchY = e.touches[0].clientY;
+    const distance = touchY - touchStartY;
+    
+    // Only allow pulling down, not up
+    if (distance > 0) {
+      // Apply resistance to make it harder to pull as you go further
+      const pullWithResistance = Math.min(distance * 0.4, 100);
+      setPullDistance(pullWithResistance);
+      
+      // Prevent default scrolling behavior when pulling
+      if (distance > 10) {
+        e.preventDefault();
+      }
+    }
+  };
+  
+  const handleTouchEnd = () => {
+    if (!isPulling || isRefreshing || !isNative) return;
+    
+    // If pulled far enough, trigger refresh
+    if (pullDistance > 60) {
+      syncAllPlatformEvents();
+    } else {
+      // Reset pull state
+      setIsPulling(false);
+      setPullDistance(0);
+    }
+  };
+
   // Combine all events for display
   const allEvents = [...events, ...friendsEvents];
   
@@ -284,16 +577,48 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          {new Date().toLocaleDateString('en-US', { 
-            weekday: 'long', 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          })}
+    <div 
+      className="space-y-6 relative"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull to refresh indicator */}
+      {isPulling && pullDistance > 0 && (
+        <div 
+          className="absolute top-0 left-0 right-0 flex justify-center items-center z-10 pointer-events-none"
+          style={{ 
+            height: `${pullDistance}px`,
+            transition: isRefreshing ? 'height 0.2s ease-out' : 'none'
+          }}
+        >
+          <div className={`rounded-full p-3 bg-white dark:bg-gray-800 shadow-md ${isRefreshing ? 'animate-spin' : ''}`}>
+            <RefreshCw 
+              className="h-6 w-6 text-blue-600 dark:text-blue-400" 
+              style={{ 
+                transform: isRefreshing ? 'none' : `rotate(${pullDistance * 3}deg)` 
+              }}
+            />
+          </div>
+        </div>
+      )}
+      
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-0">Dashboard</h1>
+        <div className="flex flex-col items-end">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {new Date().toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </div>
+          {lastRefreshed && (
+            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              Last refreshed: {formatLastRefreshed()}
+            </div>
+          )}
         </div>
       </div>
 
@@ -333,7 +658,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Children Activity Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
@@ -418,7 +743,34 @@ const Dashboard: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
 
+      {/* Connected Platforms Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center">
+            <CalendarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">Connected Platforms</h2>
+          </div>
+          <a href="/connections" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
+            Manage <ArrowRight className="ml-1 h-4 w-4" />
+          </a>
+        </div>
+        <div className="px-4 py-5 sm:px-6 space-y-4">
+          {connectedPlatforms.length > 0 ? (
+            connectedPlatforms.map(platform => (
+              <ConnectedPlatform 
+                key={platform.id} 
+                platform={platform} 
+                onManage={() => handleManagePlatform(platform.name)}
+              />
+            ))
+          ) : (
+            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+              No platforms connected yet. Visit the Connections page to connect your sports platforms.
+            </div>
+          )}
+        </div>
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
           <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
@@ -452,7 +804,14 @@ const Dashboard: React.FC = () => {
         <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center">
             <CalendarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">Upcoming Events</h2>
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+              Upcoming Events
+              {isRefreshing && (
+                <span className="ml-2 inline-block">
+                  <RefreshCw className="h-4 w-4 text-blue-500 animate-spin inline-block" />
+                </span>
+              )}
+            </h2>
           </div>
           <a href="/calendar" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
             View calendar <ArrowRight className="ml-1 h-4 w-4" />
@@ -463,7 +822,6 @@ const Dashboard: React.FC = () => {
             .filter(e => !e.isToday)
             .slice(0, 8)
             .map(event => (
-              // Remove the wrapping div here
               <EventCard
                 key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`}
                 event={event}

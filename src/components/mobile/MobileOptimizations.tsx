@@ -104,6 +104,47 @@ const MobileOptimizations: React.FC<MobileOptimizationsProps> = ({ children }) =
         .mobile-app .safe-area-right {
           padding-right: var(--safe-area-inset-right);
         }
+        
+        /* Pull to refresh styles */
+        .mobile-app {
+          overscroll-behavior-y: contain;
+        }
+        
+        .mobile-app .pull-indicator {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          pointer-events: none;
+          z-index: 50;
+          transition: height 0.2s ease-out;
+        }
+        
+        .mobile-app .pull-spinner {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          background-color: rgba(255, 255, 255, 0.9);
+          box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .mobile-app .safe-area-bottom {
+          padding-bottom: var(--safe-area-inset-bottom);
+        }
+        
+        .mobile-app .safe-area-left {
+          padding-left: var(--safe-area-inset-left);
+        }
+        
+        .mobile-app .safe-area-right {
+          padding-right: var(--safe-area-inset-right);
+        }
       `;
       document.head.appendChild(style);
 
