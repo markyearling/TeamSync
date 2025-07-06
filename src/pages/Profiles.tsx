@@ -246,11 +246,7 @@ const Profiles: React.FC = () => {
                           {profile.accessRole === 'administrator'
                             ? 'You can view and manage all aspects of this profile'
                             : 'You can view but not edit this profile'}
-                        {profile.accessRole === 'administrator' ? (
-                          <Crown className="h-2.5 w-2.5 text-white" />
-                        ) : (
-                          <Eye className="h-2.5 w-2.5 text-white" />
-                        )}
+                        </p>
                       </div>
                     )}
 
