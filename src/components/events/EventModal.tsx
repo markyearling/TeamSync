@@ -149,6 +149,25 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     }, 100);
   };
 
+  const handleMapClick = (e: google.maps.MapMouseEvent) => {
+    // Prevent the click from closing the modal
+    if (e.domEvent) {
+      e.domEvent.stopPropagation();
+    }
+    
+    // Get the clicked coordinates
+    if (e.latLng) {
+      const lat = e.latLng.lat();
+      const lng = e.latLng.lng();
+      
+      // Construct Google Maps URL
+      const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+      
+      // Open in a new tab
+      window.open(mapsUrl, '_blank');
+    }
+  };
+
   const handleShare = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!shareEmail) return;
@@ -385,6 +404,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                               e.stopPropagation();
                             }}
                             onLoad={handleMapLoad}
+                           onClick={handleMapClick}
                           >
                             {/* Marker is added via useEffect when mapRef and mapCenter are available */}
                           </GoogleMap>
