@@ -56,9 +56,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const toggleUserMenu = () => setUserMenuOpen(!userMenuOpen);
   const toggleFriends = () => {
     setFriendsOpen(!friendsOpen);
-    if (!friendsOpen && friends.length === 0) {
-      fetchFriends();
-    }
     // Reset search when opening/closing
     if (!friendsOpen) {
       setFriendSearchQuery('');
@@ -98,6 +95,11 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     setupNotificationSubscription();
   }, []);
 
+  // Fetch friends on initial mount
+  useEffect(() => {
+    fetchFriends();
+  }, []);
+
   useEffect(() => {
     // Set up real-time subscription for messages to update unread counts
     const setupMessageSubscription = async () => {
@@ -114,10 +116,8 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               table: 'messages'
             },
             () => {
-              // Refresh friends list to update unread counts
-              if (friends.length > 0) {
-                fetchFriends();
-              }
+              // Always refresh friends list to get accurate unread counts
+              fetchFriends();
             }
           )
           .subscribe();
@@ -128,8 +128,8 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       }
     };
 
-    setupMessageSubscription();
-  }, [friends.length]);
+    setupMessageSubscription(); // No dependency on friends.length
+  }, []);
 
   // Filter friends based on search query and sort by unread messages
   useEffect(() => {
