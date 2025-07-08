@@ -39,10 +39,16 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   // Handle clicks outside the modal
   React.useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
+     const target = e.target as Node;
+
+    // Ignore clicks on the Autocomplete dropdown
+    const isGoogleAutocomplete = (e.target as HTMLElement).closest('.pac-container');
+    if (isGoogleAutocomplete) return;
+
+    if (modalRef.current && !modalRef.current.contains(target)) {
+      onClose();
+    }
+  };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
@@ -110,10 +116,16 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   return (
     <div 
       className={modalContainerClasses}
-      style={{ 
-        top: isNative ? 'var(--safe-area-inset-top, 0px)' : 0, 
-        bottom: isNative ? 'var(--safe-area-inset-bottom, 0px)' : 0 
-      }}
+      style={
+      isNative
+      ? {
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)',
+        }
+      : undefined
+      }
     >
       <div 
         ref={modalRef}
@@ -249,6 +261,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                 <option value="90">1.5 hours</option>
                 <option value="120">2 hours</option>
                 <option value="180">3 hours</option>
+                <option value="240">4 hours</option>
+                <option value="1440">1 day</option>
               </select>
             </div>
 
