@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import AddEventModal from '../components/events/AddEventModal';
 import EventModal from '../components/events/EventModal';
-import { Filter, Calendar, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users, ChevronLeft, ChevronRight, Crown, Eye } from 'lucide-react';
+import { Filter, Calendar, CalendarIcon, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users, ChevronLeft, ChevronRight, Crown, Eye } from 'lucide-react';
 import { useProfiles } from '../context/ProfilesContext';
 import { Child, Event } from '../types';
 import { supabase } from '../lib/supabase';
@@ -12,6 +12,7 @@ import WeekView from '../components/calendar/WeekView';
 import DayView from '../components/calendar/DayView';
 import AgendaView from '../components/calendar/AgendaView';
 import { useLoadScript, Libraries } from '@react-google-maps/api';
+import EventCard from '../components/events/EventCard';
 import { DateTime } from 'luxon';
 
 // Define libraries outside component to prevent recreation on each render
@@ -156,8 +157,11 @@ const ChildProfile: React.FC = () => {
               ...profile,
               user_id: profileData?.user_id
             },
-            platformIcon: Calendar,
-            isOwnEvent: profile.isOwnProfile
+            color: profile.color,
+            platformIcon: CalendarIcon,
+            isOwnEvent: profile.isOwnProfile,
+            isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
+            ownerName: profile.ownerName
           }));
 
           setEvents(formattedEvents);
@@ -529,46 +533,15 @@ const ChildProfile: React.FC = () => {
           <h2 className="text-lg font-medium text-gray-900 dark:text-white">Upcoming Events</h2>
         </div>
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {upcomingEvents.map((event) => (
-            <div 
-              key={event.id} 
-              className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-              onClick={() => setSelectedEvent(event)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2">
-                    <span 
-                      className="w-2 h-2 rounded-full"
-                      style={{ backgroundColor: event.color }}
-                    ></span>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">{event.sport}</span>
-                  </div>
-                  <h3 className="text-base font-medium text-gray-900 dark:text-white mt-1">{event.title}</h3>
-                  <div className="mt-1 space-y-1">
-                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                      <Clock className="h-4 w-4 mr-1" />
-                      {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                    </div>
-                    {event.location && (
-                      <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                        <MapPin className="h-4 w-4 mr-1" />
-                        {event.location}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <button
-                  className="p-2 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Share functionality
-                  }}
-                >
-                  <Share2 className="h-5 w-5" />
-                </button>
-              </div>
-            </div>
+          {upcomingEvents.map(event => (
+            <EventCard
+                  key={event.id}
+                  event={event}
+                  mapsLoaded={mapsLoaded}
+                  mapsLoadError={mapsLoadError}
+                  userTimezone={userTimezone}
+                  onClick={() => setSelectedEvent(event)}
+            />
           ))}
           {upcomingEvents.length === 0 && (
             <div className="p-6 text-center">

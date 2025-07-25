@@ -10,6 +10,7 @@ import { Event, Platform, Child } from '../types';
 import { useLoadScript, Libraries } from '@react-google-maps/api';
 import { DateTime } from 'luxon';
 import { useCapacitor } from '../hooks/useCapacitor';
+import EventModal from '../components/events/EventModal';
 
 // Define libraries outside component to prevent recreation on each render
 const libraries: Libraries = ['places', 'marker'];
@@ -31,6 +32,7 @@ const Dashboard: React.FC = () => {
   const [lastRefreshedDate, setLastRefreshedDate] = useState<Date | null>(null);
   const [lastRefreshInProgress, setLastRefreshInProgress] = useState(false);
   const [touchStartY, setTouchStartY] = useState(0);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const { isNative } = useCapacitor();
 
   // Centralized Google Maps loading
@@ -577,7 +579,7 @@ const Dashboard: React.FC = () => {
 
   // Touch event handlers for pull-to-refresh
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!isNative) return;
+    if (!isNative || selectedEvent) return;
     
     // Only start pull if we're at the top of the page
     if (window.scrollY === 0) {
@@ -587,7 +589,7 @@ const Dashboard: React.FC = () => {
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isPulling || isRefreshing || !isNative) return;
+    if (!isPulling || isRefreshing || !isNative || selectedEvent) return;
     
     const touchY = e.touches[0].clientY;
     const distance = touchY - touchStartY;
@@ -606,7 +608,7 @@ const Dashboard: React.FC = () => {
   };
   
   const handleTouchEnd = () => {
-    if (!isPulling || isRefreshing || !isNative) return;
+    if (!isPulling || isRefreshing || !isNative || selectedEvent) return;
     
     // If pulled far enough, trigger refresh
     if (pullDistance > 60) {
@@ -662,12 +664,12 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div 
-      className="space-y-6 relative"
+    <div className="space-y-6 relative">
+      <div className="overflow-y-auto"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-    >
+      >
       {/* Pull to refresh indicator */}
       {isPulling && pullDistance > 0 && (
         <div 
@@ -701,7 +703,7 @@ const Dashboard: React.FC = () => {
           </div>
         {lastRefreshedDate && (
           <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
-            <span>Last refreshed: {formatLastRefreshed()}</span>
+            <span>Last refreshed: {lastRefreshedDate ? formatLastRefreshed() : 'Never' }</span>
             {isRefreshing && (
               <RefreshCw className="ml-2 h-3 w-3 animate-spin text-blue-500" />
             )}
@@ -733,6 +735,7 @@ const Dashboard: React.FC = () => {
                   mapsLoaded={mapsLoaded}
                   mapsLoadError={mapsLoadError}
                   userTimezone={userTimezone}
+                  onClick={() => setSelectedEvent(event)}
                 />
               ))
           ) : (
@@ -893,6 +896,7 @@ const Dashboard: React.FC = () => {
                 mapsLoaded={mapsLoaded}
                 mapsLoadError={mapsLoadError}
                 userTimezone={userTimezone}
+                onClick={() => setSelectedEvent(event)}
               />
             ))}
           {upcomingEvents.filter(e => !e.isToday).length === 0 && (
@@ -902,6 +906,16 @@ const Dashboard: React.FC = () => {
           )}
         </div>
       </div>
+      </div>
+      {selectedEvent && (
+        <EventModal
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+        mapsLoaded={mapsLoaded}
+        mapsLoadError={mapsLoadError}
+        userTimezone={userTimezone}
+        />
+      )}
     </div>
   );
 };

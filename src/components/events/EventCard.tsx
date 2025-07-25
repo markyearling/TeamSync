@@ -9,10 +9,11 @@ interface EventCardProps {
   mapsLoaded?: boolean;
   mapsLoadError?: Error;
   userTimezone?: string;
+  onClick?: () => void; // Optional click handler for the card
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoadError, userTimezone = 'UTC' }) => {
-  const [showModal, setShowModal] = useState(false);
+const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoadError, userTimezone = 'UTC', onClick }) => {
+  //const [showModal, setShowModal] = useState(false);
 
   // Format time with user's timezone using Luxon
   const formatTime = (date: Date) => {
@@ -24,10 +25,11 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
   };
 
   return (
-    <>
+    
       <div
         className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer relative" // Add 'relative' here
-        onClick={() => setShowModal(true)}
+        //onClick={() => setShowModal(true)}
+        onClick={onClick}
       >
         <div className="flex items-start space-x-4">
           <div className="flex-shrink-0">
@@ -78,17 +80,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
           </div>
         )}
       </div>
-
-      {showModal && (
-        <EventModal
-          event={event}
-          onClose={() => setShowModal(false)}
-          mapsLoaded={mapsLoaded}
-          mapsLoadError={mapsLoadError}
-          userTimezone={userTimezone}
-        />
-      )}
-    </>
+  
   );
 };
 
