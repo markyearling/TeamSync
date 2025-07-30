@@ -140,11 +140,11 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
             </div>
             <button
               type="button"
+             onClick={onClose}
               className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
             >
               <X className="h-6 w-6" />
             </button>
-          onClick={(e) => e.stopPropagation()}
           </div>
 
           <div className="p-6 space-y-6 flex-1 overflow-y-auto">

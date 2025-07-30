@@ -138,7 +138,6 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-          onClick={(e) => e.stopPropagation()}
               className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
             >
               <X className="h-6 w-6" />
