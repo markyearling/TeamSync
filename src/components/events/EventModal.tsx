@@ -373,7 +373,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                 <div className="space-y-2">
                   <div className="flex items-center text-gray-600 dark:text-gray-300">
                     <MapPin className="h-5 w-5 mr-3" />
-                    <span>{event.location}</span>
+                    <span>{event.location_name || event.location}</span>
                   </div>
                   
                   {mapsLoaded && !mapsLoadError && (

@@ -128,7 +128,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
                           {event.location && (
                             <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1 sm:mt-0">
                               <MapPin className="h-4 w-4 mr-1" />
-                              {event.location}
+                              {event.location_name || event.location}
                             </div>
                           )}
                         </div>

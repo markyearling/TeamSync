@@ -167,6 +167,12 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
                               </span>
                             </div>
                           )}
+                          {duration > 0.75 && event.location && (
+                            <div className="text-gray-600 dark:text-gray-300 text-xs mt-0.5 flex items-center">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              <span className="truncate">{event.location_name || event.location}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

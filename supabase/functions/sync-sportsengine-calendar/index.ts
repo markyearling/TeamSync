@@ -270,6 +270,21 @@ Deno.serve(async (req) => {
             : `Opponent: ${opponent}`;
         }
         
+        // Extract location name from location string
+        let locationName = event.location || '';
+        let locationAddress = event.location || '';
+
+        // Heuristic: if location contains a comma, assume part before is name
+        if (locationName.includes(',')) {
+          const parts = locationName.split(',');
+          locationName = parts[0].trim();
+          locationAddress = event.location; // Keep full original location as address
+        } else {
+          // If no comma, name is the same as the full location
+          locationName = event.location || '';
+          locationAddress = event.location || '';
+        }
+        
         // Improved timezone handling
         console.log(`Processing event: ${title}`);
         console.log(`Original event timezone: ${event.startDate.timezone}`);
@@ -352,7 +367,8 @@ Deno.serve(async (req) => {
           description: description,
           start_time: startTimeUTC,
           end_time: endTimeUTC,
-          location: event.location || '',
+          location: locationAddress,
+          location_name: locationName,
           sport: sport,
           color: '#2563EB', // SportsEngine blue
           platform: 'SportsEngine',

@@ -34,6 +34,7 @@ export interface Event {
   startTime: Date;
   endTime: Date;
   location: string;
+  location_name?: string;
   sport: string;
   color: string;
   child: Child;

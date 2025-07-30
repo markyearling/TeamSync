@@ -59,7 +59,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
               {event.location && (
                 <div className="flex items-center">
                   <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
-                  <span>{event.location}</span>
+                  <span>{event.location_name || event.location}</span>
                 </div>
               )}
             </div>
