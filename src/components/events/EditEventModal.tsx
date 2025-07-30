@@ -124,11 +124,11 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         paddingLeft: isNative ? 'env(safe-area-inset-left)' : undefined,
         paddingRight: isNative ? 'env(safe-area-inset-right)' : undefined,
       }}
-      onClick={isNative ? undefined : onClose}
     >
       <div 
         ref={modalRef}
         className={modalContentClasses}
+        onClick={(e) => e.stopPropagation()}
       >
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
