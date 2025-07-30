@@ -13,8 +13,6 @@ interface EventCardProps {
 }
 
 const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoadError, userTimezone = 'UTC', onClick }) => {
-  //const [showModal, setShowModal] = useState(false);
-
   // Format time with user's timezone using Luxon
   const formatTime = (date: Date) => {
     return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString({
@@ -24,11 +22,51 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
     });
   };
 
+  // Determine how to display the location
+  const displayLocation = () => {
+    if (!event.location) {
+      return null; // No location to display
+    }
+
+    const firstPartOfLocation = event.location.split(',')[0].trim();
+
+    // If location_name matches the first part of the full location, display only the full location
+    if (event.location_name && event.location_name === firstPartOfLocation) {
+      return (
+        <div className="flex items-center">
+          <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
+          <span>{event.location}</span>
+        </div>
+      );
+    } else {
+      // Otherwise, display location_name (if available) and then the full location
+      return (
+        <>
+          {event.location_name && (
+            <div className="flex items-center">
+              <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span>{event.location_name}</span>
+            </div>
+          )}
+          {event.location_name && (
+            <div className="flex items-center ml-5">
+              <span className="text-xs text-gray-400 dark:text-gray-500">{event.location}</span>
+            </div>
+          )}
+          {!event.location_name && (
+            <div className="flex items-center">
+              <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
+              <span>{event.location}</span>
+            </div>
+          )}
+        </>
+      );
+    }
+  };
+
   return (
-    
       <div
         className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer relative" // Add 'relative' here
-        //onClick={() => setShowModal(true)}
         onClick={onClick}
       >
         <div className="flex items-start space-x-4">
@@ -56,12 +94,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
                 <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
                 <span>{formatTime(event.startTime)} - {formatTime(event.endTime)}</span>
               </div>
-              {event.location && (
-                <div className="flex items-center">
-                  <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
-                  <span>{event.location_name || event.location}</span>
-                </div>
-              )}
+              {displayLocation()}
             </div>
           </div>
           <div className="flex-shrink-0 self-center">
@@ -80,7 +113,6 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
           </div>
         )}
       </div>
-  
   );
 };
 
