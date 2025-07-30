@@ -289,18 +289,17 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
   // Determine modal styling based on whether we're on mobile or desktop
   const modalContainerClasses = isNative
-    ? "fixed inset-0 z-50 flex flex-col" // Removed bg-white and dark:bg-gray-800
-    : "fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4";
+    ? "fixed inset-0 z-[999]"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[999]";
 
   const modalContentClasses = isNative
-    ? "flex flex-col h-full w-full overflow-hidden bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]" // Added bg-white and dark:bg-gray-800
+    ? "flex flex-col h-full w-full overflow-hidden bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
     : "bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col";
 
   return (
     <>
       <div 
         className={modalContainerClasses}
-        // Removed the style attribute that sets top and bottom based on safe-area-inset
         onClick={isNative ? undefined : onClose}
       >
         <div 

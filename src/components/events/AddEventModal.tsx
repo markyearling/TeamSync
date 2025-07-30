@@ -106,8 +106,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
 
   // Determine modal styling based on whether we're on mobile or desktop
   const modalContainerClasses = isNative
-    ? "fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-800 overflow-hidden"
-    : "fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4";
+    ? "fixed inset-0 z-[999] flex flex-col bg-white dark:bg-gray-800 overflow-hidden"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[999]";
 
   const modalContentClasses = isNative
     ? "flex flex-col h-full w-full overflow-hidden"
@@ -117,15 +117,16 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     <div 
       className={modalContainerClasses}
       style={
-      isNative
-      ? {
-          paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: 'env(safe-area-inset-bottom)',
-          paddingLeft: 'env(safe-area-inset-left)',
-          paddingRight: 'env(safe-area-inset-right)',
-        }
-      : undefined
+        isNative
+        ? {
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+            paddingLeft: 'env(safe-area-inset-left)',
+            paddingRight: 'env(safe-area-inset-right)',
+          }
+        : undefined
       }
+      onClick={isNative ? undefined : onClose}
     >
       <div 
         ref={modalRef}
