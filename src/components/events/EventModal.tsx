@@ -300,7 +300,6 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     <>
       <div 
         className={modalContainerClasses}
-        onClick={isNative ? undefined : onClose}
       >
         <div 
           ref={modalRef}

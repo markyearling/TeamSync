@@ -223,6 +223,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
       <div 
         ref={modalRef}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:max-h-[90vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Map Teams</h3>
