@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Check, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { useCapacitor } from '../../hooks/useCapacitor';
 
 interface Friend {
   id: string;
