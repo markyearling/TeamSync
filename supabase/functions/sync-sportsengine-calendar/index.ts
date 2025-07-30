@@ -374,7 +374,8 @@ Deno.serve(async (req) => {
           platform: 'SportsEngine',
           platform_color: '#2563EB',
           profile_id: profileId,
-          platform_team_id: teamId
+          platform_team_id: teamId,
+          visibility: 'public' // Platform-synced events default to public
         };
       });
 

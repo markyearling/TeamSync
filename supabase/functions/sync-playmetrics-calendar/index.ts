@@ -333,7 +333,8 @@ Deno.serve(async (req) => {
           platform: 'Playmetrics',
           platform_color: '#10B981',
           profile_id: profileId,
-          platform_team_id: teamId
+          platform_team_id: teamId,
+          visibility: 'public' // Platform-synced events default to public
         };
       });
 

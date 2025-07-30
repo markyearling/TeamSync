@@ -44,6 +44,7 @@ export interface Event {
   isToday: boolean;
   isOwnEvent?: boolean; // To distinguish between own and friends' events
   ownerName?: string; // For friends' events
+  visibility?: 'public' | 'private'; // Event visibility setting
 }
 
 export interface UserSettings {

@@ -367,7 +367,8 @@ Deno.serve(async (req) => {
           platform: 'GameChanger',
           platform_color: '#F97316',
           profile_id: profileId,
-          platform_team_id: teamId
+          platform_team_id: teamId,
+          visibility: 'public' // Platform-synced events default to public
         };
       });
 

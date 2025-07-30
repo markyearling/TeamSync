@@ -29,7 +29,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     date: '',
     time: '',
     duration: '60', // Default duration in minutes
-    location: ''
+    location: '',
+    visibility: 'public' as 'public' | 'private' // Default to public
   });
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -91,7 +92,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           end_time: endDateTime.toISOString(),
           location: formData.location,
           sport: sports[0]?.name || 'General',
-          color: sports[0]?.color || '#3B82F6'
+          color: sports[0]?.color || '#3B82F6',
+          visibility: formData.visibility
         });
 
       if (error) throw error;
@@ -270,6 +272,25 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
               <p className="text-sm text-blue-700 dark:text-blue-300">
                 <strong>Timezone:</strong> All times will be saved in your preferred timezone ({userTimezone}).
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Visibility
+              </label>
+              <select
+                id="visibility"
+                name="visibility"
+                value={formData.visibility}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="public">Public - Visible to friends with access</option>
+                <option value="private">Private - Only visible to you and administrators</option>
+              </select>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Private events are only visible to you and friends with administrator access to this profile.
               </p>
             </div>
           </div>

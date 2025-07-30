@@ -28,7 +28,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     date: event.startTime.toISOString().split('T')[0],
     time: event.startTime.toTimeString().slice(0, 5),
     duration: Math.round((event.endTime.getTime() - event.startTime.getTime()) / 60000).toString(),
-    location: event.location || ''
+    location: event.location || '',
+    visibility: (event.visibility || 'public') as 'public' | 'private'
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -91,7 +92,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           description: formData.description,
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
-          location: formData.location
+          location: formData.location,
+          visibility: formData.visibility
         })
         .eq('id', event.id);
 
@@ -273,6 +275,25 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
               <p className="text-sm text-blue-700 dark:text-blue-300">
                 <strong>Timezone:</strong> All times will be saved in your preferred timezone ({userTimezone}).
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Visibility
+              </label>
+              <select
+                id="visibility"
+                name="visibility"
+                value={formData.visibility}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="public">Public - Visible to friends with access</option>
+                <option value="private">Private - Only visible to you and administrators</option>
+              </select>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Private events are only visible to you and friends with administrator access to this profile.
               </p>
             </div>
           </div>
