@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../context/ThemeContext';
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -18,144 +17,38 @@ const ResetPassword: React.FC = () => {
   const { isAuthPage } = useTheme();
 
   useEffect(() => {
-    // Log the full URL and search parameters for debugging
-    console.log('ResetPassword: Full URL:', window.location.href);
-    console.log('ResetPassword: URL hash:', window.location.hash);
-    console.log('ResetPassword: URL search params:', window.location.search);
-    
-    // Check if we have the required tokens from the URL
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    const code = searchParams.get('code');
-    
-    console.log('ResetPassword: access_token from searchParams:', accessToken ? 'present' : 'missing');
-    console.log('ResetPassword: refresh_token from searchParams:', refreshToken ? 'present' : 'missing');
-    console.log('ResetPassword: code from searchParams:', code ? 'present' : 'missing');
-    
-    // Check if tokens might be in the hash fragment
-    let hashAccessToken, hashRefreshToken, hashCode;
-    if (window.location.hash) {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      hashAccessToken = hashParams.get('access_token');
-      hashRefreshToken = hashParams.get('refresh_token');
-      hashCode = hashParams.get('code');
-      
-      console.log('ResetPassword: access_token from hash:', hashAccessToken ? 'present' : 'missing');
-      console.log('ResetPassword: refresh_token from hash:', hashRefreshToken ? 'present' : 'missing');
-      console.log('ResetPassword: code from hash:', hashCode ? 'present' : 'missing');
-      
-      // If tokens are in the hash but not in search params, use them
-      if (hashAccessToken && hashRefreshToken && (!accessToken || !refreshToken)) {
-        console.log('ResetPassword: Using tokens from hash instead of search params');
-        
-        // Redirect to the same page but with tokens in search params
-        navigate(`/auth/reset-password?access_token=${hashAccessToken}&refresh_token=${hashRefreshToken}`, { replace: true });
-        return;
-      }
-      
-      // If code is in the hash but not in search params, use it
-      if (hashCode && !code) {
-        console.log('ResetPassword: Using code from hash instead of search params');
-        
-        // Redirect to the same page but with code in search params
-        navigate(`/auth/reset-password?code=${hashCode}`, { replace: true });
-        return;
-      }
-    }
-
-    const setupResetSession = async () => {
+    const checkSession = async () => {
       try {
-        console.log('ResetPassword: Checking for valid session');
+        console.log('ResetPassword: Checking for authenticated session');
         
-        // First check if we have tokens in the URL
-        if (accessToken && refreshToken) {
-          console.log('ResetPassword: Found tokens in URL, setting up session');
-          
-          // Explicitly clear any stored tokens from localStorage
-          localStorage.removeItem('supabase.auth.token');
-          localStorage.removeItem('sb-refresh-token');
-          localStorage.removeItem('sb-access-token');
-          
-          // Ensure any existing session is cleared first
-          await supabase.auth.signOut();
-          
-          // Set the session with the tokens from the URL
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
+        // Simply check if we have a valid session
+        // AuthCallback should have already handled token exchange/session setup
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        console.log('ResetPassword: Session check result:', { 
+          hasSession: !!session, 
+          error: sessionError?.message 
+        });
 
-          console.log('ResetPassword: setSession result:', { 
-            success: !error, 
-            hasData: !!data,
-            error: error ? error.message : null
-          });
-
-          if (error) {
-            console.error('ResetPassword: Error setting session:', error);
-            setError('Invalid or expired reset link. Please request a new password reset.');
-          } else {
-            console.log('ResetPassword: Session set successfully with tokens from URL');
-          }
-        } 
-        // Check if we have a code parameter
-        else if (code || hashCode) {
-          console.log('ResetPassword: Found code in URL, exchanging for session');
-          
-          const finalCode = code || hashCode;
-          
-          // Explicitly clear any stored tokens from localStorage
-          localStorage.removeItem('supabase.auth.token');
-          localStorage.removeItem('sb-refresh-token');
-          localStorage.removeItem('sb-access-token');
-          
-          // Ensure any existing session is cleared first
-          await supabase.auth.signOut();
-          
-          // Exchange the code for a session
-          const { data, error } = await supabase.auth.exchangeCodeForSession(finalCode);
-          
-          console.log('ResetPassword: exchangeCodeForSession result:', { 
-            success: !error, 
-            hasData: !!data,
-            hasSession: !!data?.session,
-            error: error ? error.message : null
-          });
-          
-          if (error) {
-            console.error('ResetPassword: Error exchanging code for session:', error);
-            setError('Invalid or expired reset link. Please request a new password reset.');
-          } else if (!data.session) {
-            console.error('ResetPassword: No session returned from code exchange');
-            setError('Invalid or expired reset link. Please request a new password reset.');
-          } else {
-            console.log('ResetPassword: Successfully exchanged code for session');
-          }
+        if (sessionError) {
+          console.error('ResetPassword: Session error:', sessionError);
+          setError('Invalid or expired reset link. Please request a new password reset.');
+        } else if (!session) {
+          console.error('ResetPassword: No authenticated session found');
+          setError('Invalid or expired reset link. Please request a new password reset.');
         } else {
-          // No tokens or code in URL, check if we have an active session already
-          console.log('ResetPassword: No tokens or code in URL, checking for existing session');
-          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-          
-          if (sessionError) {
-            console.error('ResetPassword: Error getting session:', sessionError);
-            setError('Invalid or expired reset link. Please request a new password reset.');
-          } else if (!sessionData.session) {
-            console.error('ResetPassword: No session found');
-            setError('Invalid or expired reset link. Please request a new password reset.');
-          } else {
-            console.log('ResetPassword: Found existing session, can proceed with password reset');
-          }
+          console.log('ResetPassword: Valid session found, user can reset password');
         }
       } catch (err) {
-        console.error('ResetPassword: Exception setting up session:', err);
+        console.error('ResetPassword: Exception checking session:', err);
         setError('Invalid or expired reset link. Please request a new password reset.');
       } finally {
         setInitializing(false);
       }
     };
 
-    setupResetSession();
-  }, [searchParams, navigate]);
+    checkSession();
+  }, []);
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) {
@@ -239,6 +132,30 @@ const ResetPassword: React.FC = () => {
             <div className="text-center">
               <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
               <p className="text-gray-600">Verifying your reset link...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <AlertCircle className="h-6 w-6 text-red-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Reset Link Invalid</h2>
+              <p className="text-gray-600 mb-4">{error}</p>
+              <button
+                onClick={() => navigate('/auth/forgot-password')}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Request New Reset Link
+              </button>
             </div>
           </div>
         </div>
@@ -356,17 +273,6 @@ const ResetPassword: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <div className="flex">
-                  <AlertCircle className="h-5 w-5 text-red-400" />
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             <div>
               <button

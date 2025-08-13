@@ -14,70 +14,160 @@ const AuthCallback = () => {
         console.log('[AuthCallback] Starting auth redirect handler');
         console.log('[AuthCallback] Full URL:', window.location.href);
 
-        // Check for type parameter in both query params and hash
+        const url = new URL(window.location.href);
+        
+        // Check for parameters in both query string and hash fragment
+        const codeFromQuery = url.searchParams.get('code');
+        const typeFromQuery = url.searchParams.get('type');
+        const accessTokenFromQuery = url.searchParams.get('access_token');
+        const refreshTokenFromQuery = url.searchParams.get('refresh_token');
+        
+        let codeFromHash, typeFromHash, accessTokenFromHash, refreshTokenFromHash;
+        if (url.hash) {
+          const hashParams = new URLSearchParams(url.hash.substring(1));
+          codeFromHash = hashParams.get('code');
+          typeFromHash = hashParams.get('type');
+          accessTokenFromHash = hashParams.get('access_token');
+          refreshTokenFromHash = hashParams.get('refresh_token');
+        }
+
+        // Determine which parameters to use (prefer query string over hash)
+        const code = codeFromQuery || codeFromHash;
+        const type = typeFromQuery || typeFromHash;
+        const accessToken = accessTokenFromQuery || accessTokenFromHash;
+        const refreshToken = refreshTokenFromQuery || refreshTokenFromHash;
+        
+        const isRecoveryFlow = type === 'recovery';
+
+        console.log('[AuthCallback] Parameters found:', {
+          code: code ? 'present' : 'missing',
+          type,
+          accessToken: accessToken ? 'present' : 'missing',
+          refreshToken: refreshToken ? 'present' : 'missing',
+          isRecoveryFlow
+        });
+
+        // Clear any existing session data first
+        console.log('[AuthCallback] Clearing existing session data');
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('sb-refresh-token');
+        localStorage.removeItem('sb-access-token');
+        await supabase.auth.signOut();
+
+        let sessionEstablished = false;
+
+        // Try to establish session based on available parameters
+        if (code) {
+          console.log('[AuthCallback] Found code, exchanging for session');
+          try {
+            const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+            
+            if (error) {
+              console.error('[AuthCallback] Error exchanging code:', error);
+              throw error;
+            }
+            
+            if (data?.session) {
+              console.log('[AuthCallback] Successfully exchanged code for session');
+              sessionEstablished = true;
+            } else {
+              console.log('[AuthCallback] No session returned from code exchange');
+            }
+          } catch (codeError) {
+            console.error('[AuthCallback] Code exchange failed:', codeError);
+            throw codeError;
+          }
+        } else if (accessToken && refreshToken) {
+          console.log('[AuthCallback] Found access/refresh tokens, setting session');
+          try {
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            
+            if (error) {
+              console.error('[AuthCallback] Error setting session:', error);
+              throw error;
+            }
+            
+            if (data?.session) {
+              console.log('[AuthCallback] Successfully set session with tokens');
+              sessionEstablished = true;
+            } else {
+              console.log('[AuthCallback] No session returned from setSession');
+            }
+          } catch (tokenError) {
+            console.error('[AuthCallback] Token session setup failed:', tokenError);
+            throw tokenError;
+          }
+        } else {
+          console.log('[AuthCallback] No authentication parameters found in URL');
+          // Check if there's already an existing session
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error('[AuthCallback] Error getting existing session:', sessionError);
+            throw sessionError;
+          }
+          
+          if (session) {
+            console.log('[AuthCallback] Found existing session');
+            sessionEstablished = true;
+          }
+        }
+
+        // Navigate based on session status and flow type
+        if (sessionEstablished) {
+          console.log('[AuthCallback] Session established successfully');
+          
+          if (isRecoveryFlow) {
+            console.log('[AuthCallback] Recovery flow - navigating to reset password');
+            navigate('/auth/reset-password', { replace: true });
+          } else {
+            console.log('[AuthCallback] Standard auth flow - navigating to dashboard');
+            navigate('/', { replace: true });
+          }
+        } else {
+          console.log('[AuthCallback] Failed to establish session');
+          
+          if (isRecoveryFlow) {
+            console.log('[AuthCallback] Recovery flow failed - redirecting to forgot password');
+            navigate('/auth/forgot-password', { 
+              state: { 
+                error: 'Password reset link was invalid or expired. Please request a new one.' 
+              },
+              replace: true
+            });
+          } else {
+            console.log('[AuthCallback] Standard auth failed - redirecting to sign in');
+            navigate('/auth/signin', { 
+              state: { 
+                error: 'Authentication failed. Please sign in again.' 
+              },
+              replace: true
+            });
+          }
+        }
+
+      } catch (err) {
+        console.error('[AuthCallback] Error in auth redirect handler:', err);
+        
+        // Check if this was a recovery flow to provide appropriate error handling
         const url = new URL(window.location.href);
         const typeFromQuery = url.searchParams.get('type');
         const typeFromHash = url.hash ? new URLSearchParams(url.hash.substring(1)).get('type') : null;
         const isRecoveryFlow = typeFromQuery === 'recovery' || typeFromHash === 'recovery';
-
-        console.log('[AuthCallback] Type from query:', typeFromQuery);
-        console.log('[AuthCallback] Type from hash:', typeFromHash);
-        console.log('[AuthCallback] Is recovery flow:', isRecoveryFlow);
-
-        // Let Supabase handle the session establishment automatically
-        // This will parse tokens from URL hash/query and establish session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        console.log('[AuthCallback] Session result:', {
-          hasSession: !!session,
-          error: sessionError?.message
-        });
-
-        if (sessionError) {
-          console.error('[AuthCallback] Session error:', sessionError);
-          
-          if (isRecoveryFlow) {
-            navigate('/auth/forgot-password', { 
-              state: { 
-                error: 'Password reset link was invalid or expired. Please request a new one.' 
-              },
-              replace: true
-            });
-          } else {
-            setError('Authentication error. Please sign in again.');
-          }
-          return;
-        }
-
-        if (session) {
-          console.log('[AuthCallback] Valid session established');
-          
-          if (isRecoveryFlow) {
-            console.log('[AuthCallback] Recovery flow with valid session, navigating to reset password');
-            navigate('/auth/reset-password', { replace: true });
-          } else {
-            console.log('[AuthCallback] Standard auth flow with valid session, navigating to dashboard');
-            navigate('/', { replace: true });
-          }
+        
+        if (isRecoveryFlow) {
+          navigate('/auth/forgot-password', { 
+            state: { 
+              error: 'Password reset link was invalid or expired. Please request a new one.' 
+            },
+            replace: true
+          });
         } else {
-          console.log('[AuthCallback] No session established');
-          
-          if (isRecoveryFlow) {
-            console.log('[AuthCallback] Recovery flow failed, redirecting to forgot password');
-            navigate('/auth/forgot-password', { 
-              state: { 
-                error: 'Password reset link was invalid or expired. Please request a new one.' 
-              },
-              replace: true
-            });
-          } else {
-            console.log('[AuthCallback] No session, navigating to sign in');
-            navigate('/auth/signin', { replace: true });
-          }
+          setError(err instanceof Error ? err.message : 'An unexpected error occurred during authentication.');
         }
-      } catch (err) {
-        console.error('[AuthCallback] Unexpected error:', err);
-        setError(err instanceof Error ? err.message : 'An unexpected error occurred during authentication.');
       } finally {
         setProcessing(false);
       }
