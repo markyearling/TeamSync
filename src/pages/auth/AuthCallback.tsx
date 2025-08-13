@@ -48,7 +48,6 @@ const AuthCallback = () => {
           code: code ? 'present' : 'missing',
           type,
           flow,
-          flow,
           accessToken: accessToken ? 'present' : 'missing',
           refreshToken: refreshToken ? 'present' : 'missing',
           isRecoveryFlow
