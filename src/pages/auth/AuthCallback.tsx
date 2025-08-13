@@ -47,13 +47,6 @@ const AuthCallback = () => {
           isRecoveryFlow
         });
 
-        // Clear any existing session data first
-        console.log('[AuthCallback] Clearing existing session data');
-        localStorage.removeItem('supabase.auth.token');
-        localStorage.removeItem('sb-refresh-token');
-        localStorage.removeItem('sb-access-token');
-        await supabase.auth.signOut();
-
         let sessionEstablished = false;
 
         // Try to establish session based on available parameters
@@ -80,6 +73,13 @@ const AuthCallback = () => {
         } else if (accessToken && refreshToken) {
           console.log('[AuthCallback] Found access/refresh tokens, setting session');
           try {
+            // Clear any existing session data before setting new tokens
+            console.log('[AuthCallback] Clearing existing session data before setting new tokens');
+            localStorage.removeItem('supabase.auth.token');
+            localStorage.removeItem('sb-refresh-token');
+            localStorage.removeItem('sb-access-token');
+            await supabase.auth.signOut();
+
             const { data, error } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken
