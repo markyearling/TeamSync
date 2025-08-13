@@ -37,11 +37,17 @@ const AuthCallback = () => {
         const accessToken = accessTokenFromQuery || accessTokenFromHash;
         const refreshToken = refreshTokenFromQuery || refreshTokenFromHash;
         
-        const isRecoveryFlow = type === 'recovery';
+        // Check for custom flow parameter to identify password recovery
+        const flowFromQuery = url.searchParams.get('flow');
+        const flowFromHash = url.hash ? new URLSearchParams(url.hash.substring(1)).get('flow') : null;
+        const flow = flowFromQuery || flowFromHash;
+        
+        const isRecoveryFlow = flow === 'recovery' || type === 'recovery';
 
         console.log('[AuthCallback] Parameters found:', {
           code: code ? 'present' : 'missing',
           type,
+          flow,
           accessToken: accessToken ? 'present' : 'missing',
           refreshToken: refreshToken ? 'present' : 'missing',
           isRecoveryFlow
