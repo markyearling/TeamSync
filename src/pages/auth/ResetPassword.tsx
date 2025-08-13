@@ -12,6 +12,7 @@ const ResetPassword: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [passwordValidationError, setPasswordValidationError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const { isAuthPage } = useTheme();
@@ -68,22 +69,23 @@ const ResetPassword: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setPasswordValidationError(null);
 
     // Validate passwords match
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setPasswordValidationError('Passwords do not match');
       return;
     }
 
     // Validate password strength
     const passwordError = validatePassword(password);
     if (passwordError) {
-      setError(passwordError);
+      setPasswordValidationError(passwordError);
       return;
     }
 
     setLoading(true);
+    setError(null);
 
     try {
       console.log('ResetPassword: Updating password');
@@ -172,7 +174,8 @@ const ResetPassword: React.FC = () => {
     );
   }
 
-  if (error) {
+  // Only show full-page error for session/link issues, not password validation
+  if (error && !passwordValidationError && !initializing) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -250,7 +253,10 @@ const ResetPassword: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setPasswordValidationError(null);
+                  }}
                   className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Enter your new password"
                 />
@@ -287,7 +293,10 @@ const ResetPassword: React.FC = () => {
                   type={showConfirmPassword ? 'text' : 'password'}
                   required
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setPasswordValidationError(null);
+                  }}
                   className="block w-full pl-10 pr-10 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Confirm your new password"
                 />
@@ -306,6 +315,17 @@ const ResetPassword: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {passwordValidationError && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                <div className="flex">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                  <div className="ml-3">
+                    <p className="text-sm text-red-700">{passwordValidationError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div>
               <button
