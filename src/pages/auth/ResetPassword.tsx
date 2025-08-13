@@ -103,6 +103,39 @@ const ResetPassword: React.FC = () => {
 
       // Password updated successfully, now sign out to force re-authentication
       console.log('ResetPassword: Password updated successfully, signing out');
+      
+      // Send password changed email notification
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser?.email) {
+          console.log('ResetPassword: Sending password changed email notification');
+          
+          const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-password-changed-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+            },
+            body: JSON.stringify({
+              email: currentUser.email,
+              userAgent: navigator.userAgent,
+              ipAddress: 'Hidden for privacy' // We can't easily get real IP on client side
+            })
+          });
+          
+          if (!response.ok) {
+            console.error('Failed to send password changed email:', await response.text());
+            // Don't throw here - password was still changed successfully
+          } else {
+            console.log('Password changed email sent successfully');
+          }
+        }
+      } catch (emailError) {
+        console.error('Error sending password changed email:', emailError);
+        // Don't throw here - password was still changed successfully
+      }
+      
+      // Sign out after sending email
       await supabase.auth.signOut();
       
       setSuccess(true);
