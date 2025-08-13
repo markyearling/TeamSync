@@ -369,7 +369,6 @@ Deno.serve(async (req) => {
           profile_id: profileId,
           platform_team_id: teamId,
           visibility: 'public' // Platform-synced events default to public
-          visibility: 'public' // Platform-synced events default to public
         };
       });
 

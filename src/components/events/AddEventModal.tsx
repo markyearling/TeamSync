@@ -274,25 +274,6 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                 <strong>Timezone:</strong> All times will be saved in your preferred timezone ({userTimezone}).
               </p>
             </div>
-
-            <div>
-              <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Visibility
-              </label>
-              <select
-                id="visibility"
-                name="visibility"
-                value={formData.visibility}
-                onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="public">Public - Visible to friends with access</option>
-                <option value="private">Private - Only visible to you and administrators</option>
-              </select>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                Private events are only visible to you and friends with administrator access to this profile.
-              </p>
-            </div>
             <div>
               <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Visibility
