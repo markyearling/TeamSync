@@ -101,6 +101,23 @@ Deno.serve(async (req) => {
       from: { email: fromEmail },
       content: [
         {
+          type: 'text/plain',
+          value: `
+            Welcome to FamSink, ${userName}!
+            
+            We're thrilled to have you join our community. FamSink helps you effortlessly manage your children's sports schedules, connect with other parents, and stay organized.
+            
+            What's Next?
+            - Create profiles for your children and add their sports activities.
+            - Connect to popular sports platforms like TeamSnap and SportsEngine to import schedules.
+            - Invite friends and family to share schedules and communicate easily.
+            
+            Go to your dashboard: https://sprightly-lebkuchen-6e85b6.netlify.app/
+            
+            © 2025 FamSink. All rights reserved.
+          `
+        },
+        {
           type: 'text/html',
           value: `
             <!DOCTYPE html>
@@ -161,23 +178,6 @@ Deno.serve(async (req) => {
               </div>
             </body>
             </html>
-          `
-        },
-        {
-          type: 'text/plain',
-          value: `
-            Welcome to FamSink, ${userName}!
-            
-            We're thrilled to have you join our community. FamSink helps you effortlessly manage your children's sports schedules, connect with other parents, and stay organized.
-            
-            What's Next?
-            - Create profiles for your children and add their sports activities.
-            - Connect to popular sports platforms like TeamSnap and SportsEngine to import schedules.
-            - Invite friends and family to share schedules and communicate easily.
-            
-            Go to your dashboard: https://sprightly-lebkuchen-6e85b6.netlify.app/
-            
-            © 2025 FamSink. All rights reserved.
           `
         }
       ]
