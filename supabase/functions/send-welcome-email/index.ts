@@ -126,6 +126,10 @@ Deno.serve(async (req) => {
       `
     };
 
+    console.log('Sending email with SendGrid API...');
+    console.log('From email:', fromEmail);
+    console.log('To email:', email);
+
     // Send email using SendGrid
     const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
       method: 'POST',
