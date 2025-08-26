@@ -664,8 +664,8 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 relative">
-      <div className="overflow-y-auto"
+    <div >
+      <div className="space-y-6 overflow-y-auto"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
