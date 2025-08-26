@@ -748,6 +748,41 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
+      {/* Upcoming Events */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
+          <div className="flex items-center">
+            <CalendarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
+            <h2 className="text-lg font-medium text-gray-900 dark:text-white">
+              Upcoming Events
+            </h2>
+          </div>
+          <a href="/calendar" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
+            View calendar <ArrowRight className="ml-1 h-4 w-4" />
+          </a>
+        </div>
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          {upcomingEvents
+            .filter(e => !e.isToday)
+            .slice(0, 8)
+            .map(event => (
+              <EventCard
+                key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`}
+                event={event}
+                mapsLoaded={mapsLoaded}
+                mapsLoadError={mapsLoadError}
+                userTimezone={userTimezone}
+                onClick={() => setSelectedEvent(event)}
+              />
+            ))}
+          {upcomingEvents.filter(e => !e.isToday).length === 0 && (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              No upcoming events scheduled.
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Children Activity Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
@@ -872,40 +907,7 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Upcoming Events */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div className="px-4 py-5 sm:px-6 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center">
-            <CalendarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">
-              Upcoming Events
-            </h2>
-          </div>
-          <a href="/calendar" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
-            View calendar <ArrowRight className="ml-1 h-4 w-4" />
-          </a>
-        </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {upcomingEvents
-            .filter(e => !e.isToday)
-            .slice(0, 8)
-            .map(event => (
-              <EventCard
-                key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`}
-                event={event}
-                mapsLoaded={mapsLoaded}
-                mapsLoadError={mapsLoadError}
-                userTimezone={userTimezone}
-                onClick={() => setSelectedEvent(event)}
-              />
-            ))}
-          {upcomingEvents.filter(e => !e.isToday).length === 0 && (
-            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-              No upcoming events scheduled.
-            </div>
-          )}
-        </div>
-      </div>
+      
       </div>
       {selectedEvent && (
         <EventModal
