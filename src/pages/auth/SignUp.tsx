@@ -71,6 +71,51 @@ const SignUp: React.FC = () => {
 
       if (error) throw error;
 
+      // If user creation is successful, send a welcome email
+      if (data.user) {
+        try {
+          // Fetch user's full_name from user_settings table
+          // This assumes user_settings record is created shortly after auth.users
+          const { data: userSettings, error: settingsError } = await supabase
+            .from('user_settings')
+            .select('full_name')
+            .eq('user_id', data.user.id)
+            .single();
+
+          const fullName = userSettings?.full_name || '';
+
+          // Get the current session to obtain the access token for function invocation
+          const { data: { session } } = await supabase.auth.getSession();
+
+          if (session) {
+            const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-welcome-email`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+              body: JSON.stringify({
+                email: data.user.email,
+                full_name: fullName,
+              }),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              console.error('Failed to send welcome email:', errorData);
+              // Log the error but don't prevent user from signing up
+            } else {
+              console.log('Welcome email sent successfully');
+            }
+          } else {
+            console.warn('No session found after signup, skipping welcome email.');
+          }
+        } catch (emailSendError) {
+          console.error('Error invoking welcome email function:', emailSendError);
+          // Log the error but don't prevent user from signing up
+        }
+      }
+
       // Success - redirect to sign in with message
       navigate('/auth/signin', { 
         state: { 
