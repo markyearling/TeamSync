@@ -19,6 +19,7 @@ import SignUp from './pages/auth/SignUp';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import AuthCallback from './pages/auth/AuthCallback';
+import TestEmail from './pages/TestEmail';
 import MobileOptimizations from './components/mobile/MobileOptimizations';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -185,6 +186,7 @@ const AppContent = () => {
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/test-email" element={<TestEmail />} />
       <Route path="/connections/teamsnap/callback" element={<TeamSnapCallback />} />
       <Route path="/" element={
         <ProtectedRoute>
