@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faXmark, faCheck, faSync } from '@fortawesome/free-solid-svg-icons';
+import { faXmark, faCheck, faSync, faPalette } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../../lib/supabase';
 import { useCapacitor } from '../../hooks/useCapacitor';
 import { availableSports, getSportDetails } from '../../utils/sports';
@@ -17,6 +17,7 @@ interface Team {
   team_id: string;
   team_name: string;
   sport: string;
+  sport_color?: string;
   created_at: string;
   updated_at: string;
   ics_url?: string;
@@ -33,6 +34,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [selectedTeams, setSelectedTeams] = useState<string[]>([]);
   const [teamSports, setTeamSports] = useState<Record<string, string>>({});
+  const [teamColors, setTeamColors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
@@ -57,9 +59,14 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
     const fetchTeams = async () => {
       try {
         // Get all platform teams
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) return;
+
         const { data: platformTeams, error: platformError } = await supabase
           .from('platform_teams')
-          .select('*');
+          .select('*')
+          .eq('user_id', user.id);
 
         if (platformError) throw platformError;
 
@@ -76,10 +83,14 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
         
         // Initialize team sports state with current sport values
         const initialTeamSports: Record<string, string> = {};
+        const initialTeamColors: Record<string, string> = {};
         platformTeams.forEach(team => {
           initialTeamSports[team.id] = team.sport || 'Unknown';
+          // Use custom color if set, otherwise use default sport color
+          initialTeamColors[team.id] = team.sport_color || getSportDetails(team.sport || 'Unknown').color;
         });
         setTeamSports(initialTeamSports);
+        setTeamColors(initialTeamColors);
       } catch (error) {
         console.error('Error fetching teams:', error);
       } finally {
@@ -117,11 +128,14 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
       // Update sports for each team if changed
       for (const teamId of selectedTeams) {
         const team = teams.find(t => t.id === teamId);
-        if (team && team.sport !== teamSports[teamId]) {
+        if (team && (team.sport !== teamSports[teamId] || team.sport_color !== teamColors[teamId])) {
           // Update the platform_team sport
           const { error: updateTeamError } = await supabase
             .from('platform_teams')
-            .update({ sport: teamSports[teamId] })
+            .update({ 
+              sport: teamSports[teamId],
+              sport_color: teamColors[teamId]
+            })
             .eq('id', teamId);
 
           if (updateTeamError) {
@@ -133,7 +147,10 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
           if (selectedTeams.includes(teamId)) {
             const { error: updateEventsError } = await supabase
               .from('events')
-              .update({ sport: teamSports[teamId] })
+              .update({ 
+                sport: teamSports[teamId],
+                color: teamColors[teamId]
+              })
               .eq('platform_team_id', teamId)
               .eq('profile_id', profileId);
 
@@ -187,6 +204,21 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
     setTeamSports(prev => ({
       ...prev,
       [teamId]: sport
+    }));
+    
+    // Update color to default for new sport if no custom color was set
+    if (!teamColors[teamId] || teamColors[teamId] === getSportDetails(teamSports[teamId] || 'Unknown').color) {
+      setTeamColors(prev => ({
+        ...prev,
+        [teamId]: getSportDetails(sport).color
+      }));
+    }
+  };
+
+  const handleColorChange = (teamId: string, color: string) => {
+    setTeamColors(prev => ({
+      ...prev,
+      [teamId]: color
     }));
   };
 
@@ -275,11 +307,11 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                           </h5>
                           <div className="flex items-center mt-2">
                             <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">Sport:</span>
-                            <div className="flex items-center">
+                            <div className="flex items-center space-x-3">
                               <select
                                 value={teamSports[team.id] || 'Unknown'}
                                 onChange={(e) => handleSportChange(team.id, e.target.value)}
-                                className="text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white mr-3"
+                                className="text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                                 onClick={(e) => e.stopPropagation()} // Prevent checkbox toggle when clicking dropdown
                               >
                                 {availableSports.map(sport => (
@@ -288,10 +320,24 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                                   </option>
                                 ))}
                               </select>
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="color"
+                                  value={teamColors[team.id] || getSportDetails(teamSports[team.id] || 'Unknown').color}
+                                  onChange={(e) => handleColorChange(team.id, e.target.value)}
+                                  className="w-8 h-8 border border-gray-300 dark:border-gray-600 rounded cursor-pointer"
+                                  title="Choose sport color"
+                                  onClick={(e) => e.stopPropagation()} // Prevent checkbox toggle when clicking color picker
+                                />
+                                <FontAwesomeIcon 
+                                  icon={faPalette} 
+                                  className="h-4 w-4 text-gray-400 dark:text-gray-500"
+                                />
+                              </div>
                               <FontAwesomeIcon 
                                 icon={getSportDetails(teamSports[team.id] || 'Unknown').icon} 
                                 className="h-6 w-6"
-                                style={{ color: getSportDetails(teamSports[team.id] || 'Unknown').color }}
+                                style={{ color: teamColors[team.id] || getSportDetails(teamSports[team.id] || 'Unknown').color }}
                               />
                             </div>
                           </div>

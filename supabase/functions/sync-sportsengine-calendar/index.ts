@@ -2,6 +2,33 @@ import ICAL from 'npm:ical.js@1.5.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { DateTime } from 'npm:luxon@3.4.4';
 
+// Import getSportDetails function (inline implementation since we can't import from utils)
+const getSportDetails = (sportName: string) => {
+  const sportColors: Record<string, string> = {
+    'Soccer': '#10B981',
+    'Baseball': '#F59E0B',
+    'Basketball': '#EF4444',
+    'Swimming': '#3B82F6',
+    'Tennis': '#8B5CF6',
+    'Volleyball': '#EC4899',
+    'Football': '#6366F1',
+    'Hockey': '#14B8A6',
+    'Lacrosse': '#F97316',
+    'Track': '#06B6D4',
+    'Golf': '#84CC16',
+    'Gymnastics': '#F43F5E',
+    'Wrestling': '#8B5CF6',
+    'Cross Country': '#059669',
+    'Unknown': '#64748B',
+    'Other': '#64748B'
+  };
+  
+  return {
+    name: sportName,
+    color: sportColors[sportName] || '#64748B'
+  };
+};
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -169,11 +196,12 @@ Deno.serve(async (req) => {
       // Get sport from team record
       const { data: teamData, error: teamFetchError } = await supabaseClient
         .from('platform_teams')
-        .select('sport')
+        .select('sport, sport_color')
         .eq('id', teamId)
         .single();
         
       const sport = teamData?.sport || 'Unknown';
+      const sportColor = teamData?.sport_color || getSportDetails(sport).color;
 
       // Get user's timezone from settings
       let userTimezone = 'UTC';
@@ -370,7 +398,7 @@ Deno.serve(async (req) => {
           location: locationAddress,
           location_name: locationName,
           sport: sport,
-          color: '#2563EB', // SportsEngine blue
+          color: sportColor, // Use custom color or default
           platform: 'SportsEngine',
           platform_color: '#2563EB',
           profile_id: profileId,
