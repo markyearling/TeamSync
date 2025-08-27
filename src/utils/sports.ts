@@ -9,7 +9,7 @@ import {
   HelpCircle,
   Dumbbell,
   Baseball, // Specific baseball icon
-  BallBasketball, // Specific basketball icon
+  Zap, // Generic icon for basketball
   Football, // Specific American football icon
   BallSoccer, // Specific soccer icon
   BallTennis, // Specific tennis icon
@@ -26,7 +26,7 @@ export interface SportDetails {
 export const availableSports: SportDetails[] = [
   { name: 'Soccer', color: '#10B981', icon: BallSoccer },
   { name: 'Baseball', color: '#F59E0B', icon: Baseball },
-  { name: 'Basketball', color: '#EF4444', icon: BallBasketball },
+  { name: 'Basketball', color: '#EF4444', icon: Zap },
   { name: 'Swimming', color: '#3B82F6', icon: Waves },
   { name: 'Tennis', color: '#8B5CF6', icon: BallTennis },
   { name: 'Volleyball', color: '#EC4899', icon: BallVolleyball },
