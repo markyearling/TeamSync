@@ -8,7 +8,7 @@ import {
   Star,
   HelpCircle,
   Dumbbell,
-  BallBaseball, // Specific baseball icon
+  Baseball, // Specific baseball icon
   BallBasketball, // Specific basketball icon
   Football, // Specific American football icon
   BallSoccer, // Specific soccer icon
@@ -25,7 +25,7 @@ export interface SportDetails {
 
 export const availableSports: SportDetails[] = [
   { name: 'Soccer', color: '#10B981', icon: BallSoccer },
-  { name: 'Baseball', color: '#F59E0B', icon: BallBaseball },
+  { name: 'Baseball', color: '#F59E0B', icon: Baseball },
   { name: 'Basketball', color: '#EF4444', icon: BallBasketball },
   { name: 'Swimming', color: '#3B82F6', icon: Waves },
   { name: 'Tennis', color: '#8B5CF6', icon: BallTennis },
