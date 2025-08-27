@@ -275,22 +275,22 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                           </h5>
                           <div className="flex items-center mt-2">
                             <span className="text-sm text-gray-500 dark:text-gray-400 mr-2">Sport:</span>
-                            <select
-                              value={teamSports[team.id] || 'Unknown'}
-                              onChange={(e) => handleSportChange(team.id, e.target.value)}
-                              className="text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white pl-8"
-                              onClick={(e) => e.stopPropagation()} // Prevent checkbox toggle when clicking dropdown
-                            >
-                              {availableSports.map(sport => (
-                                <option key={sport.name} value={sport.name}>
-                                  {sport.name}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="absolute left-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <div className="flex items-center">
+                              <select
+                                value={teamSports[team.id] || 'Unknown'}
+                                onChange={(e) => handleSportChange(team.id, e.target.value)}
+                                className="text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white mr-3"
+                                onClick={(e) => e.stopPropagation()} // Prevent checkbox toggle when clicking dropdown
+                              >
+                                {availableSports.map(sport => (
+                                  <option key={sport.name} value={sport.name}>
+                                    {sport.name}
+                                  </option>
+                                ))}
+                              </select>
                               <FontAwesomeIcon 
                                 icon={getSportDetails(teamSports[team.id] || 'Unknown').icon} 
-                                className="h-4 w-4"
+                                className="h-6 w-6"
                                 style={{ color: getSportDetails(teamSports[team.id] || 'Unknown').color }}
                               />
                             </div>
