@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Check, RefreshCw } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faXmark, faCheck, faSync } from '@fortawesome/free-solid-svg-icons';
 import { supabase } from '../../lib/supabase';
 import { useCapacitor } from '../../hooks/useCapacitor';
 import { availableSports, getSportDetails } from '../../utils/sports';
@@ -233,7 +233,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
               onClick={onClose}
               className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
             >
-              <X className="h-6 w-6" />
+              <FontAwesomeIcon icon={faXmark} className="h-6 w-6" />
             </button>
           )}
           {!isNative && (
@@ -241,7 +241,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
               onClick={onClose}
               className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
             >
-              <X className="h-6 w-6" />
+              <FontAwesomeIcon icon={faXmark} className="h-6 w-6" />
             </button>
           )}
         </div>
@@ -298,10 +298,10 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                         </div>
                         <div className="flex items-center space-x-2">
                           {syncing === team.id && (
-                            <RefreshCw className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-spin" />
+                            <FontAwesomeIcon icon={faSync} className="h-4 w-4 text-blue-600 dark:text-blue-400 animate-spin" />
                           )}
                           {selectedTeams.includes(team.id) && (
-                            <Check className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            <FontAwesomeIcon icon={faCheck} className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                           )}
                         </div>
                       </div>
@@ -336,7 +336,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
           >
             {saving ? (
               <>
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                <FontAwesomeIcon icon={faSync} className="h-4 w-4 mr-2 animate-spin" />
                 Saving...
               </>
             ) : (
