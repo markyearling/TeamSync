@@ -10,7 +10,7 @@ import {
   Dumbbell,
   BallBaseball, // Specific baseball icon
   BallBasketball, // Specific basketball icon
-  BallFootball, // Specific American football icon
+  Football, // Specific American football icon
   BallSoccer, // Specific soccer icon
   BallTennis, // Specific tennis icon
   BallVolleyball, // Specific volleyball icon
@@ -30,7 +30,7 @@ export const availableSports: SportDetails[] = [
   { name: 'Swimming', color: '#3B82F6', icon: Waves },
   { name: 'Tennis', color: '#8B5CF6', icon: BallTennis },
   { name: 'Volleyball', color: '#EC4899', icon: BallVolleyball },
-  { name: 'Football', color: '#6366F1', icon: BallFootball }, // Assuming American Football
+  { name: 'Football', color: '#6366F1', icon: Football }, // Assuming American Football
   { name: 'Hockey', color: '#14B8A6', icon: Snowflake },
   { name: 'Lacrosse', color: '#F97316', icon: Crosshair },
   { name: 'Track', color: '#06B6D4', icon: Timer },
