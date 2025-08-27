@@ -31,7 +31,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     time: '',
     duration: '60', // Default duration in minutes
     location: '',
-    visibility: 'public' as 'public' | 'private' // Default to public
+    visibility: 'public' as 'public' | 'private', // Default to public
     sport: sports[0]?.name || 'Other'
   });
 
