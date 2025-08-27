@@ -1,21 +1,5 @@
-import { 
-  Circle,
-  Trophy,
-  Target,
-  Waves,
-  Zap,
-  Volleyball,
-  Shield,
-  Snowflake,
-  Crosshair,
-  Timer,
-  Flag,
-  Star,
-  HelpCircle,
-  Football,
-  Dumbbell
-} from 'lucide-react';
-import { LucideIcon } from 'lucide-react';
+import { Circle, Trophy, Target, Waves, Zap, Wallet as Volleyball, Shield, Snowflake, Crosshair, Timer, Flag, Star, HelpCircle, FolderRoot as Football, Dumbbell } from 'lucide-react';
+import { DivideIcon as LucideIcon } from 'lucide-react';
 
 export interface SportDetails {
   name: string;
