@@ -3,6 +3,7 @@ import { X, Calendar as CalendarIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Autocomplete } from '@react-google-maps/api';
 import { useCapacitor } from '../../hooks/useCapacitor';
+import { availableSports, getSportDetails } from '../../utils/sports';
 
 interface AddEventModalProps {
   profileId: string;
@@ -31,6 +32,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     duration: '60', // Default duration in minutes
     location: '',
     visibility: 'public' as 'public' | 'private' // Default to public
+    sport: sports[0]?.name || 'Other'
   });
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -81,6 +83,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     try {
       const startDateTime = new Date(`${formData.date}T${formData.time}`);
       const endDateTime = new Date(startDateTime.getTime() + parseInt(formData.duration) * 60000);
+      const sportDetails = getSportDetails(formData.sport);
 
       const { error } = await supabase
         .from('events')
@@ -91,8 +94,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
           location: formData.location,
-          sport: sports[0]?.name || 'General',
-          color: sports[0]?.color || '#3B82F6',
+          sport: formData.sport,
+          color: sportDetails.color,
           visibility: formData.visibility
         });
 
@@ -267,6 +270,33 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                 <option value="240">4 hours</option>
                 <option value="1440">1 day</option>
               </select>
+            </div>
+
+            <div>
+              <label htmlFor="sport" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Sport
+              </label>
+              <div className="mt-1 relative">
+                <select
+                  id="sport"
+                  name="sport"
+                  value={formData.sport}
+                  onChange={handleInputChange}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                >
+                  {availableSports.map(sport => (
+                    <option key={sport.name} value={sport.name}>
+                      {sport.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  {React.createElement(getSportDetails(formData.sport).icon, {
+                    className: "h-4 w-4",
+                    style: { color: getSportDetails(formData.sport).color }
+                  })}
+                </div>
+              </div>
             </div>
 
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">

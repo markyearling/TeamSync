@@ -10,6 +10,7 @@ import { supabase } from '../../lib/supabase';
 import EventModal from '../events/EventModal';
 import { Event } from '../../types';
 import { useCapacitor } from '../../hooks/useCapacitor';
+import { getSportDetails } from '../../utils/sports';
 
 interface HeaderProps {
   children?: ReactNode;
@@ -268,6 +269,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         // Format events for display
         const formattedEvents = eventData.map(event => {
           const isOwnEvent = ownProfiles?.some(p => p.id === event.profile_id) || false;
+          const sportDetails = getSportDetails(event.sport);
           
           return {
             ...event,
@@ -280,6 +282,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             sport: event.sport,
             color: event.color,
             platform: event.platform,
+            sportIcon: sportDetails.icon,
             platformColor: event.platform_color,
             platformIcon: () => null, // This will be replaced with the actual icon component
             child: {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, X, Upload, Crown } from 'lucide-react';
 import { useProfiles } from '../context/ProfilesContext';
 import { supabase } from '../lib/supabase';
+import { availableSports, getSportDetails } from '../utils/sports';
 
 const Profiles: React.FC = () => {
   const navigate = useNavigate();
@@ -31,15 +32,6 @@ const Profiles: React.FC = () => {
     { name: 'Cyan', value: '#06B6D4' },
     { name: 'Lime', value: '#84CC16' },
     { name: 'Rose', value: '#F43F5E' }
-  ];
-
-  const availableSports = [
-    { name: 'Soccer', color: '#10B981' },
-    { name: 'Baseball', color: '#F59E0B' },
-    { name: 'Basketball', color: '#EF4444' },
-    { name: 'Swimming', color: '#3B82F6' },
-    { name: 'Tennis', color: '#8B5CF6' },
-    { name: 'Volleyball', color: '#EC4899' },
   ];
 
   // Combine all profiles (own and friends' with admin access)
@@ -87,10 +79,10 @@ const Profiles: React.FC = () => {
         notes: formData.notes,
         photo_url: photoUrl,
         sports: selectedSports.map(sport => {
-          const sportData = availableSports.find(s => s.name === sport);
+          const sportData = getSportDetails(sport);
           return {
             name: sport,
-            color: sportData?.color || '#000000'
+            color: sportData.color
           };
         }),
         eventCount: 0,
@@ -430,6 +422,10 @@ const Profiles: React.FC = () => {
                           className="w-3 h-3 rounded-full mr-2"
                           style={{ backgroundColor: sport.color }}
                         ></span>
+                        {React.createElement(sport.icon, {
+                          className: "h-3 w-3 mr-1",
+                          style: { color: sport.color }
+                        })}
                         <span className="text-sm text-gray-700 dark:text-gray-300">{sport.name}</span>
                       </label>
                     ))}

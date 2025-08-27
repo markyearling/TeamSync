@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase';
 import { Event, Platform, Child } from '../types';
 import { useLoadScript, Libraries } from '@react-google-maps/api';
 import { DateTime } from 'luxon';
+import { getSportDetails } from '../utils/sports';
 import { useCapacitor } from '../hooks/useCapacitor';
 import EventModal from '../components/events/EventModal';
 
@@ -226,12 +227,14 @@ const Dashboard: React.FC = () => {
 
       const formattedEvents = eventData.map(event => {
         const profile = profiles.find(p => p.id === event.profile_id);
+        const sportDetails = getSportDetails(event.sport);
         return {
           ...event,
           id: event.id,
           startTime: new Date(event.start_time),
           endTime: new Date(event.end_time),
           child: profile!,
+          sportIcon: sportDetails.icon,
           platformIcon: CalendarIcon,
           isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
           isOwnEvent: true
@@ -270,12 +273,14 @@ const Dashboard: React.FC = () => {
 
         const formattedFriendEvents = friendEventData.map((event) => {
           const profile = friendsProfiles.find(p => p.id === event.profile_id);
+          const sportDetails = getSportDetails(event.sport);
           return {
             ...event,
             id: event.id,
             startTime: new Date(event.start_time),
             endTime: new Date(event.end_time),
             child: profile!,
+            sportIcon: sportDetails.icon,
             platformIcon: CalendarIcon,
             isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
             isOwnEvent: false,

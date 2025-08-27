@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Check, RefreshCw } from 'lucide-react';
-import { useCapacitor } from '../../hooks/useCapacitor';
+import { supabase } from '../../lib/supabase';
 import { availableSports, getSportDetails } from '../../utils/sports';
 
 interface Friend {
@@ -276,7 +276,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                             <select
                               value={teamSports[team.id] || 'Unknown'}
                               onChange={(e) => handleSportChange(team.id, e.target.value)}
-                              className="text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                              className="text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white pl-8"
                               onClick={(e) => e.stopPropagation()} // Prevent checkbox toggle when clicking dropdown
                             >
                               {availableSports.map(sport => (
@@ -285,7 +285,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                                 </option>
                               ))}
                             </select>
-                            <div className="ml-2 flex items-center">
+                            <div className="absolute left-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
                               {React.createElement(getSportDetails(teamSports[team.id] || 'Unknown').icon, {
                                 className: "h-4 w-4",
                                 style: { color: getSportDetails(teamSports[team.id] || 'Unknown').color }

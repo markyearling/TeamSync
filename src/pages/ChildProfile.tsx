@@ -13,7 +13,9 @@ import DayView from '../components/calendar/DayView';
 import AgendaView from '../components/calendar/AgendaView';
 import { useLoadScript, Libraries } from '@react-google-maps/api';
 import EventCard from '../components/events/EventCard';
+import { getSportDetails } from '../utils/sports';
 import { DateTime } from 'luxon';
+import { availableSports, getSportDetails } from '../utils/sports';
 
 // Define libraries outside component to prevent recreation on each render
 const libraries: Libraries = ['places', 'marker'];
@@ -67,15 +69,6 @@ const ChildProfile: React.FC = () => {
     { name: 'Cyan', value: '#06B6D4' },
     { name: 'Lime', value: '#84CC16' },
     { name: 'Rose', value: '#F43F5E' }
-  ];
-
-  const availableSports = [
-    { name: 'Soccer', color: '#10B981' },
-    { name: 'Baseball', color: '#F59E0B' },
-    { name: 'Basketball', color: '#EF4444' },
-    { name: 'Swimming', color: '#3B82F6' },
-    { name: 'Tennis', color: '#8B5CF6' },
-    { name: 'Volleyball', color: '#EC4899' },
   ];
 
   // Fetch user's timezone
@@ -153,6 +146,7 @@ const ChildProfile: React.FC = () => {
             id: event.id,
             startTime: new Date(event.start_time),
             endTime: new Date(event.end_time),
+            sportIcon: getSportDetails(event.sport).icon,
             child: {
               ...profile,
               user_id: profileData?.user_id
@@ -281,10 +275,10 @@ const ChildProfile: React.FC = () => {
         notes: formData.notes,
         photo_url: photoUrl,
         sports: selectedSports.map(sport => {
-          const sportData = availableSports.find(s => s.name === sport);
+          const sportData = getSportDetails(sport);
           return {
             name: sport,
-            color: sportData?.color || '#000000'
+            color: sportData.color
           };
         })
       });
@@ -905,6 +899,10 @@ const ChildProfile: React.FC = () => {
                             <option key={color.value} value={color.value} className="flex items-center">
                               {color.name}
                             </option>
+                          {React.createElement(sport.icon, {
+                            className: "h-3 w-3 mr-1",
+                            style: { color: sport.color }
+                          })}
                           ))}
                         </select>
                         <div 
