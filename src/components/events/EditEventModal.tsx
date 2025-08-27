@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Calendar as CalendarIcon, Save } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { supabase } from '../../lib/supabase';
 import { Autocomplete } from '@react-google-maps/api';
 import { Event } from '../../types';
@@ -296,10 +297,11 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                   ))}
                 </select>
                 <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  {React.createElement(getSportDetails(formData.sport).icon, {
-                    className: "h-4 w-4",
-                    style: { color: getSportDetails(formData.sport).color }
-                  })}
+                  <FontAwesomeIcon 
+                    icon={getSportDetails(formData.sport).icon} 
+                    className="h-4 w-4"
+                    style={{ color: getSportDetails(formData.sport).color }}
+                  />
                 </div>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import AddEventModal from '../components/events/AddEventModal';
 import EventModal from '../components/events/EventModal';
 import { Filter, Calendar, CalendarIcon, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users, ChevronLeft, ChevronRight, Crown, Eye } from 'lucide-react';
@@ -940,6 +941,11 @@ const ChildProfile: React.FC = () => {
                           className="w-3 h-3 rounded-full mr-2"
                           style={{ backgroundColor: sport.color }}
                         ></span>
+                        <FontAwesomeIcon 
+                          icon={sport.icon} 
+                          className="h-3 w-3 mr-1"
+                          style={{ color: sport.color }}
+                        />
                         <span className="text-sm text-gray-700 dark:text-gray-300">{sport.name}</span>
                       </label>
                     ))}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { MapPin, Clock, User } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import EventModal from './EventModal';
 import { DateTime } from 'luxon';
@@ -87,9 +88,12 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
               ></span>
               <span className="text-sm text-gray-500 dark:text-gray-400">{event.child.name}</span>
               <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-2 py-0.5 rounded-full flex items-center">
-                {event.sportIcon && React.createElement(event.sportIcon, {
-                  className: "h-3 w-3 mr-1"
-                })}
+                {event.sportIcon && (
+                  <FontAwesomeIcon 
+                    icon={event.sportIcon} 
+                    className="h-3 w-3 mr-1"
+                  />
+                )}
                 {event.sport}
               </span>
             </div>

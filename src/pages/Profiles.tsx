@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, X, Upload, Crown } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useProfiles } from '../context/ProfilesContext';
 import { supabase } from '../lib/supabase';
 import { availableSports, getSportDetails } from '../utils/sports';
@@ -422,10 +423,11 @@ const Profiles: React.FC = () => {
                           className="w-3 h-3 rounded-full mr-2"
                           style={{ backgroundColor: sport.color }}
                         ></span>
-                        {React.createElement(sport.icon, {
-                          className: "h-3 w-3 mr-1",
-                          style: { color: sport.color }
-                        })}
+                        <FontAwesomeIcon 
+                          icon={sport.icon} 
+                          className="h-3 w-3 mr-1"
+                          style={{ color: sport.color }}
+                        />
                         <span className="text-sm text-gray-700 dark:text-gray-300">{sport.name}</span>
                       </label>
                     ))}

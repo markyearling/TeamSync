@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Check, RefreshCw } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { supabase } from '../../lib/supabase';
 import { useCapacitor } from '../../hooks/useCapacitor';
 import { availableSports, getSportDetails } from '../../utils/sports';
@@ -287,10 +288,11 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                               ))}
                             </select>
                             <div className="absolute left-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                              {React.createElement(getSportDetails(teamSports[team.id] || 'Unknown').icon, {
-                                className: "h-4 w-4",
-                                style: { color: getSportDetails(teamSports[team.id] || 'Unknown').color }
-                              })}
+                              <FontAwesomeIcon 
+                                icon={getSportDetails(teamSports[team.id] || 'Unknown').icon} 
+                                className="h-4 w-4"
+                                style={{ color: getSportDetails(teamSports[team.id] || 'Unknown').color }}
+                              />
                             </div>
                           </div>
                         </div>
