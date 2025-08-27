@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Check, RefreshCw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCapacitor } from '../../hooks/useCapacitor';
+import { useCapacitor } from '../../hooks/useCapacitor';
 
 interface Friend {
   id: string;
@@ -35,11 +36,12 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState<string | null>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const { isNative } = useCapacitor();
 
   // Handle clicks outside the modal
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      if (!isNative && modalRef.current && !modalRef.current.contains(e.target as Node)) {
         onClose();
       }
     };
@@ -48,7 +50,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [onClose]);
+  }, [onClose, isNative]);
 
   // Available sports list
   const availableSports = [
@@ -181,6 +183,15 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
     }
   };
 
+  // Determine modal styling based on whether we're on mobile or desktop
+  const modalContainerClasses = isNative
+    ? "fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-800 overflow-hidden"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4";
+
+  const modalContentClasses = isNative
+    ? "flex flex-col h-full w-full overflow-hidden"
+    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col";
+
   const toggleTeam = (teamId: string) => {
     setSelectedTeams(prev =>
       prev.includes(teamId)
@@ -213,29 +224,47 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
   }, {} as Record<string, Team[]>);
 
   return (
-    <div 
-      className="fixed left-0 right-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" 
-      style={{ 
-        top: 'var(--safe-area-inset-top, 0px)', 
-        bottom: 'var(--safe-area-inset-bottom, 0px)' 
-      }}
+    <div
+      className={modalContainerClasses}
+      style={
+        isNative
+          ? {
+              paddingTop: 'env(safe-area-inset-top)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+              paddingLeft: 'env(safe-area-inset-left)',
+              paddingRight: 'env(safe-area-inset-right)',
+            }
+          : undefined
+      }
     >
       <div 
         ref={modalRef}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:max-h-[90vh] overflow-auto"
+        className={modalContentClasses}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center flex-shrink-0">
           <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Map Teams</h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
-          >
-            <X className="h-6 w-6" />
-          </button>
+          {isNative && (
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          )}
+          {!isNative && (
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          )}
         </div>
 
-        <div className="p-6 space-y-6">
+        {/* Scrollable Content */}
+        <div className="p-6 space-y-6 flex-1 overflow-y-auto">
           {Object.entries(groupedTeams).map(([platform, platformTeams]) => (
             <div key={platform}>
               <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">{platform}</h4>
@@ -300,7 +329,8 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
           )}
         </div>
 
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">
+        {/* Footer */}
+        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3 flex-shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -323,8 +353,9 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
           </button>
         </div>
 
+        {/* TeamSnap Note */}
         {selectedTeams.some(teamId => teams.find(t => t.id === teamId)?.platform === 'TeamSnap') && (
-          <div className="px-6 py-3 bg-blue-50 dark:bg-blue-900/30 border-t border-blue-200 dark:border-blue-800">
+          <div className="px-6 py-3 bg-blue-50 dark:bg-blue-900/30 border-t border-blue-200 dark:border-blue-800 flex-shrink-0">
             <p className="text-sm text-blue-800 dark:text-blue-200">
               <strong>Note:</strong> TeamSnap events will be synced when you refresh the team connection or manually sync events.
             </p>
