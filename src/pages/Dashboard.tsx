@@ -275,14 +275,12 @@ const Dashboard: React.FC = () => {
         const formattedFriendEvents = friendEventData.map((event) => {
           const profile = friendsProfiles.find(p => p.id === event.profile_id);
           const sportDetails = getSportDetails(event.sport);
-          const sportDetails = getSportDetails(event.sport);
           return {
             ...event,
             id: event.id,
             startTime: new Date(event.start_time),
             endTime: new Date(event.end_time),
             child: profile!,
-            sportIcon: sportDetails.icon,
             sportIcon: sportDetails.icon,
             platformIcon: CalendarIcon,
             isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
