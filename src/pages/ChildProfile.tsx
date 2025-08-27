@@ -15,7 +15,7 @@ import { useLoadScript, Libraries } from '@react-google-maps/api';
 import EventCard from '../components/events/EventCard';
 import { getSportDetails } from '../utils/sports';
 import { DateTime } from 'luxon';
-import { availableSports, getSportDetails } from '../utils/sports';
+import { availableSports } from '../utils/sports';
 
 // Define libraries outside component to prevent recreation on each render
 const libraries: Libraries = ['places', 'marker'];
@@ -899,10 +899,6 @@ const ChildProfile: React.FC = () => {
                             <option key={color.value} value={color.value} className="flex items-center">
                               {color.name}
                             </option>
-                          {React.createElement(sport.icon, {
-                            className: "h-3 w-3 mr-1",
-                            style: { color: sport.color }
-                          })}
                           ))}
                         </select>
                         <div 
