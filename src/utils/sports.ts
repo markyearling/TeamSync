@@ -14,7 +14,7 @@ import {
   BallSoccer, // Specific soccer icon
   BallTennis, // Specific tennis icon
   BallVolleyball, // Specific volleyball icon
-  BallGolf // Specific golf icon
+  Golf // Specific golf icon
 } from 'lucide-react';
 
 export interface SportDetails {
@@ -34,7 +34,7 @@ export const availableSports: SportDetails[] = [
   { name: 'Hockey', color: '#14B8A6', icon: Snowflake },
   { name: 'Lacrosse', color: '#F97316', icon: Crosshair },
   { name: 'Track', color: '#06B6D4', icon: Timer },
-  { name: 'Golf', color: '#84CC16', icon: BallGolf },
+  { name: 'Golf', color: '#84CC16', icon: Golf },
   { name: 'Gymnastics', color: '#F43F5E', icon: Star },
   { name: 'Wrestling', color: '#8B5CF6', icon: Dumbbell },
   { name: 'Cross Country', color: '#059669', icon: Timer },
