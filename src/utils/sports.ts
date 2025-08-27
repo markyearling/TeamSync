@@ -11,7 +11,6 @@ import {
   Baseball, // Specific baseball icon
   Zap, // Generic icon for basketball
   Football, // Specific American football icon
-  Soccer, // Specific soccer icon
   TennisBall, // Specific tennis icon
   Volleyball, // Specific volleyball icon
   Golf // Specific golf icon
@@ -25,7 +24,7 @@ export interface SportDetails {
 
 export const availableSports: SportDetails[] = [
   { name: 'Soccer', color: '#10B981', icon: Soccer },
-  { name: 'Baseball', color: '#F59E0B', icon: Baseball },
+  { name: 'Baseball', color: '#F59E0B', icon: HelpCircle },
   { name: 'Basketball', color: '#EF4444', icon: Zap },
   { name: 'Swimming', color: '#3B82F6', icon: Waves },
   { name: 'Tennis', color: '#8B5CF6', icon: TennisBall },
