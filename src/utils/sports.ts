@@ -8,9 +8,7 @@ import {
   Star,
   HelpCircle,
   Dumbbell,
-  Baseball, // Specific baseball icon
   Zap, // Generic icon for basketball
-  Football, // Specific American football icon
   TennisBall, // Specific tennis icon
   Volleyball, // Specific volleyball icon
   Golf // Specific golf icon
@@ -29,7 +27,7 @@ export const availableSports: SportDetails[] = [
   { name: 'Swimming', color: '#3B82F6', icon: Waves },
   { name: 'Tennis', color: '#8B5CF6', icon: TennisBall },
   { name: 'Volleyball', color: '#EC4899', icon: Volleyball },
-  { name: 'Football', color: '#6366F1', icon: Football }, // Assuming American Football
+  { name: 'Football', color: '#6366F1', icon: HelpCircle }, // Assuming American Football
   { name: 'Hockey', color: '#14B8A6', icon: Snowflake },
   { name: 'Lacrosse', color: '#F97316', icon: Crosshair },
   { name: 'Track', color: '#06B6D4', icon: Timer },
