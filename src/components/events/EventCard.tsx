@@ -86,7 +86,12 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
                 style={{ backgroundColor: event.child.color }}
               ></span>
               <span className="text-sm text-gray-500 dark:text-gray-400">{event.child.name}</span>
-              <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-2 py-0.5 rounded-full">{event.sport}</span>
+              <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-2 py-0.5 rounded-full flex items-center">
+                {event.sportIcon && React.createElement(event.sportIcon, {
+                  className: "h-3 w-3 mr-1"
+                })}
+                {event.sport}
+              </span>
             </div>
             <h3 className="text-base font-medium text-gray-900 dark:text-white mt-1">{event.title}</h3>
             <div className="mt-2 space-y-1 text-sm text-gray-500 dark:text-gray-400">

@@ -36,6 +36,7 @@ export interface Event {
   location: string;
   location_name?: string;
   sport: string;
+  sportIcon?: LucideIcon;
   color: string;
   child: Child;
   platform: string;

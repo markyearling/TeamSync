@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Check, RefreshCw } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
 import { useCapacitor } from '../../hooks/useCapacitor';
+import { availableSports, getSportDetails } from '../../utils/sports';
 
 interface Friend {
   id: string;
@@ -50,24 +50,6 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [onClose, isNative]);
-
-  // Available sports list
-  const availableSports = [
-    { name: 'Soccer', color: '#10B981' },
-    { name: 'Baseball', color: '#F59E0B' },
-    { name: 'Basketball', color: '#EF4444' },
-    { name: 'Swimming', color: '#3B82F6' },
-    { name: 'Tennis', color: '#8B5CF6' },
-    { name: 'Volleyball', color: '#EC4899' },
-    { name: 'Football', color: '#6366F1' },
-    { name: 'Hockey', color: '#14B8A6' },
-    { name: 'Lacrosse', color: '#F97316' },
-    { name: 'Track', color: '#06B6D4' },
-    { name: 'Golf', color: '#84CC16' },
-    { name: 'Gymnastics', color: '#F43F5E' },
-    { name: 'Unknown', color: '#64748B' },
-    { name: 'Other', color: '#64748B' }
-  ];
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -298,9 +280,17 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                               onClick={(e) => e.stopPropagation()} // Prevent checkbox toggle when clicking dropdown
                             >
                               {availableSports.map(sport => (
-                                <option key={sport.name} value={sport.name}>{sport.name}</option>
+                                <option key={sport.name} value={sport.name}>
+                                  {sport.name}
+                                </option>
                               ))}
                             </select>
+                            <div className="ml-2 flex items-center">
+                              {React.createElement(getSportDetails(teamSports[team.id] || 'Unknown').icon, {
+                                className: "h-4 w-4",
+                                style: { color: getSportDetails(teamSports[team.id] || 'Unknown').color }
+                              })}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
