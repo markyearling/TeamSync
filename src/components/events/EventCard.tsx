@@ -92,6 +92,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
                   <FontAwesomeIcon 
                     icon={event.sportIcon} 
                     className="h-3 w-3 mr-1"
+                    style={{ color: event.color }}
                   />
                 )}
                 {event.sport}
