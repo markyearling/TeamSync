@@ -439,6 +439,56 @@ const Settings: React.FC = () => {
                 </div>
               </div>
 
+              {/* Notification Preferences Section */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notification Preferences</h3>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <Bell className="h-5 w-5 text-gray-400 mr-3" />
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Event Notifications</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Get notified before your events start</p>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.schedule_updates}
+                        onChange={(e) => handleInputChange('schedule_updates', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+
+                  {settings.schedule_updates && (
+                    <div className="ml-8">
+                      <label htmlFor="notification-lead-time" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Notification Timing
+                      </label>
+                      <select
+                        id="notification-lead-time"
+                        value={settings.notification_lead_time_minutes || 60}
+                        onChange={(e) => handleInputChange('notification_lead_time_minutes', parseInt(e.target.value))}
+                        className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      >
+                        <option value={15}>15 minutes before</option>
+                        <option value={30}>30 minutes before</option>
+                        <option value={60}>1 hour before</option>
+                        <option value={120}>2 hours before</option>
+                        <option value={360}>6 hours before</option>
+                        <option value={720}>12 hours before</option>
+                        <option value={1440}>1 day before</option>
+                      </select>
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Choose how far in advance you want to be notified about upcoming events
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Password Change Section */}
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <div className="flex items-center justify-between">
