@@ -107,7 +107,7 @@ export const useScheduledNotifications = () => {
         .from('scheduled_local_notifications')
         .select('*')
         .eq('user_id', userId)
-        .in('status', ['pending'])
+        .in('status', ['pending', 'scheduled']) // Also process 'scheduled' if their time has passed
         .order('trigger_time', { ascending: true });
 
       if (error) {
@@ -115,7 +115,7 @@ export const useScheduledNotifications = () => {
         return;
       }
 
-      console.log(`Found ${pendingNotifications?.length || 0} pending notifications to schedule`);
+      console.log(`Found ${pendingNotifications?.length || 0} pending/scheduled notifications to process`);
 
       // Process each pending notification
       for (const notification of pendingNotifications || []) {
@@ -131,69 +131,76 @@ export const useScheduledNotifications = () => {
       const triggerTime = new Date(notification.trigger_time);
       const now = new Date();
 
-      if (notification.status === 'pending') {
-        // Check if trigger time is still in the future
-        if (triggerTime > now) {
-          // Generate a unique numeric ID for the local notification
-          const localNotificationId = Math.floor(Math.random() * 1000000) + Date.now();
+      // Case 1: Notification is pending/scheduled and its trigger time has passed
+      if ((notification.status === 'pending' || notification.status === 'scheduled') && triggerTime <= now) {
+        console.log(`Notification for event "${notification.title}" is overdue or due. Marking as 'sent'.`);
+        // Update the notification status to 'sent' instead of 'cancelled'
+        const { error: updateError } = await supabase
+          .from('scheduled_local_notifications')
+          .update({
+            status: 'sent', // Change from 'cancelled' to 'sent'
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', notification.id);
 
-          // Schedule the local notification
-          const scheduledId = await scheduleLocalNotification({
-            id: localNotificationId,
-            title: notification.title,
-            body: notification.body,
-            schedule: { at: triggerTime },
-            extra: {
-              event_id: notification.event_id,
-              notification_id: notification.id
-            }
-          });
-
-          if (scheduledId) {
-            // Update the notification status to scheduled
-            const { error: updateError } = await supabase
-              .from('scheduled_local_notifications')
-              .update({
-                status: 'scheduled',
-                local_notification_id: localNotificationId,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', notification.id);
-
-            if (updateError) {
-              console.error('Error updating notification status:', updateError);
-            } else {
-              console.log(`Scheduled notification for event: ${notification.title} at ${triggerTime}`);
-            }
-          }
+        if (updateError) {
+          console.error('Error updating notification status to sent:', updateError);
         } else {
-          // Trigger time is in the past, mark as cancelled
+          console.log(`Notification for event: ${notification.title} marked as 'sent'.`);
+        }
+      } 
+      // Case 2: Notification is pending and its trigger time is in the future, schedule it
+      else if (notification.status === 'pending' && triggerTime > now) {
+        console.log(`Notification for event "${notification.title}" is pending and in the future. Scheduling.`);
+        // Generate a unique numeric ID for the local notification
+        const localNotificationId = Math.floor(Math.random() * 1000000) + Date.now();
+
+        // Schedule the local notification
+        const scheduledId = await scheduleLocalNotification({
+          id: localNotificationId,
+          title: notification.title,
+          body: notification.body,
+          schedule: { at: triggerTime },
+          extra: {
+            event_id: notification.event_id,
+            notification_id: notification.id
+          }
+        });
+
+        if (scheduledId) {
+          // Update the notification status to scheduled
           const { error: updateError } = await supabase
             .from('scheduled_local_notifications')
             .update({
-              status: 'cancelled',
+              status: 'scheduled',
+              local_notification_id: localNotificationId,
               updated_at: new Date().toISOString()
             })
             .eq('id', notification.id);
 
           if (updateError) {
-            console.error('Error marking past notification as cancelled:', updateError);
+            console.error('Error updating notification status to scheduled:', updateError);
+          } else {
+            console.log(`Scheduled notification for event: ${notification.title} at ${triggerTime}`);
           }
         }
-      } else if (notification.status === 'cancelled' && notification.local_notification_id) {
+      }
+      // Case 3: Notification is explicitly 'cancelled' (e.g., by backend due to event deletion)
+      else if (notification.status === 'cancelled' && notification.local_notification_id) {
+        console.log(`Notification for event "${notification.title}" is cancelled. Cancelling local notification and deleting record.`);
         // Cancel the local notification
         await cancelLocalNotification(notification.local_notification_id);
         
-        // Delete the cancelled notification record
+        // Delete the cancelled notification record from the database
         const { error: deleteError } = await supabase
           .from('scheduled_local_notifications')
           .delete()
           .eq('id', notification.id);
 
         if (deleteError) {
-          console.error('Error deleting cancelled notification:', deleteError);
+          console.error('Error deleting cancelled notification record:', deleteError);
         } else {
-          console.log(`Cancelled and deleted notification: ${notification.title}`);
+          console.log(`Cancelled local notification and deleted record for: ${notification.title}`);
         }
       }
     } catch (error) {
