@@ -454,6 +454,7 @@ const SportsEngineConnection: React.FC = () => {
       ));
 
       setSuccess('Team name updated successfully');
+      fetchTeams();
     } catch (err) {
       console.error('Error updating team name:', err);
       setError('Failed to update team name. Please try again.');
