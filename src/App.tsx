@@ -20,6 +20,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import AuthCallback from './pages/auth/AuthCallback';
 import TestEmail from './pages/TestEmail';
+import Help from './pages/Help';
 import MobileOptimizations from './components/mobile/MobileOptimizations';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -206,6 +207,7 @@ const AppContent = () => {
         <Route path="profiles/:id" element={<ChildProfile />} />
         <Route path="friends" element={<Friends />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="help" element={<Help />} />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

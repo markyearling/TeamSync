@@ -9,7 +9,8 @@ import {
   X,
   UserPlus,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  HelpCircle
 } from 'lucide-react';
 import { useProfiles } from '../../context/ProfilesContext';
 import { useCapacitor } from '../../hooks/useCapacitor';
@@ -42,6 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     { name: 'Profiles', icon: Users, href: '/profiles' },
     { name: 'Friends', icon: UserPlus, href: '/friends' },
     { name: 'Settings', icon: Settings, href: '/settings' },
+    { name: 'Help', icon: HelpCircle, href: '/help' },
   ];
 
   const handleChildClick = (childId: string) => {
