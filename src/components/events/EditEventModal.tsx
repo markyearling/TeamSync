@@ -282,14 +282,21 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               <label htmlFor="sport" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Sport
               </label>
-              <div className="mt-1 relative">
+              <div className="mt-1 flex items-center">
+                <div className="mr-2">
+                  <FontAwesomeIcon 
+                    icon={getSportDetails(formData.sport).icon} 
+                    className="h-4 w-4"
+                    style={{ color: getSportDetails(formData.sport).color }}
+                  />
+                </div>
                 <select
                   id="sport"
                   name="sport"
                   value={formData.sport}
                   onChange={handleInputChange}
                   disabled={event.platform !== 'Manual'}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="flex-1 block w-full pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 >
                   {availableSports.map(sport => (
                     <option key={sport.name} value={sport.name}>
@@ -297,13 +304,6 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                     </option>
                   ))}
                 </select>
-                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <FontAwesomeIcon 
-                    icon={getSportDetails(formData.sport).icon} 
-                    className="h-4 w-4"
-                    style={{ color: getSportDetails(formData.sport).color }}
-                  />
-                </div>
               </div>
               {event.platform !== 'Manual' && (
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
