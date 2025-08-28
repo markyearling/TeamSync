@@ -152,7 +152,7 @@ const ChildProfile: React.FC = () => {
               ...profile,
               user_id: profileData?.user_id
             },
-            color: profile.color,
+            color: event.color, // Use the event's color from database (contains custom team mapping color)
             platformIcon: CalendarIcon,
             isOwnEvent: profile.isOwnProfile,
             isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
