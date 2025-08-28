@@ -15,7 +15,6 @@ import {
   X,
   Users
 } from 'lucide-react';
-} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
 
@@ -28,6 +27,101 @@ interface SportsEngineTeam {
   mapped_profiles?: { id: string; name: string; color: string }[];
   event_count?: number;
 }
+
+interface EditTeamNameModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  teamId: string;
+  currentTeamName: string;
+  onSave: (teamId: string, newName: string) => Promise<void>;
+  platformColor: string;
+}
+
+const EditTeamNameModal: React.FC<EditTeamNameModalProps> = ({
+  isOpen,
+  onClose,
+  teamId,
+  currentTeamName,
+  onSave,
+  platformColor
+}) => {
+  const [editingName, setEditingName] = useState(currentTeamName);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await onSave(teamId, editingName);
+      onClose();
+    } catch (error) {
+      console.error('Error saving team name:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Edit Team Name</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        <div className="p-6">
+          <div>
+            <label htmlFor="team-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Team Name
+            </label>
+            <div className="mt-1">
+              <input
+                type="text"
+                id="team-name"
+                value={editingName}
+                onChange={(e) => setEditingName(e.target.value)}
+                className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                placeholder="Enter team name"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !editingName.trim()}
+            className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? (
+              <>
+                <RefreshCw className="animate-spin h-4 w-4 mr-2" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4 mr-2" />
+                Save
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const SportsEngineConnection: React.FC = () => {
   const navigate = useNavigate();
@@ -355,11 +449,12 @@ const SportsEngineConnection: React.FC = () => {
 
       setTeams(teams.map(team => 
         team.id === teamId 
-          ? { ...team, team_name: editingName.trim() }
+          ? { ...team, team_name: newName.trim() }
           : team
-      )); // This line will be removed in the next step, as the modal handles the name
+      ));
 
       setSuccess('Team name updated successfully');
+      fetchTeams();
     } catch (err) {
       console.error('Error updating team name:', err);
       setError('Failed to update team name. Please try again.');

@@ -16,7 +16,6 @@ import {
   X,
   Users
 } from 'lucide-react';
-} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
 
@@ -356,9 +355,9 @@ const GameChangerConnection: React.FC = () => {
 
       setTeams(teams.map(team => 
         team.id === teamId 
-          ? { ...team, team_name: editingName.trim() }
+          ? { ...team, team_name: newName.trim() }
           : team
-      )); // This line will be removed in the next step, as the modal handles the name
+      ));
 
       setSuccess('Team name updated successfully');
     } catch (err) {
