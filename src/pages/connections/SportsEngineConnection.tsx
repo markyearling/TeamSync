@@ -97,7 +97,6 @@ const EditTeamNameModal: React.FC<EditTeamNameModalProps> = ({
           <button
             onClick={onClose}
             className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-            disabled={saving}
           >
             Cancel
           </button>
@@ -455,7 +454,6 @@ const SportsEngineConnection: React.FC = () => {
       ));
 
       setSuccess('Team name updated successfully');
-      fetchTeams();
     } catch (err) {
       console.error('Error updating team name:', err);
       setError('Failed to update team name. Please try again.');
