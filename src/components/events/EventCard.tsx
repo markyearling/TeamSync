@@ -73,8 +73,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
         <div className="flex items-start space-x-4">
           <div className="flex-shrink-0">
             <div
-              className="w-12 h-12 rounded-lg flex flex-col items-center justify-center"
-              style={{ backgroundColor: event.color + '20', color: event.color }}
+              className="w-12 h-12 rounded-lg flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
             >
               <div className="text-xs font-medium">{event.startTime.toLocaleString('default', { month: 'short' })}</div>
               <div className="text-lg font-bold">{event.startTime.getDate()}</div>
@@ -87,7 +86,13 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
                 style={{ backgroundColor: event.child.color }}
               ></span>
               <span className="text-sm text-gray-500 dark:text-gray-400">{event.child.name}</span>
-              <span className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-2 py-0.5 rounded-full flex items-center">
+              <span 
+                className="text-xs px-2 py-0.5 rounded-full flex items-center font-medium"
+                style={{ 
+                  backgroundColor: event.color + '20',
+                  color: event.color
+                }}
+              >
                 {event.sportIcon && (
                   <FontAwesomeIcon 
                     icon={event.sportIcon} 

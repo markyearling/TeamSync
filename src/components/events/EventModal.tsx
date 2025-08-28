@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, Edit } from 'lucide-react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import { GoogleMap } from '@react-google-maps/api';
 import { supabase } from '../../lib/supabase';
@@ -350,11 +351,28 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="space-y-4">
-              <div className="flex items-center text-gray-600 dark:text-gray-300">
-                <Calendar className="h-5 w-5 mr-3" />
-                <span>
-                  {formatDate(event.startTime)}
-                </span>
+              <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
+                <div className="flex items-center">
+                  <Calendar className="h-5 w-5 mr-3" />
+                  <span>
+                    {formatDate(event.startTime)}
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  {event.sportIcon && (
+                    <FontAwesomeIcon 
+                      icon={event.sportIcon} 
+                      className="h-5 w-5 mr-2"
+                      style={{ color: event.color }}
+                    />
+                  )}
+                  <span 
+                    className="text-sm font-medium"
+                    style={{ color: event.color }}
+                  >
+                    {event.sport}
+                  </span>
+                </div>
               </div>
 
               <div className="flex items-center text-gray-600 dark:text-gray-300">
