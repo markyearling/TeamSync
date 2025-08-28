@@ -288,6 +288,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                   name="sport"
                   value={formData.sport}
                   onChange={handleInputChange}
+                  disabled={event.platform !== 'Manual'}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 >
                   {availableSports.map(sport => (
@@ -304,6 +305,11 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                   />
                 </div>
               </div>
+              {event.platform !== 'Manual' && (
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Sport cannot be changed for events synced from {event.platform}
+                </p>
+              )}
             </div>
 
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
