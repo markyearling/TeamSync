@@ -1,4 +1,6 @@
-void;
+interface EditTeamNameModalProps {
+  isOpen: boolean;
+  onClose: () => void;
   teamId: string;
   currentTeamName: string;
   onSave: (teamId: string, newName: string) => Promise<void>;
@@ -85,7 +87,7 @@ const EditTeamNameModal: React.FC<EditTeamNameModalProps> = ({
             onClick={handleSaveClick}
             disabled={isSaving || !newTeamName.trim()}
             className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center`}
-            style={{ backgroundColor: platformColor, '--tw-ring-color': platformColor }} // Apply platform color dynamically
+            style={{ backgroundColor: platformColor, '--tw-ring-color': platformColor } as React.CSSProperties} // Apply platform color dynamically
           >
             {isSaving ? (
               <>
@@ -106,4 +108,3 @@ const EditTeamNameModal: React.FC<EditTeamNameModalProps> = ({
 };
 
 export default EditTeamNameModal;
-" />
