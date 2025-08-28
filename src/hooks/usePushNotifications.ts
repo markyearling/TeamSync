@@ -4,10 +4,12 @@ import {
   PushNotifications, 
   PushNotificationSchema, 
   ActionPerformed,
-  Token,
+  Token
+} from '@capacitor/push-notifications';
+import { 
   LocalNotifications,
   LocalNotificationSchema
-} from '@capacitor/push-notifications';
+} from '@capacitor/local-notifications';
 
 export const usePushNotifications = () => {
   const [token, setToken] = useState<string | null>(null);
