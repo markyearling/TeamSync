@@ -4,7 +4,9 @@ import {
   PushNotifications, 
   PushNotificationSchema, 
   ActionPerformed,
-  Token 
+  Token,
+  LocalNotifications,
+  LocalNotificationSchema
 } from '@capacitor/push-notifications';
 
 export const usePushNotifications = () => {
@@ -82,33 +84,40 @@ export const usePushNotifications = () => {
     };
   }, []);
 
-  const sendLocalNotification = async (title: string, body: string, data?: any) => {
+  const scheduleLocalNotification = async (notification: LocalNotificationSchema) => {
     if (!Capacitor.isNativePlatform()) {
       return;
     }
 
     try {
-      const { LocalNotifications } = await import('@capacitor/local-notifications');
-      
       await LocalNotifications.schedule({
-        notifications: [
-          {
-            title,
-            body,
-            id: Date.now(),
-            extra: data,
-            schedule: { at: new Date(Date.now() + 1000) }, // 1 second from now
-          }
-        ]
+        notifications: [notification]
       });
+      return notification.id;
     } catch (error) {
       console.error('Error sending local notification:', error);
+      return null;
+    }
+  };
+
+  const cancelLocalNotification = async (id: number) => {
+    if (!Capacitor.isNativePlatform()) {
+      return;
+    }
+
+    try {
+      await LocalNotifications.cancel({
+        notifications: [{ id }]
+      });
+    } catch (error) {
+      console.error('Error cancelling local notification:', error);
     }
   };
 
   return {
     token,
     isRegistered,
-    sendLocalNotification
+    scheduleLocalNotification,
+    cancelLocalNotification
   };
 };

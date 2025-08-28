@@ -26,6 +26,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ProfilesProvider } from './context/ProfilesContext';
 import { useAuth } from './hooks/useAuth';
 import { useCapacitor } from './hooks/useCapacitor';
+import { useScheduledNotifications } from './hooks/useScheduledNotifications';
 import { supabase, testConnection } from './lib/supabase';
 
 const LoadingSpinner = () => (
@@ -99,6 +100,7 @@ const AppContent = () => {
   const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isNative } = useCapacitor();
+  const { isInitialized: notificationsInitialized } = useScheduledNotifications();
   const location = useLocation();
   const navigate = useNavigate();
 
