@@ -24,7 +24,8 @@ const defaultSettings = {
   language: 'en',
   theme: 'light',
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-  additional_emails: [] as string[]
+  additional_emails: [] as string[],
+  notification_lead_time_minutes: 60
 };
 
 const Settings: React.FC = () => {
@@ -99,6 +100,16 @@ const Settings: React.FC = () => {
         // If timezone is not set, use browser default
         if (!settingsData.timezone) {
           settingsData.timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        }
+        
+        // If notification_lead_time_minutes is not set, use default
+        if (!settingsData.notification_lead_time_minutes) {
+          settingsData.notification_lead_time_minutes = 60;
+        }
+        
+        // If schedule_updates is not set, use default
+        if (settingsData.schedule_updates === null || settingsData.schedule_updates === undefined) {
+          settingsData.schedule_updates = true;
         }
         
         setSettings(settingsData);

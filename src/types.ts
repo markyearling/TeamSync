@@ -61,4 +61,5 @@ export interface Event {
   theme: string;
   timezone: string;
   additional_emails: string[];
+  notification_lead_time_minutes?: number;
 }
