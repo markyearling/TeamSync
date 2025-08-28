@@ -495,6 +495,14 @@ const ChildProfile: React.FC = () => {
           </div>
           <div className="flex flex-wrap justify-end gap-2">
             <button
+              onClick={() => setShowAddEventModal(true)}
+              className="p-2 text-gray-400 hover:text-green-500 dark:text-gray-500 dark:hover:text-green-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              title="Add event"
+              disabled={isFriendProfile && child.accessRole !== 'administrator'}
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+            <button
               onClick={() => setShowTeamMapping(true)}
               className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Map teams"
@@ -637,17 +645,6 @@ const ChildProfile: React.FC = () => {
               </button>
             </div>
             <button
-              onClick={() => setShowAddEventModal(true)}
-              className={`px-4 py-2 text-white rounded-md hover:opacity-90 flex items-center ${
-                isFriendProfile ? 'bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-800' : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800'
-              }`}
-             disabled={isFriendProfile && child.accessRole !== 'administrator'}
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Add Event
-            </button>
-          </div>
-        </div>
         
         {filterOpen && (
           <div className="bg-white dark:bg-gray-800 p-4 border-b border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-4">
