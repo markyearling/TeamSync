@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { MapPin } from 'lucide-react';
 import { Event } from '../../types';
 import EventModal from '../events/EventModal';
 import { DateTime } from 'luxon';
