@@ -204,41 +204,73 @@ const Playmetrics: React.FC = () => {
   };
 
   const validateIcsUrl = (url: string): boolean => {
+    console.log('=== PLAYMETRICS URL VALIDATION START ===');
+    console.log('Input URL:', url);
+    console.log('URL length:', url.length);
+    console.log('URL type:', typeof url);
+    
     try {
       // Handle webcal:// protocol by converting to https:// for URL parsing
       let urlToValidate = url;
       const isWebcal = url.startsWith('webcal://');
+      console.log('Is webcal URL:', isWebcal);
       
       if (isWebcal) {
         urlToValidate = url.replace('webcal://', 'https://');
+        console.log('Converted webcal URL to:', urlToValidate);
       }
       
       const parsedUrl = new URL(urlToValidate);
+      console.log('Parsed URL object:', {
+        hostname: parsedUrl.hostname,
+        pathname: parsedUrl.pathname,
+        protocol: parsedUrl.protocol
+      });
       
       // Check hostname is from Playmetrics
-      const validHostname = parsedUrl.hostname === 'api.playmetrics.com';
+      const validHostname = parsedUrl.hostname.includes('playmetrics.com');
+      console.log('Valid hostname check (includes playmetrics.com):', validHostname);
+      
+      // Check for calendar path - be more flexible
+      const hasCalendarPath = parsedUrl.pathname.includes('/calendar') || parsedUrl.pathname.includes('/calendars');
+      console.log('Has calendar path:', hasCalendarPath);
+      
+      // Check if ends with .ics
+      const endsWithIcs = url.endsWith('.ics');
+      console.log('Ends with .ics:', endsWithIcs);
       
       // If it's a webcal URL, we don't require the .ics extension
       if (isWebcal) {
-        return validHostname && parsedUrl.pathname.includes('/calendar/');
+        const result = validHostname && hasCalendarPath;
+        console.log('Webcal validation result:', result);
+        return result;
       }
       
       // For regular https URLs, we still check for .ics extension
-      return validHostname && parsedUrl.pathname.includes('/calendar/') && url.endsWith('.ics');
+      const result = validHostname && hasCalendarPath && endsWithIcs;
+      console.log('HTTPS validation result:', result);
+      return result;
     } catch {
+      console.log('URL validation failed with exception');
       return false;
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('=== FORM SUBMIT START ===');
+    console.log('Form data - icsUrl:', icsUrl);
+    
     setError(null);
     setSuccess(null);
 
+    console.log('About to validate URL...');
     if (!validateIcsUrl(icsUrl)) {
+      console.log('URL validation failed!');
       setError('Please enter a valid Playmetrics calendar URL');
       return;
     }
+    console.log('URL validation passed!');
 
     setSubmitting(true);
 
@@ -249,8 +281,15 @@ const Playmetrics: React.FC = () => {
       if (!session) throw new Error('No authenticated session');
 
       // Extract team name from URL
-      const teamId = icsUrl.split('/team/')[1]?.split('-')[0];
-      const teamName = `Team ${teamId}`;
+      // Updated logic to handle the new URL format: /t410884/ or /tDD630420/
+      const teamIdMatch = icsUrl.match(/\/t([a-zA-Z0-9]+)\//);
+      const teamId = teamIdMatch ? teamIdMatch[1] : null;
+      console.log('Extracted team ID:', teamId);
+      
+      if (!teamId) {
+        throw new Error('Could not extract team ID from URL. Please ensure the URL contains /tXXXXXX/ pattern.');
+      }
+      const teamName = `Playmetrics Team ${teamId}`;
 
       // Add or update team in platform_teams using upsert
       const { data: team, error: teamError } = await supabase
@@ -567,7 +606,7 @@ const Playmetrics: React.FC = () => {
                     />
                   </div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    Enter the Playmetrics calendar URL for your team. Both https:// and webcal:// URLs are supported. Events will be imported immediately, then you can map the team to your children's profiles.
+                    Enter the Playmetrics calendar URL for your team (e.g., from calendar.playmetrics.com). Both https:// and webcal:// URLs are supported.
                   </p>
                 </div>
 
