@@ -16,7 +16,6 @@ import {
   UserPlus,
   AlertTriangle
 } from 'lucide-react';
-} from 'lucide-react';
 import { TeamSnapService } from '../../services/teamsnap';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
@@ -345,6 +344,7 @@ const TeamSnapConnection: React.FC = () => {
       if (!supabase) {
         console.error('Supabase client not initialized');
         setError('Database connection not available');
+        return;
       }
 
       setError(null);
@@ -364,9 +364,9 @@ const TeamSnapConnection: React.FC = () => {
 
       setTeams(teams.map(team => 
         team.id === teamId 
-          ? { ...team, team_name: editingName.trim() }
+          ? { ...team, team_name: newName.trim() }
           : team
-      )); // This line will be removed in the next step, as the modal handles the name
+      ));
 
       setSuccess('Team name updated successfully');
     } catch (err) {
