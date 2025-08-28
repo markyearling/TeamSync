@@ -16,6 +16,7 @@ import {
   X,
   Users
 } from 'lucide-react';
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
 
@@ -38,8 +39,9 @@ const Playmetrics: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [editingTeam, setEditingTeam] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState('');
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [teamToEdit, setTeamToEdit] = useState<{ id: string; name: string; color: string } | null>(null);
+
   const [showMappingModal, setShowMappingModal] = useState<string | null>(null);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
   const [refreshingTeam, setRefreshingTeam] = useState<string | null>(null);
@@ -327,24 +329,24 @@ const Playmetrics: React.FC = () => {
     }
   };
 
-  const handleEditTeamName = (teamId: string, currentName: string) => {
-    setEditingTeam(teamId);
-    setEditingName(currentName);
+  const handleEditTeamName = (teamId: string, currentName: string, platformColor: string) => {
+    setTeamToEdit({ id: teamId, name: currentName, color: platformColor });
+    setIsEditModalOpen(true);
   };
 
-  const handleSaveTeamName = async (teamId: string) => {
+  const handleSaveTeamName = async (teamId: string, newName: string) => {
     try {
       setError(null);
       setSuccess(null);
 
-      if (!editingName.trim()) {
+      if (!newName.trim()) {
         setError('Team name cannot be empty');
         return;
       }
 
       const { error: updateError } = await supabase
         .from('platform_teams')
-        .update({ team_name: editingName.trim() })
+        .update({ team_name: newName.trim() })
         .eq('id', teamId);
 
       if (updateError) throw updateError;
@@ -353,20 +355,13 @@ const Playmetrics: React.FC = () => {
         team.id === teamId 
           ? { ...team, team_name: editingName.trim() }
           : team
-      ));
+      )); // This line will be removed in the next step, as the modal handles the name
 
-      setEditingTeam(null);
-      setEditingName('');
       setSuccess('Team name updated successfully');
     } catch (err) {
       console.error('Error updating team name:', err);
       setError('Failed to update team name. Please try again.');
     }
-  };
-
-  const handleCancelEdit = () => {
-    setEditingTeam(null);
-    setEditingName('');
   };
 
   const handleOpenMapping = (teamId: string) => {
@@ -531,51 +526,18 @@ const Playmetrics: React.FC = () => {
                         <div className="flex items-center flex-1">
                           <Calendar className="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3" />
                           <div className="flex-1">
-                            {editingTeam === team.id ? (
-                              <div className="flex items-center space-x-2">
-                                <input
-                                  type="text"
-                                  value={editingName}
-                                  onChange={(e) => setEditingName(e.target.value)}
-                                  className="flex-1 text-sm font-medium border-gray-300 dark:border-gray-600 rounded-md focus:border-green-500 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      handleSaveTeamName(team.id);
-                                    } else if (e.key === 'Escape') {
-                                      handleCancelEdit();
-                                    }
-                                  }}
-                                  autoFocus
-                                />
-                                <button
-                                  onClick={() => handleSaveTeamName(team.id)}
-                                  className="p-1 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
-                                  title="Save"
-                                >
-                                  <Save className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={handleCancelEdit}
-                                  className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
-                                  title="Cancel"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              </div>
-                            ) : (
-                              <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-2">
                                 <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
                                   {team.team_name}
                                 </h3>
                                 <button
-                                  onClick={() => handleEditTeamName(team.id, team.team_name)}
+                                  onClick={() => handleEditTeamName(team.id, team.team_name, '#10B981')} // Playmetrics green
                                   className="p-1 text-gray-400 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400"
                                   title="Edit team name"
                                 >
                                   <Edit2 className="h-3 w-3" />
                                 </button>
                               </div>
-                            )}
                             
                             {/* Event count and profile mappings */}
                             <div className="mt-2 space-y-1">
@@ -671,6 +633,17 @@ const Playmetrics: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {isEditModalOpen && teamToEdit && (
+        <EditTeamNameModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          teamId={teamToEdit.id}
+          currentTeamName={teamToEdit.name}
+          onSave={handleSaveTeamName}
+          platformColor={teamToEdit.color}
+        />
+      )}
 
       {/* Profile Mapping Modal */}
       {showMappingModal && (
