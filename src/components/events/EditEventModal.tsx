@@ -282,8 +282,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               <label htmlFor="sport" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Sport
               </label>
-              <div className="mt-1 flex items-center">
-                <div className="mr-2">
+              <div className="mt-1 relative">
+                <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                   <FontAwesomeIcon 
                     icon={getSportDetails(formData.sport).icon} 
                     className="h-4 w-4"
@@ -296,7 +296,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
                   value={formData.sport}
                   onChange={handleInputChange}
                   disabled={event.platform !== 'Manual'}
-                  className="flex-1 block w-full pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="block w-full pl-12 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                 >
                   {availableSports.map(sport => (
                     <option key={sport.name} value={sport.name}>
