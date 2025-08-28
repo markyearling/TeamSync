@@ -318,7 +318,12 @@ const Dashboard: React.FC = () => {
         await fetchFriendsEvents();
 
       } catch (error) {
-        console.error('❌ DASHBOARD: Error in main fetch:', error);
+        console.error('❌ DASHBOARD: Error in main fetch:', {
+          error: error instanceof Error ? error.message : error,
+          stack: error instanceof Error ? error.stack : undefined,
+          supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? 'Present' : 'Missing',
+          supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Present' : 'Missing'
+        });
       } finally {
         if (isMounted) {
           setLoading(false);
