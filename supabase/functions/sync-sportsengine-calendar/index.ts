@@ -231,7 +231,25 @@ Deno.serve(async (req) => {
       }
 
       // Transform events for the specific profile
-      const events = vevents.map(vevent => {
+      const events = vevents.filter(vevent => {
+        // Pre-filter events with valid dates
+        try {
+          const event = new ICAL.Event(vevent);
+          const startDate = event.startDate.toJSDate();
+          const endDate = event.endDate.toJSDate();
+          
+          // Check if dates are valid
+          if (isNaN(startDate.getTime())) {
+            console.warn('Skipping event with invalid start date:', event.summary);
+            return false;
+          }
+          
+          return true;
+        } catch (error) {
+          console.warn('Skipping event due to parsing error:', error);
+          return false;
+        }
+      }).map(vevent => {
         const event = new ICAL.Event(vevent);
         
         // Extract event type and opponent from summary
@@ -315,26 +333,55 @@ Deno.serve(async (req) => {
         
         // Improved timezone handling
         console.log(`Processing event: ${title}`);
-        console.log(`Original event timezone: ${event.startDate.timezone}`);
+        
+        // Get JavaScript Date objects first
+        const startJSDate = event.startDate.toJSDate();
+        const endJSDate = event.endDate.toJSDate();
+        
+        // Validate dates
+        if (isNaN(startJSDate.getTime())) {
+          console.error(`Invalid start date for event: ${title}`);
+          throw new Error(`Invalid start date for event: ${title}`);
+        }
+        
+        // If end date is invalid, default to 1 hour after start
+        let validEndDate = endJSDate;
+        if (isNaN(endJSDate.getTime())) {
+          console.warn(`Invalid end date for event: ${title}, defaulting to 1 hour after start`);
+          validEndDate = new Date(startJSDate.getTime() + 60 * 60 * 1000); // Add 1 hour
+        }
         
         let startDateTime, endDateTime;
+        
+        console.log(`Original event timezone: ${event.startDate.timezone}`);
         
         // Check if the event has a specific timezone
         if (event.startDate.timezone === 'Z') {
           // This is already in UTC
           console.log('Event is in UTC timezone');
-          startDateTime = DateTime.fromJSDate(event.startDate.toJSDate(), { zone: 'utc' });
-          endDateTime = DateTime.fromJSDate(event.endDate.toJSDate(), { zone: 'utc' });
+          startDateTime = DateTime.fromJSDate(startJSDate, { zone: 'utc' });
+          endDateTime = DateTime.fromJSDate(validEndDate, { zone: 'utc' });
         } else if (event.startDate.timezone) {
           // This has a specific timezone
           console.log(`Event has specific timezone: ${event.startDate.timezone}`);
-          startDateTime = DateTime.fromJSDate(event.startDate.toJSDate(), { zone: event.startDate.timezone });
-          endDateTime = DateTime.fromJSDate(event.endDate.toJSDate(), { zone: event.endDate.timezone });
+          startDateTime = DateTime.fromJSDate(startJSDate, { zone: event.startDate.timezone });
+          endDateTime = DateTime.fromJSDate(validEndDate, { zone: event.endDate.timezone || event.startDate.timezone });
         } else {
           // This is a floating time, interpret in user's timezone
           console.log(`Event has floating time, interpreting in user timezone: ${userTimezone}`);
-          startDateTime = DateTime.fromJSDate(event.startDate.toJSDate(), { zone: userTimezone });
-          endDateTime = DateTime.fromJSDate(event.endDate.toJSDate(), { zone: userTimezone });
+          startDateTime = DateTime.fromJSDate(startJSDate, { zone: userTimezone });
+          endDateTime = DateTime.fromJSDate(validEndDate, { zone: userTimezone });
+        }
+        
+        // Validate Luxon DateTime objects
+        if (!startDateTime.isValid) {
+          console.error(`Invalid Luxon start DateTime for event: ${title}`, startDateTime.invalidReason);
+          throw new Error(`Invalid start date-time for event: ${title}`);
+        }
+        
+        if (!endDateTime.isValid) {
+          console.error(`Invalid Luxon end DateTime for event: ${title}`, endDateTime.invalidReason);
+          throw new Error(`Invalid end date-time for event: ${title}`);
         }
         
         // Convert to UTC for storage
@@ -429,8 +476,11 @@ Deno.serve(async (req) => {
 
     // Update team sync status to error
     try {
-      const body = await req.json();
-      const { teamId } = body;
+      // Get teamId from the original request body parsing at the top
+      // Don't re-parse the body as it's already consumed
+      const requestBody = await req.clone().json();
+      const { teamId } = requestBody;
+      
       if (teamId) {
         const supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
