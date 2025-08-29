@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { Menu } from 'lucide-react';
@@ -45,6 +46,31 @@ const Layout: React.FC = () => {
             <Outlet />
           </div>
         </main>
+        
+        {/* Footer */}
+        <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+          <div className="container mx-auto max-w-7xl">
+            <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+              <div className="mb-2 sm:mb-0">
+                © 2025 FamSink. All rights reserved.
+              </div>
+              <div className="flex space-x-4">
+                <Link 
+                  to="/privacy" 
+                  className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                >
+                  Privacy Policy
+                </Link>
+                <Link 
+                  to="/help" 
+                  className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                >
+                  Help & Support
+                </Link>
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </div>
   );

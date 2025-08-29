@@ -21,6 +21,7 @@ import ResetPassword from './pages/auth/ResetPassword';
 import AuthCallback from './pages/auth/AuthCallback';
 import TestEmail from './pages/TestEmail';
 import Help from './pages/Help';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import MobileOptimizations from './components/mobile/MobileOptimizations';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -191,6 +192,7 @@ const AppContent = () => {
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/test-email" element={<TestEmail />} />
       <Route path="/connections/teamsnap/callback" element={<TeamSnapCallback />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/" element={
         <ProtectedRoute>
           <Layout />
