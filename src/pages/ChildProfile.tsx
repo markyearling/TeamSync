@@ -733,6 +733,7 @@ const ChildProfile: React.FC = () => {
             </div>
           </div>
         )}
+        </div>
         
         <div className="h-[600px] overflow-auto">
           {renderCalendarView()}
