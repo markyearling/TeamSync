@@ -292,63 +292,18 @@ Deno.serve(async (req) => {
         if (event.startDate.timezone === 'Z') {
           // This is already in UTC
           console.log('Event is in UTC timezone');
-          startDateTime = DateTime.fromObject({
-            year: event.startDate.year,
-            month: event.startDate.month,
-            day: event.startDate.day,
-            hour: event.startDate.hour,
-            minute: event.startDate.minute,
-            second: event.startDate.second
-          }, { zone: 'utc' });
-          
-          endDateTime = DateTime.fromObject({
-            year: event.endDate.year,
-            month: event.endDate.month,
-            day: event.endDate.day,
-            hour: event.endDate.hour,
-            minute: event.endDate.minute,
-            second: event.endDate.second
-          }, { zone: 'utc' });
+          startDateTime = DateTime.fromJSDate(event.startDate.toJSDate(), { zone: 'utc' });
+          endDateTime = DateTime.fromJSDate(event.endDate.toJSDate(), { zone: 'utc' });
         } else if (event.startDate.timezone) {
           // This has a specific timezone
           console.log(`Event has specific timezone: ${event.startDate.timezone}`);
-          startDateTime = DateTime.fromObject({
-            year: event.startDate.year,
-            month: event.startDate.month,
-            day: event.startDate.day,
-            hour: event.startDate.hour,
-            minute: event.startDate.minute,
-            second: event.startDate.second
-          }, { zone: event.startDate.timezone });
-          
-          endDateTime = DateTime.fromObject({
-            year: event.endDate.year,
-            month: event.endDate.month,
-            day: event.endDate.day,
-            hour: event.endDate.hour,
-            minute: event.endDate.minute,
-            second: event.endDate.second
-          }, { zone: event.endDate.timezone });
+          startDateTime = DateTime.fromJSDate(event.startDate.toJSDate(), { zone: event.startDate.timezone });
+          endDateTime = DateTime.fromJSDate(event.endDate.toJSDate(), { zone: event.endDate.timezone });
         } else {
           // This is a floating time, interpret in user's timezone
           console.log(`Event has floating time, interpreting in user timezone: ${userTimezone}`);
-          startDateTime = DateTime.fromObject({
-            year: event.startDate.year,
-            month: event.startDate.month,
-            day: event.startDate.day,
-            hour: event.startDate.hour,
-            minute: event.startDate.minute,
-            second: event.startDate.second
-          }, { zone: userTimezone });
-          
-          endDateTime = DateTime.fromObject({
-            year: event.endDate.year,
-            month: event.endDate.month,
-            day: event.endDate.day,
-            hour: event.endDate.hour,
-            minute: event.endDate.minute,
-            second: event.endDate.second
-          }, { zone: userTimezone });
+          startDateTime = DateTime.fromJSDate(event.startDate.toJSDate(), { zone: userTimezone });
+          endDateTime = DateTime.fromJSDate(event.endDate.toJSDate(), { zone: userTimezone });
         }
         
         // Convert to UTC for storage
