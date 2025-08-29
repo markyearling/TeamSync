@@ -644,13 +644,6 @@ const ChildProfile: React.FC = () => {
                 <LayoutList className="h-5 w-5" />
               </button>
             </div>
-            <button
-              onClick={() => setFilterOpen(!filterOpen)}
-              className="flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 text-sm text-gray-700 dark:text-gray-300"
-            >
-              <Filter className="h-4 w-4 mr-1" />
-              Filter
-            </button>
         
         {filterOpen && (
           <div className="bg-white dark:bg-gray-800 p-4 border-b border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -733,7 +726,6 @@ const ChildProfile: React.FC = () => {
             </div>
           </div>
         )}
-        </div>
         
         <div className="h-[600px] overflow-auto">
           {renderCalendarView()}
