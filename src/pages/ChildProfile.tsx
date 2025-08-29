@@ -501,6 +501,7 @@ const ChildProfile: React.FC = () => {
               disabled={isFriendProfile && child.accessRole !== 'administrator'}
             >
               <Plus className="h-5 w-5" />
+              Add Event
             </button>
             <button
               onClick={() => setShowTeamMapping(true)}
@@ -644,6 +645,8 @@ const ChildProfile: React.FC = () => {
                 <LayoutList className="h-5 w-5" />
               </button>
             </div>
+          </div>
+        </div>
         
         {filterOpen && (
           <div className="bg-white dark:bg-gray-800 p-4 border-b border-gray-200 dark:border-gray-700 grid grid-cols-1 md:grid-cols-3 gap-4">
