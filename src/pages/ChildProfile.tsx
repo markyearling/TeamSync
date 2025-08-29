@@ -496,12 +496,12 @@ const ChildProfile: React.FC = () => {
           <div className="flex flex-wrap justify-end gap-2">
             <button
               onClick={() => setShowAddEventModal(true)}
-              className="p-2 text-gray-400 hover:text-green-500 dark:text-gray-500 dark:hover:text-green-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
               title="Add event"
               disabled={isFriendProfile && child.accessRole !== 'administrator'}
             >
               <Plus className="h-5 w-5" />
-              Add Event
+             Add Event
             </button>
             <button
               onClick={() => setShowTeamMapping(true)}
