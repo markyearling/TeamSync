@@ -13,7 +13,8 @@ import {
   faGolfBall,
   faStar,
   faDumbbell,
-  faQuestion
+  faQuestion,
+  faShuffle
 } from '@fortawesome/free-solid-svg-icons';
 
 export interface SportDetails {
@@ -38,7 +39,7 @@ export const availableSports: SportDetails[] = [
   { name: 'Wrestling', color: '#8B5CF6', icon: faDumbbell },
   { name: 'Cross Country', color: '#059669', icon: faRunning },
   { name: 'Unknown', color: '#64748B', icon: faQuestion },
-  { name: 'Other', color: '#64748B', icon: faQuestion }
+  { name: 'Other', color: '#64748B', icon: faShuffle }
 ];
 
 export const getSportDetails = (sportName: string): SportDetails => {
