@@ -1024,6 +1024,7 @@ const ChildProfile: React.FC = () => {
           onClose={() => setShowTeamMapping(false)}
         />
       )}
+    </div>
   );
 };
 
