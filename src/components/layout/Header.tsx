@@ -486,7 +486,9 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             <div className="flex items-center space-x-3">
               {children}
               <div className="ml-4 md:ml-6">
-                <h1 className="text-xl font-semibold text-gray-900 dark:text-white">FamSink</h1>
+                <Link to="/dashboard" className="text-xl font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  FamSink
+                </Link>
               </div>
             </div>
             

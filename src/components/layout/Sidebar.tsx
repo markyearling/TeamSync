@@ -26,28 +26,28 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const { isIOS } = useCapacitor();
   
   const navigation = [
-    { name: 'Dashboard', icon: Home, href: '/' },
-    { name: 'Calendar', icon: Calendar, href: '/calendar' },
+    { name: 'Dashboard', icon: Home, href: '/dashboard' },
+    { name: 'Calendar', icon: Calendar, href: '/dashboard/calendar' },
     { 
       name: 'Connections', 
       icon: LinkIcon, 
-      href: '/connections',
+      href: '/dashboard/connections',
       hasSubItems: true,
       subItems: [
-        { name: 'TeamSnap', href: '/connections/teamsnap' },
-        { name: 'SportsEngine', href: '/connections/sportsengine' },
-        { name: 'Playmetrics', href: '/connections/playmetrics' },
-        { name: 'GameChanger', href: '/connections/gamechanger' }
+        { name: 'TeamSnap', href: '/dashboard/connections/teamsnap' },
+        { name: 'SportsEngine', href: '/dashboard/connections/sportsengine' },
+        { name: 'Playmetrics', href: '/dashboard/connections/playmetrics' },
+        { name: 'GameChanger', href: '/dashboard/connections/gamechanger' }
       ]
     },
-    { name: 'Profiles', icon: Users, href: '/profiles' },
-    { name: 'Friends', icon: UserPlus, href: '/friends' },
-    { name: 'Settings', icon: Settings, href: '/settings' },
-    { name: 'Help', icon: HelpCircle, href: '/help' },
+    { name: 'Profiles', icon: Users, href: '/dashboard/profiles' },
+    { name: 'Friends', icon: UserPlus, href: '/dashboard/friends' },
+    { name: 'Settings', icon: Settings, href: '/dashboard/settings' },
+    { name: 'Help', icon: HelpCircle, href: '/dashboard/help' },
   ];
 
   const handleChildClick = (childId: string) => {
-    navigate(`/profiles/${childId}`);
+    navigate(`/dashboard/profiles/${childId}`);
     onClose();
   };
 

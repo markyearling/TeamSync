@@ -2,6 +2,7 @@ import React, { Suspense, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
+import LandingPage from './pages/LandingPage';
 import Calendar from './pages/Calendar';
 import Connections from './pages/Connections';
 import TeamSnapConnection from './pages/connections/TeamSnapConnection';
@@ -185,6 +186,8 @@ const AppContent = () => {
 
   return (
     <Routes>
+      {/* Public routes */}
+      <Route path="/" element={<LandingPage />} />
       <Route path="/auth/signin" element={<SignIn />} />
       <Route path="/auth/signup" element={<SignUp />} />
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
@@ -193,12 +196,15 @@ const AppContent = () => {
       <Route path="/test-email" element={<TestEmail />} />
       <Route path="/connections/teamsnap/callback" element={<TeamSnapCallback />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
-      <Route path="/" element={
+      
+      {/* Protected routes */}
+      <Route path="/dashboard" element={
         <ProtectedRoute>
           <Layout />
         </ProtectedRoute>
       }>
-        <Route index element={<Dashboard />} />
+        <Route index element={<Navigate to="/dashboard" replace />} />
+        <Route path="" element={<Dashboard />} />
         <Route path="calendar" element={<Calendar />} />
         <Route path="connections" element={<Connections />} />
         <Route path="connections/teamsnap" element={<TeamSnapConnection />} />
@@ -212,6 +218,13 @@ const AppContent = () => {
         <Route path="help" element={<Help />} />
         <Route path="*" element={<NotFound />} />
       </Route>
+      
+      {/* Catch-all redirect for authenticated users */}
+      <Route path="*" element={
+        <ProtectedRoute>
+          <Navigate to="/dashboard" replace />
+        </ProtectedRoute>
+      } />
     </Routes>
   );
 };
