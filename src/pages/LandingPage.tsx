@@ -53,6 +53,12 @@ const LandingPage: React.FC = () => {
       title: 'Privacy First',
       description: 'Your family\'s data is secure. Control who sees what with granular privacy settings.',
       color: 'text-red-600'
+    },
+    {
+      icon: Clock,
+      title: 'Personal Event Planner',
+      description: 'Add and manage your own family events beyond sports. Birthday parties, school events, family trips - keep everything organized in one place.',
+      color: 'text-teal-600'
     }
   ];
 
@@ -381,6 +387,56 @@ const LandingPage: React.FC = () => {
                 <div className="flex items-center">
                   <Clock className="h-5 w-5 text-blue-600 mr-3" />
                   <span className="text-gray-700">Real-time updates when schedules change</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Google Maps Integration Showcase */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">
+                Never Get Lost Again
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center">
+                  <MapPin className="h-5 w-5 text-blue-600 mr-3" />
+                  <span className="text-gray-700">Interactive maps for every event location</span>
+                </div>
+                <div className="flex items-center">
+                  <Clock className="h-5 w-5 text-green-600 mr-3" />
+                  <span className="text-gray-700">Detailed event information with times and descriptions</span>
+                </div>
+                <div className="flex items-center">
+                  <Calendar className="h-5 w-5 text-purple-600 mr-3" />
+                  <span className="text-gray-700">Add your own family events and appointments</span>
+                </div>
+              </div>
+              <p className="text-gray-600 mt-6 leading-relaxed">
+                Every event in FamSink includes detailed location information with integrated Google Maps. 
+                Whether it's finding the soccer field for Saturday's game or remembering where the family 
+                reunion is being held, you'll always know exactly where to go.
+              </p>
+            </div>
+            <div className="bg-white rounded-2xl shadow-xl p-4 border border-gray-100">
+              <img 
+                src="https://images.pexels.com/photos/196644/pexels-photo-196644.jpeg?auto=compress&cs=tinysrgb&w=800" 
+                alt="Event details with Google Maps integration showing location and event information"
+                className="w-full h-auto rounded-xl shadow-lg"
+              />
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-2">Soccer Practice</h4>
+                <div className="flex items-center text-sm text-gray-600 mb-2">
+                  <Clock className="h-4 w-4 mr-2" />
+                  <span>Today, 4:00 PM - 5:30 PM</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  <span>Memorial Park Soccer Fields</span>
                 </div>
               </div>
             </div>
