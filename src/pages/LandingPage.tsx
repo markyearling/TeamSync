@@ -149,9 +149,6 @@ const LandingPage: React.FC = () => {
                   Get Started Free
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
-                <button className="inline-flex items-center px-8 py-4 border border-gray-300 text-lg font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-md hover:shadow-lg transition-all">
-                  Watch Demo
-                </button>
               </div>
             </div>
             
@@ -159,8 +156,8 @@ const LandingPage: React.FC = () => {
             <div className="lg:w-1/2 flex justify-center lg:justify-end mt-12 lg:mt-0">
               <div className="relative">
                 <img 
-                  src="https://images.pexels.com/photos/5926390/pexels-photo-5926390.jpeg?auto=compress&cs=tinysrgb&w=800" 
-                  alt="FamSink app dashboard on mobile phone showing sports schedules and events"
+                  src="/Simulator Screenshot - iPhone 16 Pro - 2025-08-30 at 10.39.22.png" 
+                  alt="FamSink app dashboard on iPhone showing sports schedules and events"
                   className="w-64 sm:w-80 md:w-96 lg:w-full max-w-md h-auto object-contain transform rotate-3 hover:rotate-0 transition-transform duration-500 ease-in-out shadow-2xl rounded-3xl"
                 />
                 {/* Floating UI elements for extra tech appeal */}
