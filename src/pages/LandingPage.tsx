@@ -129,27 +129,45 @@ const LandingPage: React.FC = () => {
       {/* Hero Section */}
       <section className="relative hero-background-animated py-20 sm:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
-              Your Family's Sports
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
-                Schedule Hub
-              </span>
-            </h1>
-            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Stop juggling multiple apps and calendars. FamSink brings all your children's sports schedules together in one beautiful, easy-to-use platform.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link
-                to="/auth/signup"
-                className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
-              >
-                Get Started Free
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-              <button className="inline-flex items-center px-8 py-4 border border-gray-300 text-lg font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-md hover:shadow-lg transition-all">
-                Watch Demo
-              </button>
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-12">
+            {/* Text Content */}
+            <div className="text-center lg:text-left lg:w-1/2">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
+                Your Family's Sports
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
+                  Schedule Hub
+                </span>
+              </h1>
+              <p className="text-xl text-gray-300 mb-8 max-w-3xl lg:max-w-none leading-relaxed">
+                Stop juggling multiple apps and calendars. FamSink brings all your children's sports schedules together in one beautiful, easy-to-use platform.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
+                <Link
+                  to="/auth/signup"
+                  className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                >
+                  Get Started Free
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+                <button className="inline-flex items-center px-8 py-4 border border-gray-300 text-lg font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 shadow-md hover:shadow-lg transition-all">
+                  Watch Demo
+                </button>
+              </div>
+            </div>
+            
+            {/* Phone Mockup */}
+            <div className="lg:w-1/2 flex justify-center lg:justify-end mt-12 lg:mt-0">
+              <div className="relative">
+                <img 
+                  src="https://images.pexels.com/photos/5926390/pexels-photo-5926390.jpeg?auto=compress&cs=tinysrgb&w=800" 
+                  alt="FamSink app dashboard on mobile phone showing sports schedules and events"
+                  className="w-64 sm:w-80 md:w-96 lg:w-full max-w-md h-auto object-contain transform rotate-3 hover:rotate-0 transition-transform duration-500 ease-in-out shadow-2xl rounded-3xl"
+                />
+                {/* Floating UI elements for extra tech appeal */}
+                <div className="absolute -top-4 -left-4 w-16 h-16 bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full opacity-20 animate-pulse"></div>
+                <div className="absolute -bottom-6 -right-6 w-20 h-20 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full opacity-20 animate-pulse delay-1000"></div>
+                <div className="absolute top-1/2 -right-8 w-12 h-12 bg-gradient-to-r from-indigo-400 to-purple-500 rounded-full opacity-30 animate-bounce delay-500"></div>
+              </div>
             </div>
           </div>
         </div>
