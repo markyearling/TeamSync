@@ -12,7 +12,8 @@ import {
   Star,
   MessageSquare,
   Clock,
-  MapPin
+  MapPin,
+  X
 } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
