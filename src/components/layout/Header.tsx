@@ -1,6 +1,6 @@
 import React, { ReactNode, useState, useEffect, useRef } from 'react';
 import { Bell, User, Search, Moon, Sun, LogOut, Users } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import NotificationCenter from '../notifications/NotificationCenter';
