@@ -368,9 +368,9 @@ Deno.serve(async (req) => {
           endDateTime = DateTime.fromJSDate(validEndDate, { zone: event.endDate.timezone || event.startDate.timezone });
         } else {
           // This is a floating time, interpret in user's timezone
-          console.log(`Event has floating time, interpreting in user timezone: ${userTimezone}`);
-          startDateTime = DateTime.fromJSDate(startJSDate, { zone: userTimezone });
-          endDateTime = DateTime.fromJSDate(validEndDate, { zone: userTimezone });
+          console.log(`Event has floating time, interpreting as UTC for standardization`);
+          startDateTime = DateTime.fromJSDate(startJSDate, { zone: 'utc' });
+          endDateTime = DateTime.fromJSDate(validEndDate, { zone: 'utc' });
         }
         
         // Validate Luxon DateTime objects
