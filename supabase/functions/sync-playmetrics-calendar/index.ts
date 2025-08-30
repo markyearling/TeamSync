@@ -303,43 +303,63 @@ Deno.serve(async (req) => {
         // Improved timezone handling
         console.log(`Processing event: ${title}`);
         
-        // Get JavaScript Date objects first
-        const startJSDate = event.startDate.toJSDate();
-        const endJSDate = event.endDate.toJSDate();
+        // Extract date/time components directly from ical.js objects
+        const startYear = event.startDate.year;
+        const startMonth = event.startDate.month;
+        const startDay = event.startDate.day;
+        const startHour = event.startDate.hour;
+        const startMinute = event.startDate.minute;
+        const startSecond = event.startDate.second;
         
-        // Validate dates
-        if (isNaN(startJSDate.getTime())) {
-          console.error(`Invalid start date for event: ${title}`);
-          throw new Error(`Invalid start date for event: ${title}`);
-        }
+        const endYear = event.endDate.year;
+        const endMonth = event.endDate.month;
+        const endDay = event.endDate.day;
+        const endHour = event.endDate.hour;
+        const endMinute = event.endDate.minute;
+        const endSecond = event.endDate.second;
         
-        // If end date is invalid, default to 1 hour after start
-        let validEndDate = endJSDate;
-        if (isNaN(endJSDate.getTime())) {
-          console.warn(`Invalid end date for event: ${title}, defaulting to 1 hour after start`);
-          validEndDate = new Date(startJSDate.getTime() + 60 * 60 * 1000); // Add 1 hour
-        }
+        console.log(`Event date components:
+          Start: ${startYear}-${startMonth}-${startDay} ${startHour}:${startMinute}:${startSecond}
+          End: ${endYear}-${endMonth}-${endDay} ${endHour}:${endMinute}:${endSecond}
+          Timezone: ${event.startDate.timezone || 'floating'}
+          IsFloating: ${event.startDate.isFloating}`);
         
         let startDateTime, endDateTime;
         
-        console.log(`Original event timezone: ${event.startDate.timezone}`);
-        
-        // Check if the event has a specific timezone
+        // Robust timezone handling based on ical.js properties
         if (event.startDate.timezone === 'Z') {
-          // This is already in UTC
+          // This is explicitly UTC
           console.log('Event is in UTC timezone');
-          startDateTime = DateTime.fromJSDate(startJSDate, { zone: 'utc' });
-          endDateTime = DateTime.fromJSDate(validEndDate, { zone: 'utc' });
-        } else if (event.startDate.timezone) {
-          // This has a specific timezone
+          startDateTime = DateTime.utc(startYear, startMonth, startDay, startHour, startMinute, startSecond);
+          endDateTime = DateTime.utc(endYear, endMonth, endDay, endHour, endMinute, endSecond);
+        } else if (event.startDate.timezone && !event.startDate.isFloating) {
+          // This has a specific timezone (TZID)
           console.log(`Event has specific timezone: ${event.startDate.timezone}`);
-          startDateTime = DateTime.fromJSDate(startJSDate, { zone: event.startDate.timezone });
-          endDateTime = DateTime.fromJSDate(validEndDate, { zone: event.endDate.timezone || event.startDate.timezone });
+          startDateTime = DateTime.fromObject(
+            { year: startYear, month: startMonth, day: startDay, hour: startHour, minute: startMinute, second: startSecond },
+            { zone: event.startDate.timezone }
+          );
+          endDateTime = DateTime.fromObject(
+            { year: endYear, month: endMonth, day: endDay, hour: endHour, minute: endMinute, second: endSecond },
+            { zone: event.endDate.timezone || event.startDate.timezone }
+          );
         } else {
           // This is a floating time, interpret in user's timezone
           console.log(`Event has floating time, interpreting in user timezone: ${userTimezone}`);
-          startDateTime = DateTime.fromJSDate(startJSDate, { zone: userTimezone });
-          endDateTime = DateTime.fromJSDate(validEndDate, { zone: userTimezone });
+          startDateTime = DateTime.fromObject(
+            { year: startYear, month: startMonth, day: startDay, hour: startHour, minute: startMinute, second: startSecond },
+            { zone: userTimezone }
+          );
+          endDateTime = DateTime.fromObject(
+            { year: endYear, month: endMonth, day: endDay, hour: endHour, minute: endMinute, second: endSecond },
+            { zone: userTimezone }
+          );
+        }
+        
+        // If end date components are invalid, default to 1 hour after start
+        if (!endDateTime.isValid) {
+          console.warn(`Invalid end date for event: ${title}, defaulting to 1 hour after start`);
+          endDateTime = startDateTime.plus({ hours: 1 });
         }
         
         // Validate Luxon DateTime objects
