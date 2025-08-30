@@ -121,16 +121,16 @@ const LandingPage: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-20 sm:py-32">
+      <section className="relative bg-gradient-to-br from-blue-900 via-purple-900 to-black py-20 sm:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6">
               Your Family's Sports
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
                 Schedule Hub
               </span>
             </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl text-gray-300 mb-8 max-w-3xl mx-auto leading-relaxed">
               Stop juggling multiple apps and calendars. FamSink brings all your children's sports schedules together in one beautiful, easy-to-use platform.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
