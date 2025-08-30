@@ -53,7 +53,7 @@ const SignIn: React.FC = () => {
           return;
         }
         
-        navigate(returnTo);
+        navigate('/dashboard');
       }
       setError(null);
     });

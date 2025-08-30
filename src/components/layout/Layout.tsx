@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
-import { Outlet } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import { Menu } from 'lucide-react';
 
-const Layout: React.FC = () => {
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
@@ -43,7 +46,7 @@ const Layout: React.FC = () => {
         </Header>
         <main className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 p-4 md:p-6">
           <div className="container mx-auto max-w-7xl">
-            <Outlet />
+            {children}
           </div>
         </main>
         

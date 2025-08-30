@@ -200,31 +200,100 @@ const AppContent = () => {
       {/* Protected routes */}
       <Route path="/dashboard" element={
         <ProtectedRoute>
-          <Layout />
-        </ProtectedRoute>
-      }>
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="" element={<Dashboard />} />
-        <Route path="calendar" element={<Calendar />} />
-        <Route path="connections" element={<Connections />} />
-        <Route path="connections/teamsnap" element={<TeamSnapConnection />} />
-        <Route path="connections/playmetrics" element={<Playmetrics />} />
-        <Route path="connections/sportsengine" element={<SportsEngineConnection />} />
-        <Route path="connections/gamechanger" element={<GameChangerConnection />} />
-        <Route path="profiles" element={<Profiles />} />
-        <Route path="profiles/:id" element={<ChildProfile />} />
-        <Route path="friends" element={<Friends />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="help" element={<Help />} />
-        <Route path="*" element={<NotFound />} />
-      </Route>
-      
-      {/* Catch-all redirect for authenticated users */}
-      <Route path="*" element={
-        <ProtectedRoute>
-          <Navigate to="/dashboard" replace />
+          <Layout>
+            <Dashboard />
+          </Layout>
         </ProtectedRoute>
       } />
+      <Route path="/calendar" element={
+        <ProtectedRoute>
+          <Layout>
+            <Calendar />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/connections" element={
+        <ProtectedRoute>
+          <Layout>
+            <Connections />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/connections/teamsnap" element={
+        <ProtectedRoute>
+          <Layout>
+            <TeamSnapConnection />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/connections/playmetrics" element={
+        <ProtectedRoute>
+          <Layout>
+            <Playmetrics />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/connections/sportsengine" element={
+        <ProtectedRoute>
+          <Layout>
+            <SportsEngineConnection />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/connections/gamechanger" element={
+        <ProtectedRoute>
+          <Layout>
+            <GameChangerConnection />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/profiles" element={
+        <ProtectedRoute>
+          <Layout>
+            <Profiles />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/profiles/:id" element={
+        <ProtectedRoute>
+          <Layout>
+            <ChildProfile />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/friends" element={
+        <ProtectedRoute>
+          <Layout>
+            <Friends />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/settings" element={
+        <ProtectedRoute>
+          <Layout>
+            <Settings />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/help" element={
+        <ProtectedRoute>
+          <Layout>
+            <Help />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      {/* 404 page for protected routes */}
+      <Route path="/404" element={
+        <ProtectedRoute>
+          <Layout>
+            <NotFound />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      {/* Catch-all redirect */}
+      <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );
 };

@@ -27,27 +27,27 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   
   const navigation = [
     { name: 'Dashboard', icon: Home, href: '/dashboard' },
-    { name: 'Calendar', icon: Calendar, href: '/dashboard/calendar' },
+    { name: 'Calendar', icon: Calendar, href: '/calendar' },
     { 
       name: 'Connections', 
       icon: LinkIcon, 
-      href: '/dashboard/connections',
+      href: '/connections',
       hasSubItems: true,
       subItems: [
-        { name: 'TeamSnap', href: '/dashboard/connections/teamsnap' },
-        { name: 'SportsEngine', href: '/dashboard/connections/sportsengine' },
-        { name: 'Playmetrics', href: '/dashboard/connections/playmetrics' },
-        { name: 'GameChanger', href: '/dashboard/connections/gamechanger' }
+        { name: 'TeamSnap', href: '/connections/teamsnap' },
+        { name: 'SportsEngine', href: '/connections/sportsengine' },
+        { name: 'Playmetrics', href: '/connections/playmetrics' },
+        { name: 'GameChanger', href: '/connections/gamechanger' }
       ]
     },
-    { name: 'Profiles', icon: Users, href: '/dashboard/profiles' },
-    { name: 'Friends', icon: UserPlus, href: '/dashboard/friends' },
-    { name: 'Settings', icon: Settings, href: '/dashboard/settings' },
-    { name: 'Help', icon: HelpCircle, href: '/dashboard/help' },
+    { name: 'Profiles', icon: Users, href: '/profiles' },
+    { name: 'Friends', icon: UserPlus, href: '/friends' },
+    { name: 'Settings', icon: Settings, href: '/settings' },
+    { name: 'Help', icon: HelpCircle, href: '/help' },
   ];
 
   const handleChildClick = (childId: string) => {
-    navigate(`/dashboard/profiles/${childId}`);
+    navigate(`/profiles/${childId}`);
     onClose();
   };
 

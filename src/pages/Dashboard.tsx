@@ -653,16 +653,16 @@ const Dashboard: React.FC = () => {
   const handleManagePlatform = (platformName: string) => {
     switch(platformName) {
       case 'TeamSnap':
-        navigate('/dashboard/connections/teamsnap');
+        navigate('/connections/teamsnap');
         break;
       case 'SportsEngine':
-        navigate('/dashboard/connections/sportsengine');
+        navigate('/connections/sportsengine');
         break;
       case 'Playmetrics':
-        navigate('/dashboard/connections/playmetrics');
+        navigate('/connections/playmetrics');
         break;
       default:
-        navigate('/dashboard/connections');
+        navigate('/connections');
     }
   };
 
