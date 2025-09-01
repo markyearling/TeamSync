@@ -254,85 +254,24 @@ const SportsEngineConnection: React.FC = () => {
       const teamId = urlParts[urlParts.length - 1].split('.')[0];
       const teamName = `Team ${teamId}`;
 
-      // Check if this user already has this team
-      const { data: existingTeam, error: checkError } = await supabase
+      // Use upsert to handle both new teams and existing teams for this user
+      const { data: team, error: upsertError } = await supabase
         .from('platform_teams')
-        .select('*')
-        .eq('platform', 'SportsEngine')
-        .eq('team_id', teamId)
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .upsert({
+          platform: 'SportsEngine',
+          team_id: teamId,
+          team_name: teamName,
+          sport: 'Soccer',
+          ics_url: icsUrl,
+          sync_status: 'pending',
+          user_id: user.id
+        }, {
+          onConflict: 'user_id,platform,team_id'
+        })
+        .select()
+        .single();
 
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
-        throw checkError;
-      }
-
-      // Check if team exists globally (created by any user)
-      const { data: globalTeam, error: globalCheckError } = await supabase
-        .from('platform_teams')
-        .select('*')
-        .eq('platform', 'SportsEngine')
-        .eq('team_id', teamId)
-        .maybeSingle();
-
-      if (globalCheckError && globalCheckError.code !== 'PGRST116') {
-        throw globalCheckError;
-      }
-
-      let team;
-      if (existingTeam) {
-        // Update existing team
-        const { data: updatedTeam, error: updateError } = await supabase
-          .from('platform_teams')
-          .update({
-            team_name: teamName,
-            sport: 'Soccer',
-            ics_url: icsUrl,
-            sync_status: 'pending'
-          })
-          .eq('id', existingTeam.id)
-          .select()
-          .single();
-
-        if (updateError) throw updateError;
-        team = updatedTeam;
-      } else if (globalTeam) {
-        // Team exists but not for this user - create a new record for this user
-        const { data: newTeam, error: insertError } = await supabase
-          .from('platform_teams')
-          .insert({
-            platform: 'SportsEngine',
-            team_id: teamId,
-            team_name: teamName,
-            sport: 'Soccer',
-            ics_url: icsUrl,
-            sync_status: 'pending',
-            user_id: user.id
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        team = newTeam;
-      } else {
-        // Team doesn't exist at all - create new team
-        const { data: newTeam, error: insertError } = await supabase
-          .from('platform_teams')
-          .insert({
-            platform: 'SportsEngine',
-            team_id: teamId,
-            team_name: teamName,
-            sport: 'Soccer',
-            ics_url: icsUrl,
-            sync_status: 'pending',
-            user_id: user.id
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-        team = newTeam;
-      }
+      if (upsertError) throw upsertError;
 
       if (!team) throw new Error('Failed to create or update team');
 
