@@ -264,7 +264,7 @@ const SportsEngineConnection: React.FC = () => {
           sport: 'Unknown',
           ics_url: icsUrl,
           sync_status: 'pending',
-          user_id: session.user.id
+          user_id: user.id
         }, {
           onConflict: 'platform,team_id'
         })
