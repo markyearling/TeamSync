@@ -397,9 +397,9 @@ const Playmetrics: React.FC = () => {
       console.log(`Found ${mappedProfiles.length} mapped profiles for team ${teamId}`);
 
       // Get the current session
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      if (!user) throw new Error('No authenticated user');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error('No authenticated session');
 
       // Update team status to pending
       await supabase
@@ -414,7 +414,7 @@ const Playmetrics: React.FC = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user.id}`, // Use user.id for authorization if needed, or session.access_token
+            'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             icsUrl: freshTeamData.ics_url,

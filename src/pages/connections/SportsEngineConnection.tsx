@@ -244,10 +244,10 @@ const SportsEngineConnection: React.FC = () => {
     setSubmitting(true);
 
     try {
-      // Get the current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      if (!user) throw new Error('No authenticated user');
+      // Get the current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error('No authenticated session');
 
       // Extract team name from URL
       const urlParts = icsUrl.split('/');
@@ -281,7 +281,7 @@ const SportsEngineConnection: React.FC = () => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user.id}`, // Use user.id for authorization if needed, or session.access_token
+            'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             icsUrl: icsUrl,
