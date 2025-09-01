@@ -302,33 +302,7 @@ const Playmetrics: React.FC = () => {
 
       if (!team) throw new Error('Failed to create or update team');
 
-      // Immediately sync the calendar to get events and team name
-      try {
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user.id}`, // Use user.id for authorization if needed, or session.access_token
-          },
-          body: JSON.stringify({
-            icsUrl: icsUrl,
-            teamId: team.id,
-            profileId: null, // No profile mapping yet
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to sync calendar');
-        }
-
-        const syncResult = await response.json();
-        
-        setSuccess(`Team calendar added successfully! Found ${syncResult.eventCount || 0} events. You can now map it to your children's profiles.`);
-      } catch (syncError) {
-        console.error('Error syncing calendar:', syncError);
-        setError('Failed to sync calendar events. The team was added but events could not be imported. Please try refreshing the team later.');
-      }
+      setSuccess('Team calendar added successfully! You can now map it to your children\'s profiles to sync events.');
 
       setIcsUrl('');
       fetchTeams();
