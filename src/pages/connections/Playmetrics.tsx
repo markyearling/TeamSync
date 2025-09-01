@@ -204,73 +204,49 @@ const Playmetrics: React.FC = () => {
   };
 
   const validateIcsUrl = (url: string): boolean => {
-    console.log('=== PLAYMETRICS URL VALIDATION START ===');
-    console.log('Input URL:', url);
-    console.log('URL length:', url.length);
-    console.log('URL type:', typeof url);
-    
     try {
       // Handle webcal:// protocol by converting to https:// for URL parsing
       let urlToValidate = url;
       const isWebcal = url.startsWith('webcal://');
-      console.log('Is webcal URL:', isWebcal);
       
       if (isWebcal) {
         urlToValidate = url.replace('webcal://', 'https://');
-        console.log('Converted webcal URL to:', urlToValidate);
       }
       
       const parsedUrl = new URL(urlToValidate);
-      console.log('Parsed URL object:', {
-        hostname: parsedUrl.hostname,
-        pathname: parsedUrl.pathname,
-        protocol: parsedUrl.protocol
-      });
       
       // Check hostname is from Playmetrics
       const validHostname = parsedUrl.hostname.includes('playmetrics.com');
-      console.log('Valid hostname check (includes playmetrics.com):', validHostname);
       
       // Check for calendar path - be more flexible
       const hasCalendarPath = parsedUrl.pathname.includes('/calendar') || parsedUrl.pathname.includes('/calendars');
-      console.log('Has calendar path:', hasCalendarPath);
       
       // Check if ends with .ics
       const endsWithIcs = url.endsWith('.ics');
-      console.log('Ends with .ics:', endsWithIcs);
       
       // If it's a webcal URL, we don't require the .ics extension
       if (isWebcal) {
         const result = validHostname && hasCalendarPath;
-        console.log('Webcal validation result:', result);
         return result;
       }
       
       // For regular https URLs, we still check for .ics extension
       const result = validHostname && hasCalendarPath && endsWithIcs;
-      console.log('HTTPS validation result:', result);
       return result;
     } catch {
-      console.log('URL validation failed with exception');
       return false;
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('=== FORM SUBMIT START ===');
-    console.log('Form data - icsUrl:', icsUrl);
-    
     setError(null);
     setSuccess(null);
 
-    console.log('About to validate URL...');
     if (!validateIcsUrl(icsUrl)) {
-      console.log('URL validation failed!');
       setError('Please enter a valid Playmetrics calendar URL');
       return;
     }
-    console.log('URL validation passed!');
 
     setSubmitting(true);
 
@@ -280,15 +256,29 @@ const Playmetrics: React.FC = () => {
       if (userError) throw userError;
       if (!user) throw new Error('No authenticated user');
 
-      // Extract team name from URL
-      // Updated logic to handle the new URL format: /t410884/ or /tDD630420/
-      const teamIdMatch = icsUrl.match(/\/t([a-zA-Z0-9]+)\//);
-      const teamId = teamIdMatch ? teamIdMatch[1] : null;
-      console.log('Extracted team ID:', teamId);
+      // Extract team ID from URL - handle multiple Playmetrics URL formats
+      let teamId = null;
+      
+      // Try different patterns for Playmetrics URLs
+      const patterns = [
+        /\/t([a-zA-Z0-9]+)\//,  // /t410884/ or /tDD630420/
+        /\/team\/([a-zA-Z0-9-]+)/,  // /team/220548-46283CA0
+        /\/calendar\/\d+\/team\/([a-zA-Z0-9-]+)/,  // /calendar/1079/team/220548-46283CA0
+        /\/([a-zA-Z0-9-]+)\.ics$/  // filename before .ics
+      ];
+      
+      for (const pattern of patterns) {
+        const match = icsUrl.match(pattern);
+        if (match) {
+          teamId = match[1];
+          break;
+        }
+      }
       
       if (!teamId) {
-        throw new Error('Could not extract team ID from URL. Please ensure the URL contains /tXXXXXX/ pattern.');
+        throw new Error('Could not extract team ID from URL. Please ensure the URL is a valid Playmetrics calendar URL.');
       }
+      
       const teamName = `Playmetrics Team ${teamId}`;
 
       // Check if this user already has this team
@@ -298,7 +288,7 @@ const Playmetrics: React.FC = () => {
         .eq('platform', 'Playmetrics')
         .eq('team_id', teamId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
         throw checkError;
@@ -322,10 +312,10 @@ const Playmetrics: React.FC = () => {
         if (updateError) throw updateError;
         team = updatedTeam;
       } else {
-        // Insert new team
-        const { data: newTeam, error: insertError } = await supabase
+        // Use upsert to handle potential conflicts with other users' teams
+        const { data: newTeam, error: upsertError } = await supabase
           .from('platform_teams')
-          .insert({
+          .upsert({
             platform: 'Playmetrics',
             team_id: teamId,
             team_name: teamName,
@@ -333,11 +323,14 @@ const Playmetrics: React.FC = () => {
             ics_url: icsUrl,
             sync_status: 'pending',
             user_id: user.id
+          }, {
+            onConflict: 'platform,team_id',
+            ignoreDuplicates: false
           })
           .select()
-          .single();
+          .maybeSingle();
 
-        if (insertError) throw insertError;
+        if (upsertError) throw upsertError;
         team = newTeam;
       }
 

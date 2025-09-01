@@ -261,7 +261,7 @@ const SportsEngineConnection: React.FC = () => {
         .eq('platform', 'SportsEngine')
         .eq('team_id', teamId)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
         throw checkError;
@@ -285,10 +285,10 @@ const SportsEngineConnection: React.FC = () => {
         if (updateError) throw updateError;
         team = updatedTeam;
       } else {
-        // Insert new team
-        const { data: newTeam, error: insertError } = await supabase
+        // Use upsert to handle potential conflicts with other users' teams
+        const { data: newTeam, error: upsertError } = await supabase
           .from('platform_teams')
-          .insert({
+          .upsert({
             platform: 'SportsEngine',
             team_id: teamId,
             team_name: teamName,
@@ -296,11 +296,14 @@ const SportsEngineConnection: React.FC = () => {
             ics_url: icsUrl,
             sync_status: 'pending',
             user_id: user.id
+          }, {
+            onConflict: 'platform,team_id',
+            ignoreDuplicates: false
           })
           .select()
-          .single();
+          .maybeSingle();
 
-        if (insertError) throw insertError;
+        if (upsertError) throw upsertError;
         team = newTeam;
       }
 
