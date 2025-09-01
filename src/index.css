@@ -61,3 +61,9 @@ html, body {
     background-position: 0% 50%;
   }
 }
+
+/* Custom style for vertical text in event cards */
+.vertical-day-text {
+  writing-mode: vertical-lr;
+  text-orientation: mixed;
+}
