@@ -215,7 +215,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       .select(`
         id,
         name,
-        age,
+        date_of_birth,
         color,
         photo_url,
         notes,
@@ -237,7 +237,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     const formattedProfiles: Child[] = profilesData?.map(profile => ({
       id: profile.id,
       name: profile.name,
-      age: profile.age,
+      date_of_birth: profile.date_of_birth,
       color: profile.color,
       photo_url: profile.photo_url,
       notes: profile.notes,
@@ -286,7 +286,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         .select(`
           id,
           name,
-          age,
+          date_of_birth,
           color,
           photo_url,
           notes,
@@ -315,7 +315,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         return {
           id: profile.id,
           name: profile.name,
-          age: profile.age,
+          date_of_birth: profile.date_of_birth,
           color: profile.color,
           photo_url: profile.photo_url,
           notes: profile.notes,
@@ -351,7 +351,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         .select(`
           id,
           name,
-          age,
+          date_of_birth,
           color,
           photo_url,
           notes,
@@ -410,7 +410,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       return {
         id: profile.id,
         name: profile.name,
-        age: profile.age,
+        date_of_birth: profile.date_of_birth,
         user_id: profile.user_id, // Explicitly include user_id
         color: profile.color,
         photo_url: profile.photo_url,
@@ -443,7 +443,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         .from('profiles')
         .insert({
           name: profile.name,
-          age: profile.age,
+          date_of_birth: profile.date_of_birth,
           color: profile.color,
           photo_url: profile.photo_url,
           notes: profile.notes,
@@ -487,7 +487,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         .from('profiles')
         .update({
           name: profile.name,
-          age: profile.age,
+          date_of_birth: profile.date_of_birth,
           color: profile.color,
           photo_url: profile.photo_url,
           notes: profile.notes

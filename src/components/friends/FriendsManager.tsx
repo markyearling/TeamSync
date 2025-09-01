@@ -731,7 +731,12 @@ const FriendsManager: React.FC = () => {
                     {request.message && (
                       <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 italic bg-white dark:bg-gray-700 p-2 rounded">
                         "{request.message}"
-                      </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {profile.date_of_birth 
+                              ? `Born: ${new Date(profile.date_of_birth).toLocaleDateString()}`
+                              : 'Date of birth not set'
+                            }
+                          </div>
                     )}
                   </div>
                 </div>

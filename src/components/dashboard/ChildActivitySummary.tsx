@@ -10,7 +10,12 @@ const ChildActivitySummary: React.FC<ChildActivitySummaryProps> = ({ child }) =>
     <div className="flex items-center space-x-4">
       <div 
         className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold"
-        style={{ backgroundColor: child.color }}
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {child.date_of_birth 
+                              ? `Born: ${new Date(child.date_of_birth).toLocaleDateString()}`
+                              : 'Date of birth not set'
+                            }
+                          </div>
       >
         {child.name.charAt(0)}
       </div>

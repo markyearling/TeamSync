@@ -787,7 +787,12 @@ const SportsEngineConnection: React.FC = () => {
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-900 dark:text-white">{profile.name}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">Age: {profile.age}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {profile.date_of_birth 
+                              ? `Born: ${new Date(profile.date_of_birth).toLocaleDateString()}`
+                              : 'Date of birth not set'
+                            }
+                          </div>
                         </div>
                       </div>
                       {selectedProfiles.includes(profile.id) && (

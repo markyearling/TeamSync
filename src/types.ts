@@ -4,7 +4,7 @@ import { DivideIcon as LucideIcon } from 'lucide-react';
 export interface Child {
   id: string;
   name: string;
-  age: number;
+  date_of_birth?: string | null;
   color: string;
   photo_url?: string | null;
   notes?: string;

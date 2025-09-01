@@ -15,7 +15,7 @@ const Profiles: React.FC = () => {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
-    age: '',
+    date_of_birth: '',
     color: '#3B82F6',
     notes: ''
   });
@@ -75,7 +75,7 @@ const Profiles: React.FC = () => {
 
       await addProfile({
         name: formData.name,
-        age: parseInt(formData.age),
+        date_of_birth: formData.date_of_birth || null,
         color: formData.color,
         notes: formData.notes,
         photo_url: photoUrl,
@@ -93,7 +93,7 @@ const Profiles: React.FC = () => {
       setShowAddForm(false);
       setFormData({
         name: '',
-        age: '',
+        date_of_birth: '',
         color: '#3B82F6',
         notes: ''
       });
@@ -185,7 +185,12 @@ const Profiles: React.FC = () => {
                     </div>
                     <div className="ml-4">
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white">{child.name}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Age: {child.age}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {child.date_of_birth 
+                          ? `Born: ${new Date(child.date_of_birth).toLocaleDateString()}`
+                          : 'Date of birth not set'
+                        }
+                      </p>
                       {!child.isOwnProfile && (
                         <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                           {child.ownerName}'s child
@@ -348,22 +353,22 @@ const Profiles: React.FC = () => {
                     </div>
 
                     <div>
-                      <label htmlFor="age" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Age
+                      <label htmlFor="date_of_birth" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Date of Birth
                       </label>
                       <input
-                        type="number"
-                        id="age"
-                        name="age"
-                        value={formData.age}
+                        type="date"
+                        id="date_of_birth"
+                        name="date_of_birth"
+                        value={formData.date_of_birth}
                         onChange={handleInputChange}
-                        min="1"
-                        max="18"
-                        placeholder="Enter age"
+                        placeholder="Select date of birth"
                         className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                        required
                         autoComplete="off"
                       />
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Optional - used to calculate age and add birthday reminders
+                      </p>
                     </div>
 
                     <div>

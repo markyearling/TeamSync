@@ -42,7 +42,7 @@ const ChildProfile: React.FC = () => {
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
   const [formData, setFormData] = useState({
     name: '',
-    age: '',
+    date_of_birth: '',
     color: '#3B82F6',
     notes: ''
   });
@@ -109,7 +109,7 @@ const ChildProfile: React.FC = () => {
           setChild(profile);
           setFormData({
             name: profile.name,
-            age: profile.age.toString(),
+            date_of_birth: profile.date_of_birth || '',
             color: profile.color,
             notes: profile.notes || ''
           });
@@ -271,7 +271,7 @@ const ChildProfile: React.FC = () => {
 
       await updateProfile(id, {
         name: formData.name,
-        age: parseInt(formData.age),
+        date_of_birth: formData.date_of_birth || null,
         color: formData.color,
         notes: formData.notes,
         photo_url: photoUrl,
@@ -865,22 +865,22 @@ const ChildProfile: React.FC = () => {
                     </div>
 
                     <div>
-                      <label htmlFor="age" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Age
+                      <label htmlFor="date_of_birth" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Date of Birth
                       </label>
                       <input
-                        type="number"
-                        id="age"
-                        name="age"
-                        value={formData.age}
+                        type="date"
+                        id="date_of_birth"
+                        name="date_of_birth"
+                        value={formData.date_of_birth}
                         onChange={handleInputChange}
-                        min="1"
-                        max="18"
-                        placeholder="Enter age"
+                        placeholder="Select date of birth"
                         className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                        required
                         autoComplete="off"
                       />
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Optional - used to calculate age and add birthday reminders
+                      </p>
                     </div>
 
                     <div>

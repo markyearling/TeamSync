@@ -348,7 +348,12 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
                           )}
                           {selectedTeams.includes(team.id) && (
                             <FontAwesomeIcon icon={faCheck} className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                          )}
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            {profile.date_of_birth 
+                              ? `Born: ${new Date(profile.date_of_birth).toLocaleDateString()}`
+                              : 'Date of birth not set'
+                            }
+                          </div>
                         </div>
                       </div>
                     </div>
