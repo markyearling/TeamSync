@@ -267,6 +267,18 @@ const SportsEngineConnection: React.FC = () => {
         throw checkError;
       }
 
+      // Check if team exists globally (created by any user)
+      const { data: globalTeam, error: globalCheckError } = await supabase
+        .from('platform_teams')
+        .select('*')
+        .eq('platform', 'SportsEngine')
+        .eq('team_id', teamId)
+        .maybeSingle();
+
+      if (globalCheckError && globalCheckError.code !== 'PGRST116') {
+        throw globalCheckError;
+      }
+
       let team;
       if (existingTeam) {
         // Update existing team
@@ -284,8 +296,26 @@ const SportsEngineConnection: React.FC = () => {
 
         if (updateError) throw updateError;
         team = updatedTeam;
+      } else if (globalTeam) {
+        // Team exists but not for this user - create a new record for this user
+        const { data: newTeam, error: insertError } = await supabase
+          .from('platform_teams')
+          .insert({
+            platform: 'SportsEngine',
+            team_id: teamId,
+            team_name: teamName,
+            sport: 'Soccer',
+            ics_url: icsUrl,
+            sync_status: 'pending',
+            user_id: user.id
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        team = newTeam;
       } else {
-        // Insert new team for this user
+        // Team doesn't exist at all - create new team
         const { data: newTeam, error: insertError } = await supabase
           .from('platform_teams')
           .insert({
