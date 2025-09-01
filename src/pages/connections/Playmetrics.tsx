@@ -342,19 +342,6 @@ const Playmetrics: React.FC = () => {
       }
 
       if (!team) throw new Error('Failed to create or update team');
-          platform: 'Playmetrics',
-          team_id: teamId,
-          team_name: teamName,
-          sport: 'Soccer',
-          ics_url: icsUrl,
-          sync_status: 'pending',
-          user_id: user.id
-        }, { onConflict: 'platform,team_id' })
-        .select()
-        .single();
-
-      if (teamError) throw teamError;
-      if (!team) throw new Error('Failed to create or update team');
 
       // Immediately sync the calendar to get events and team name
       try {
