@@ -1018,6 +1018,53 @@ const ChildProfile: React.FC = () => {
         <TeamMapping
           profileId={child.id}
           onClose={() => setShowTeamMapping(false)}
+          onSaveSuccess={async () => {
+            // Refresh the profile data after team mapping changes
+            if (id) {
+              try {
+                const profile = await getProfile(id);
+                setChild(profile);
+                
+                // Refresh events for this profile
+                const { data: eventData, error: eventError } = await supabase
+                  .from('events')
+                  .select('*')
+                  .eq('profile_id', id)
+                  .order('start_time', { ascending: true });
+
+                if (eventError) throw eventError;
+
+                // Get the user_id for this profile
+                const { data: profileData } = await supabase
+                  .from('profiles')
+                  .select('user_id')
+                  .eq('id', id)
+                  .single();
+
+                const formattedEvents = eventData.map(event => ({
+                  ...event,
+                  id: event.id,
+                  startTime: new Date(event.start_time),
+                  endTime: new Date(event.end_time),
+                  sportIcon: getSportDetails(event.sport).icon,
+                  child: {
+                    ...profile,
+                    user_id: profileData?.user_id
+                  },
+                  color: event.color,
+                  platformIcon: CalendarIcon,
+                  isOwnEvent: profile.isOwnProfile,
+                  isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
+                  ownerName: profile.ownerName
+                }));
+
+                setEvents(formattedEvents);
+                setFilteredEvents(formattedEvents);
+              } catch (error) {
+                console.error('Error refreshing profile after team mapping save:', error);
+              }
+            }
+          }}
         />
       )}
     </div>
