@@ -301,7 +301,7 @@ const Playmetrics: React.FC = () => {
           sport: 'Soccer',
           ics_url: icsUrl,
           sync_status: 'pending',
-          user_id: user.id
+          user_id: session.user.id
         }, {
           onConflict: 'platform,team_id'
         })
