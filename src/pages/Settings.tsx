@@ -1,6 +1,7 @@
+// src/pages/Settings.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Globe, Lock, Mail, Moon, Sun, User, Phone, Calendar as CalendarIcon, Plus, Trash2, Save, Clock, Eye, EyeOff, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Bell, Globe, Lock, Mail, Moon, Sun, User, Phone, Calendar as CalendarIcon, Plus, Trash2, Save, Clock, Eye, EyeOff, AlertCircle, CheckCircle, X } from 'lucide-react'; // X added here
 import { useTheme } from '../context/ThemeContext';
 import { saveSettings, supabase } from '../lib/supabase';
 import { useCapacitor } from '../hooks/useCapacitor';
@@ -57,6 +58,7 @@ const Settings: React.FC = () => {
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
 
   useEffect(() => {
     checkAuth();
@@ -169,7 +171,7 @@ const Settings: React.FC = () => {
       reader.onloadend = () => {
         setPhotoPreview(reader.result as string);
       };
-      reader.readAsDataURL(fileOrDataUrl);
+      reader.readAsDataURL(file);
       
       setHasUnsavedChanges(true);
     }
@@ -213,17 +215,17 @@ const Settings: React.FC = () => {
     setHasUnsavedChanges(true);
   };
 
-  const validatePassword = (password: string): string | null => {
-    if (password.length < 8) {
+  const validatePassword = (pwd: string): string | null => {
+    if (pwd.length < 8) {
       return 'Password must be at least 8 characters long';
     }
-    if (!/[A-Z]/.test(password)) {
+    if (!/[A-Z]/.test(pwd)) {
       return 'Password must contain at least one uppercase letter';
     }
-    if (!/[a-z]/.test(password)) {
+    if (!/[a-z]/.test(pwd)) {
       return 'Password must contain at least one lowercase letter';
     }
-    if (!/[0-9]/.test(password)) {
+    if (!/[0-9]/.test(pwd)) {
       return 'Password must contain at least one number';
     }
     return null;
@@ -281,7 +283,6 @@ const Settings: React.FC = () => {
   const handleDeleteAccount = async () => {
     setIsDeletingAccount(true);
     setDeleteError(null);
-    
     try {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
@@ -341,7 +342,7 @@ const Settings: React.FC = () => {
         .eq('user_id', userId);
       if (usError) console.error('Error deleting user_settings:', usError);
 
-      // 6. Delete conversations (where user is participant 1 or 2)
+      // 6. Delete conversations (where user is either participant 1 or 2)
       console.log('Deleting conversations...');
       const { error: convError } = await supabase
         .from('conversations')
@@ -365,19 +366,20 @@ const Settings: React.FC = () => {
         .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
       if (fsError) console.error('Error deleting friendships:', fsError);
 
-      // 9. Sign out and redirect
-      console.log('Account deletion process completed. Signing out...');
+      // 9. Delete the user from Supabase Auth
+      console.log('Deleting user from Supabase Auth...');
+      const { error: authDeleteError } = await supabase.auth.admin.deleteUser(userId);
+      if (authDeleteError) {
+        throw authDeleteError;
+      }
+
+      console.log('Account and associated data deleted successfully.');
       await supabase.auth.signOut();
-      navigate('/auth/signin', { 
-        state: { 
-          message: 'Your account has been successfully deleted.' 
-        } 
-      });
+      navigate('/auth/signin', { state: { message: 'Your account has been successfully deleted.' } });
 
     } catch (err) {
       console.error('Failed to delete account:', err);
       setDeleteError(err instanceof Error ? err.message : 'An unknown error occurred during account deletion.');
-    } finally {
       setIsDeletingAccount(false);
     }
   };
@@ -390,7 +392,7 @@ const Settings: React.FC = () => {
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
           >
             <Save className="h-4 w-4 mr-2" />
             {isSaving ? 'Saving...' : 'Save Changes'}
@@ -584,11 +586,11 @@ const Settings: React.FC = () => {
                       >
                         <option value={15}>15 minutes before</option>
                         <option value={30}>30 minutes before</option>
-                        <option value={60}>1 hour before</option>
-                        <option value={120}>2 hours before</option>
-                        <option value={360}>6 hours before</option>
-                        <option value={720}>12 hours before</option>
-                        <option value={1440}>1 day before</option>
+                        <option value="60">1 hour before</option>
+                        <option value="120">2 hours before</option>
+                        <option value="360">6 hours before</option>
+                        <option value="720">12 hours before</option>
+                        <option value="1440">1 day before</option>
                       </select>
                       <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         Choose how far in advance you want to be notified about upcoming events
@@ -608,7 +610,7 @@ const Settings: React.FC = () => {
                       <p className="text-sm text-gray-500 dark:text-gray-400">Update your password</p>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => setShowPasswordSection(!showPasswordSection)}
                     className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-500"
                   >
@@ -709,7 +711,7 @@ const Settings: React.FC = () => {
                     <p className="text-sm text-gray-500 dark:text-gray-400">Choose your preferred language</p>
                   </div>
                 </div>
-                <select 
+                <select
                   value={settings.language}
                   onChange={(e) => handleInputChange('language', e.target.value)}
                   className="text-sm text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700"
@@ -754,111 +756,93 @@ const Settings: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Delete Account Section */}
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-        <div className="p-6">
+        {/* Delete Account Section */}
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg mt-6 p-6">
           <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Danger Zone</h2>
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Delete Account</h3>
-                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                  Permanently delete your account and all associated data. This action cannot be undone.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowDeleteConfirmation(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Account
-              </button>
+          <div className="flex items-center justify-between bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div>
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Delete Account</h3>
+              <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                Permanently delete your account and all associated data. This action cannot be undone.
+              </p>
             </div>
+            <button
+              onClick={() => setShowDeleteConfirmation(true)}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              Delete Account
+            </button>
           </div>
         </div>
-      </div>
 
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirmation && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Confirm Account Deletion</h3>
-              <button
-                onClick={() => setShowDeleteConfirmation(false)}
-                className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
-                disabled={isDeletingAccount}
-              >
-                <X className="h-6 w-6" />
-              </button>
-            </div>
-
-            <div className="p-6">
-              {deleteError && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4 flex items-start mb-4">
-                  <AlertCircle className="h-5 w-5 text-red-400 dark:text-red-300 mt-0.5 mr-3" />
-                  <p className="text-sm text-red-700 dark:text-red-300">{deleteError}</p>
-                </div>
-              )}
-              
-              <div className="flex items-center justify-center text-red-600 dark:text-red-400 mb-4">
-                <AlertCircle className="h-12 w-12" />
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirmation && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">Confirm Account Deletion</h3>
+                <button
+                  onClick={() => setShowDeleteConfirmation(false)}
+                  className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
+                >
+                  <X className="h-6 w-6" />
+                </button>
               </div>
-              
-              <p className="text-gray-700 dark:text-gray-300 mb-4 text-center">
-                Are you absolutely sure you want to delete your account?
-              </p>
-              
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                This will permanently delete your account and all associated data, including:
-              </p>
-              
-              <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 mb-6 space-y-1">
-                <li>Your user profile and settings</li>
-                <li>All children profiles you own, their events, and team mappings</li>
-                <li>All platform connections</li>
-                <li>Your notifications and scheduled reminders</li>
-                <li>Your conversations and messages</li>
-                <li>Your friend requests and friendships</li>
-              </ul>
-              
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3">
-                <p className="text-sm text-red-700 dark:text-red-300 font-medium text-center">
+
+              <div className="p-6">
+                {deleteError && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4 flex items-start mb-4">
+                    <AlertCircle className="h-5 w-5 text-red-400 dark:text-red-300 mt-0.5 mr-3" />
+                    <p className="text-sm text-red-700 dark:text-red-300">{deleteError}</p>
+                  </div>
+                )}
+                <p className="text-gray-700 dark:text-gray-300 mb-4">
+                  Are you absolutely sure you want to delete your account?
+                  This will permanently delete your account and all associated data, including:
+                </p>
+                <ul className="list-disc list-inside text-gray-600 dark:text-gray-400 mb-6 space-y-1">
+                  <li>Your user profile and settings</li>
+                  <li>All children profiles you own, their events, and team mappings</li>
+                  <li>All platform connections</li>
+                  <li>Your notifications and scheduled reminders</li>
+                  <li>Your conversations and messages</li>
+                  <li>Your friend requests and friendships</li>
+                </ul>
+                <p className="text-red-600 dark:text-red-400 font-medium">
                   This action cannot be undone.
                 </p>
               </div>
-            </div>
 
-            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">
-              <button
-                onClick={() => setShowDeleteConfirmation(false)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
-                disabled={isDeletingAccount}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteAccount}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                disabled={isDeletingAccount}
-              >
-                {isDeletingAccount ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                    Deleting...
-                  </>
-                ) : (
-                  'Delete Permanently'
-                )}
-              </button>
+              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowDeleteConfirmation(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  disabled={isDeletingAccount}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  disabled={isDeletingAccount}
+                >
+                  {isDeletingAccount ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete Permanently'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 };
 
 export default Settings;
+
