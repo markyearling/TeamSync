@@ -103,6 +103,7 @@ const ChildProfile: React.FC = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
+      console.log('ChildProfile: Initial fetchProfile/events running');
       if (id) {
         try {
           const profile = await getProfile(id);
@@ -1019,11 +1020,13 @@ const ChildProfile: React.FC = () => {
           profileId={child.id}
           onClose={() => setShowTeamMapping(false)}
           onSaveSuccess={async () => {
+            console.log('ChildProfile: onSaveSuccess callback triggered');
             // Refresh the profile data after team mapping changes
             if (id) {
               try {
                 const profile = await getProfile(id);
                 setChild(profile);
+                console.log('ChildProfile: Child state updated');
                 
                 // Refresh events for this profile
                 const { data: eventData, error: eventError } = await supabase
@@ -1060,6 +1063,7 @@ const ChildProfile: React.FC = () => {
 
                 setEvents(formattedEvents);
                 setFilteredEvents(formattedEvents);
+                console.log('ChildProfile: Events state updated');
               } catch (error) {
                 console.error('Error refreshing profile after team mapping save:', error);
               }

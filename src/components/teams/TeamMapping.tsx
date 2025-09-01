@@ -104,6 +104,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
   const handleSave = async () => {
     try {
       setSaving(true);
+      console.log('TeamMapping: Starting save process');
 
       // Delete existing mappings
       await supabase
@@ -175,6 +176,11 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
       }
 
       setSyncing(null);
+      console.log('TeamMapping: Calling onSaveSuccess');
+      if (onSaveSuccess) {
+        await onSaveSuccess();
+      }
+      console.log('TeamMapping: Modal closing');
       onClose();
     } catch (error) {
       console.error('Error saving team mappings:', error);
