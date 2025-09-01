@@ -294,7 +294,7 @@ const Playmetrics: React.FC = () => {
       // Add or update team in platform_teams using upsert
       const { data: team, error: teamError } = await supabase
         .from('platform_teams')
-        .insert({
+        .upsert({
           platform: 'Playmetrics',
           team_id: teamId,
           team_name: teamName,
@@ -302,7 +302,7 @@ const Playmetrics: React.FC = () => {
           ics_url: icsUrl,
           sync_status: 'pending',
           user_id: user.id
-        })
+        }, { onConflict: 'platform,team_id' })
         .select()
         .single();
 
