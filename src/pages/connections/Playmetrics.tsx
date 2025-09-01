@@ -282,7 +282,7 @@ const Playmetrics: React.FC = () => {
       const teamName = `Playmetrics Team ${teamId}`;
 
       // Check if this user already has this team
-      const { data: existingTeam, error: checkError } = await supabase
+      const { data: existingUserTeam, error: userCheckError } = await supabase
         .from('platform_teams')
         .select('*')
         .eq('platform', 'Playmetrics')
@@ -290,12 +290,24 @@ const Playmetrics: React.FC = () => {
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
-        throw checkError;
+      if (userCheckError && userCheckError.code !== 'PGRST116') { // PGRST116 is "not found" error
+        throw userCheckError;
+      }
+
+      // Check if team exists globally (created by any user)
+      const { data: globalTeam, error: globalCheckError } = await supabase
+        .from('platform_teams')
+        .select('*')
+        .eq('platform', 'Playmetrics')
+        .eq('team_id', teamId)
+        .maybeSingle();
+
+      if (globalCheckError && globalCheckError.code !== 'PGRST116') {
+        throw globalCheckError;
       }
 
       let team;
-      if (existingTeam) {
+      if (existingUserTeam) {
         // Update existing team
         const { data: updatedTeam, error: updateError } = await supabase
           .from('platform_teams')
@@ -305,14 +317,32 @@ const Playmetrics: React.FC = () => {
             ics_url: icsUrl,
             sync_status: 'pending'
           })
-          .eq('id', existingTeam.id)
+          .eq('id', existingUserTeam.id)
           .select()
           .single();
 
         if (updateError) throw updateError;
         team = updatedTeam;
+      } else if (globalTeam) {
+        // Team exists but not for this user - create a new record for this user
+        const { data: newTeam, error: insertError } = await supabase
+          .from('platform_teams')
+          .insert({
+            platform: 'Playmetrics',
+            team_id: teamId,
+            team_name: teamName,
+            sport: 'Soccer',
+            ics_url: icsUrl,
+            sync_status: 'pending',
+            user_id: user.id
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        team = newTeam;
       } else {
-        // Insert new team for this user
+        // Team doesn't exist at all - create new team
         const { data: newTeam, error: insertError } = await supabase
           .from('platform_teams')
           .insert({
