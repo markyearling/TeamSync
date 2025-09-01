@@ -439,8 +439,8 @@ const LandingPage: React.FC = () => {
             </div>
             <div className="bg-white rounded-2xl shadow-xl p-4 border border-gray-100">
               <img 
-                src="https://images.pexels.com/photos/196644/pexels-photo-196644.jpeg?auto=compress&cs=tinysrgb&w=800" 
-                alt="Event details with Google Maps integration showing location and event information"
+                src="/googlemaps.jpeg" 
+                alt="FamSink event details with Google Maps integration showing location and event information"
                 className="w-full h-auto rounded-xl shadow-lg"
               />
               <div className="mt-4 p-4 bg-gray-50 rounded-lg">
