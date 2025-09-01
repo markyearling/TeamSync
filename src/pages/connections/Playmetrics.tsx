@@ -327,7 +327,7 @@ const Playmetrics: React.FC = () => {
         setSuccess(`Team calendar added successfully! Found ${syncResult.eventCount || 0} events. You can now map it to your children's profiles.`);
       } catch (syncError) {
         console.error('Error syncing calendar:', syncError);
-        setSuccess('Team calendar added successfully! You can now map it to your children\'s profiles and sync events.');
+        setError('Failed to sync calendar events. The team was added but events could not be imported. Please try refreshing the team later.');
       }
 
       setIcsUrl('');
