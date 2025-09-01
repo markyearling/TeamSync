@@ -291,10 +291,57 @@ const Playmetrics: React.FC = () => {
       }
       const teamName = `Playmetrics Team ${teamId}`;
 
-      // Add or update team in platform_teams using upsert
-      const { data: team, error: teamError } = await supabase
+      // Check if this user already has this team
+      const { data: existingTeam, error: checkError } = await supabase
         .from('platform_teams')
-        .upsert({
+        .select('*')
+        .eq('platform', 'Playmetrics')
+        .eq('team_id', teamId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "not found" error
+        throw checkError;
+      }
+
+      let team;
+      if (existingTeam) {
+        // Update existing team
+        const { data: updatedTeam, error: updateError } = await supabase
+          .from('platform_teams')
+          .update({
+            team_name: teamName,
+            sport: 'Soccer',
+            ics_url: icsUrl,
+            sync_status: 'pending'
+          })
+          .eq('id', existingTeam.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        team = updatedTeam;
+      } else {
+        // Insert new team
+        const { data: newTeam, error: insertError } = await supabase
+          .from('platform_teams')
+          .insert({
+            platform: 'Playmetrics',
+            team_id: teamId,
+            team_name: teamName,
+            sport: 'Soccer',
+            ics_url: icsUrl,
+            sync_status: 'pending',
+            user_id: user.id
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        team = newTeam;
+      }
+
+      if (!team) throw new Error('Failed to create or update team');
           platform: 'Playmetrics',
           team_id: teamId,
           team_name: teamName,
