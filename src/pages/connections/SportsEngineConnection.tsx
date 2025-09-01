@@ -266,7 +266,7 @@ const SportsEngineConnection: React.FC = () => {
           sync_status: 'pending',
           user_id: user.id
         }, {
-          onConflict: 'platform,team_id'
+          onConflict: 'user_id,platform,team_id'
         })
         .select()
         .single();
