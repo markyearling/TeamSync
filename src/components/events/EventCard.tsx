@@ -73,16 +73,16 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
         <div className="flex items-start space-x-4">
           <div className="flex-shrink-0">
             <div
-              className="w-12 h-12 rounded-lg flex bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 overflow-hidden"
+              className="w-14 h-12 rounded-lg flex bg-gray-100 dark:bg-gray-700 overflow-hidden"
             >
               {/* Vertical Day */}
-              <div className="w-4 flex flex-col justify-center items-center vertical-day-text text-xs font-medium uppercase">
+              <div className="w-4 flex flex-col justify-center items-center vertical-day-text text-xs font-medium uppercase bg-blue-600 text-white">
                 {event.startTime.toLocaleString('default', { weekday: 'short' })}
               </div>
               {/* Month and Day Number */}
               <div className="flex-1 flex flex-col justify-center items-center">
-                <div className="text-xs font-medium">{event.startTime.toLocaleString('default', { month: 'short' })}</div>
-                <div className="text-lg font-bold">{event.startTime.getDate()}</div>
+                <div className="text-xs font-medium text-gray-900 dark:text-white">{event.startTime.toLocaleString('default', { month: 'short' })}</div>
+                <div className="text-lg font-bold text-gray-900 dark:text-white">{event.startTime.getDate()}</div>
               </div>
             </div>
           </div>
