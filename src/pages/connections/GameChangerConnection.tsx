@@ -191,10 +191,10 @@ const GameChangerConnection: React.FC = () => {
         if (updateError) throw updateError;
         team = updatedTeam;
       } else {
-        // Use upsert to handle potential conflicts with other users' teams
-        const { data: newTeam, error: upsertError } = await supabase
+        // Insert new team for this user
+        const { data: newTeam, error: insertError } = await supabase
           .from('platform_teams')
-          .upsert({
+          .insert({
             platform: 'GameChanger',
             team_id: teamId,
             team_name: teamName,
@@ -202,14 +202,11 @@ const GameChangerConnection: React.FC = () => {
             ics_url: icsUrl,
             sync_status: 'pending',
             user_id: user.id
-          }, {
-            onConflict: 'platform,team_id',
-            ignoreDuplicates: false
           })
           .select()
-          .maybeSingle();
+          .single();
 
-        if (upsertError) throw upsertError;
+        if (insertError) throw insertError;
         team = newTeam;
       }
 
