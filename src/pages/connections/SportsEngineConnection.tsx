@@ -305,19 +305,6 @@ const SportsEngineConnection: React.FC = () => {
       }
 
       if (!team) throw new Error('Failed to create or update team');
-          platform: 'SportsEngine',
-          team_id: teamId,
-          team_name: teamName,
-          sport: 'Unknown',
-          ics_url: icsUrl,
-          sync_status: 'pending',
-          user_id: user.id
-        }, { onConflict: 'platform,team_id' })
-        .select()
-        .single();
-
-      if (teamError) throw teamError;
-      if (!team) throw new Error('Failed to create or update team');
 
       // Immediately sync the calendar to get events and team name
       try {
