@@ -650,6 +650,108 @@ const Settings: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Account Section */}
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div className="p-6">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Danger Zone</h2>
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-red-800 dark:text-red-200">Delete Account</h3>
+                <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                  Permanently delete your account and all associated data. This action cannot be undone.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowDeleteConfirmation(true)}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmation && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white">Confirm Account Deletion</h3>
+              <button
+                onClick={() => setShowDeleteConfirmation(false)}
+                className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
+                disabled={isDeletingAccount}
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {deleteError && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4 flex items-start mb-4">
+                  <AlertCircle className="h-5 w-5 text-red-400 dark:text-red-300 mt-0.5 mr-3" />
+                  <p className="text-sm text-red-700 dark:text-red-300">{deleteError}</p>
+                </div>
+              )}
+              
+              <div className="flex items-center justify-center text-red-600 dark:text-red-400 mb-4">
+                <AlertCircle className="h-12 w-12" />
+              </div>
+              
+              <p className="text-gray-700 dark:text-gray-300 mb-4 text-center">
+                Are you absolutely sure you want to delete your account?
+              </p>
+              
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                This will permanently delete your account and all associated data, including:
+              </p>
+              
+              <ul className="list-disc list-inside text-sm text-gray-600 dark:text-gray-400 mb-6 space-y-1">
+                <li>Your user profile and settings</li>
+                <li>All children profiles you own, their events, and team mappings</li>
+                <li>All platform connections</li>
+                <li>Your notifications and scheduled reminders</li>
+                <li>Your conversations and messages</li>
+                <li>Your friend requests and friendships</li>
+              </ul>
+              
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3">
+                <p className="text-sm text-red-700 dark:text-red-300 font-medium text-center">
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteConfirmation(false)}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                disabled={isDeletingAccount}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                disabled={isDeletingAccount}
+              >
+                {isDeletingAccount ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Permanently'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
