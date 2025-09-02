@@ -487,6 +487,11 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               {children}
               <div className="ml-4 md:ml-6">
                 <Link to="/dashboard" className="text-xl font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  <img 
+                    src="/famsink-new-logo.png" 
+                    alt="FamSink Logo" 
+                    className="h-8 w-8 inline-block mr-2"
+                  />
                   FamSink
                 </Link>
               </div>

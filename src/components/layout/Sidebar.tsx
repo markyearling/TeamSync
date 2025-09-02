@@ -59,9 +59,11 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
     <div className="flex h-full flex-col overflow-y-auto bg-white dark:bg-gray-800">
       <div className={`flex items-center justify-between px-4 py-5 ${isIOS ? 'pt-[env(safe-area-inset-top)]' : ''}`}>
         <div className="flex items-center">
-          <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-            <Calendar className="h-5 w-5 text-white" />
-          </div>
+          <img 
+            src="/famsink-new-logo.png" 
+            alt="FamSink Logo" 
+            className="h-8 w-8 rounded-full object-cover"
+          />
           <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">FamSink</span>
         </div>
         <button 
