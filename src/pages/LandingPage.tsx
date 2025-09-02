@@ -125,6 +125,9 @@ const LandingPage: React.FC = () => {
               <Link to="/pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Pricing
               </Link>
+              <Link to="/mobile-apps" className="text-gray-600 hover:text-gray-900 transition-colors">
+                Mobile Apps
+              </Link>
             </nav>
             <Link
               to="/auth/signin"
@@ -558,7 +561,7 @@ const LandingPage: React.FC = () => {
               <ul className="space-y-2 text-gray-400">
                 <li><Link to="/features" className="hover:text-white transition-colors">Features</Link></li>
                 <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-                <li><Link to="/auth/signup" className="hover:text-white transition-colors">Mobile Apps</Link></li>
+                <li><Link to="/mobile-apps" className="hover:text-white transition-colors">Mobile Apps</Link></li>
               </ul>
             </div>
             
