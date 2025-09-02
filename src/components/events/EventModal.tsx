@@ -444,7 +444,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                         </div>
                       )}
                     </div>
-                  )}
+                  
                   
                   {/* Get Directions Button */}
                   {event.location && (
