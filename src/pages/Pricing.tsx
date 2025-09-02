@@ -313,7 +313,7 @@ const Pricing: React.FC = () => {
               <ul className="space-y-2 text-gray-400">
                 <li><Link to="/features" className="hover:text-white transition-colors">Features</Link></li>
                 <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
-                <li><Link to="/auth/signup" className="hover:text-white transition-colors">Mobile Apps</Link></li>
+                <li><Link to="/mobileapps" className="hover:text-white transition-colors">Mobile Apps</Link></li>
               </ul>
             </div>
             
