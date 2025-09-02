@@ -14,6 +14,8 @@ import Friends from './pages/Friends';
 import Settings from './pages/Settings';
 import ChildProfile from './pages/ChildProfile';
 import NotFound from './pages/NotFound';
+import LandingPage from './pages/LandingPage';
+import Features from './pages/Features';
 import SignIn from './pages/auth/SignIn';
 import SignUp from './pages/auth/SignUp';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -185,33 +187,104 @@ const AppContent = () => {
 
   return (
     <Routes>
+      {/* Public routes */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/features" element={<Features />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route path="/help" element={<Help />} />
+      
+      {/* Auth routes */}
       <Route path="/auth/signin" element={<SignIn />} />
       <Route path="/auth/signup" element={<SignUp />} />
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      
+      {/* Special routes */}
       <Route path="/test-email" element={<TestEmail />} />
       <Route path="/connections/teamsnap/callback" element={<TeamSnapCallback />} />
-      <Route path="/privacy" element={<PrivacyPolicy />} />
-      <Route path="/" element={
+      
+      {/* Protected app routes */}
+      <Route path="/dashboard" element={
         <ProtectedRoute>
-          <Layout />
+          <Layout>
+            <Dashboard />
+          </Layout>
         </ProtectedRoute>
-      }>
-        <Route index element={<Dashboard />} />
-        <Route path="calendar" element={<Calendar />} />
-        <Route path="connections" element={<Connections />} />
-        <Route path="connections/teamsnap" element={<TeamSnapConnection />} />
-        <Route path="connections/playmetrics" element={<Playmetrics />} />
-        <Route path="connections/sportsengine" element={<SportsEngineConnection />} />
-        <Route path="connections/gamechanger" element={<GameChangerConnection />} />
-        <Route path="profiles" element={<Profiles />} />
-        <Route path="profiles/:id" element={<ChildProfile />} />
-        <Route path="friends" element={<Friends />} />
-        <Route path="settings" element={<Settings />} />
-        <Route path="help" element={<Help />} />
-        <Route path="*" element={<NotFound />} />
-      </Route>
+      } />
+      <Route path="/calendar" element={
+        <ProtectedRoute>
+          <Layout>
+            <Calendar />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/connections" element={
+        <ProtectedRoute>
+          <Layout>
+            <Connections />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/connections/teamsnap" element={
+        <ProtectedRoute>
+          <Layout>
+            <TeamSnapConnection />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/connections/playmetrics" element={
+        <ProtectedRoute>
+          <Layout>
+            <Playmetrics />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/connections/sportsengine" element={
+        <ProtectedRoute>
+          <Layout>
+            <SportsEngineConnection />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/connections/gamechanger" element={
+        <ProtectedRoute>
+          <Layout>
+            <GameChangerConnection />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/profiles" element={
+        <ProtectedRoute>
+          <Layout>
+            <Profiles />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/profiles/:id" element={
+        <ProtectedRoute>
+          <Layout>
+            <ChildProfile />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/friends" element={
+        <ProtectedRoute>
+          <Layout>
+            <Friends />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/settings" element={
+        <ProtectedRoute>
+          <Layout>
+            <Settings />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      
+      {/* Catch-all route */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 };
