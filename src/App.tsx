@@ -51,6 +51,17 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
         if (error) {
           console.error('Error fetching user timezone for notifications:', error);
           return;
+        }
+
+        if (userSettings?.timezone) {
+          setUserTimezone(userSettings.timezone);
+        }
+      } catch (err) {
+        console.error('Error in fetchUserTimezone:', err);
+      }
+    };
+
+    fetchUserTimezone();
 
     // Set up real-time subscription for notifications (excluding messages)
     const setupSubscription = async () => {
