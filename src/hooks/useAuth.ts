@@ -7,21 +7,16 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('[useAuth.ts] Initial session check:', session ? 'Session exists' : 'No session');
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('[useAuth.ts] Auth state changed:', event, session ? 'Session exists' : 'No session');
       
-      // Always update the user state based on the current session
-      // This ensures password recovery and other auth events are properly handled
+      // Handle initial session and all subsequent auth state changes
       setUser(session?.user ?? null);
-      setLoading(false);
+      
+      // Only set loading to false after we've processed the initial session
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        setLoading(false);
+      }
     });
 
     return () => subscription.unsubscribe();
