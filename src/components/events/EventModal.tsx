@@ -393,8 +393,8 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                     <MapPin className="h-5 w-5 mr-3" />
                     <span>{event.location_name || event.location}</span>
                   </div>
-                  
-                  {mapsLoaded && !mapsLoadError && (
+
+                  {mapsLoaded && !mapsLoadError ? (
                     <div 
                       ref={mapContainerRef}
                       className="h-64 w-full rounded-lg overflow-hidden"
@@ -441,49 +441,30 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                         </div>
                       )}
                     </div>
-                  )}
-
-                  {/* Get Directions Button */}
-                  {event.location && (
-                    <div className="mt-4">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const encodedLocation = encodeURIComponent(event.location);
-                          const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}`;
-                          window.open(directionsUrl, '_blank');
-                        }}
-                        className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
-                      >
-                        <MapPin className="h-5 w-5 mr-2" />
-                        Get Directions
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-                  {mapsLoadError && (
+                  ) : mapsLoadError ? (
                     <div className="h-64 w-full rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 flex flex-col items-center justify-center p-4">
                       <p className="text-red-500 dark:text-red-400 mb-2">Error loading map: {mapsLoadError.message}</p>
                       <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
                         {event.location}
                       </p>
-                      {/* Get Directions Button for map error case */}
-                      <div className="mt-4">
-                        <button
-                          onClick={() => {
-                            const encodedLocation = encodeURIComponent(event.location);
-                            const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}`;
-                            window.open(directionsUrl, '_blank');
-                          }}
-                          className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
-                        >
-                          <MapPin className="h-4 w-4 mr-2" />
-                          Get Directions
-                        </button>
-                      </div>
                     </div>
-                  )}
+                  ) : null}
+
+                  {/* Get Directions Button */}
+                  <div className="mt-4">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const encodedLocation = encodeURIComponent(event.location);
+                        const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}`;
+                        window.open(directionsUrl, '_blank');
+                      }}
+                      className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors"
+                    >
+                      <MapPin className="h-5 w-5 mr-2" />
+                      Get Directions
+                    </button>
+                  </div>
                 </div>
               )}
 
