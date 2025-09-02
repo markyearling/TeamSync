@@ -416,11 +416,8 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                               fullscreenControl: true,
                               mapId: import.meta.env.VITE_GOOGLE_MAPS_MAP_ID
                             }}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                            }}
                             onLoad={handleMapLoad}
-                           onClick={handleMapClick}
+                            onClick={handleMapClick}
                           >
                             {/* Marker is added via useEffect when mapRef and mapCenter are available */}
                           </GoogleMap>
@@ -500,7 +497,10 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
               className="flex items-center space-x-2 text-sm"
               style={{ color: event.platformColor }}
             >
-              <event.platformIcon className="h-4 w-4" />
+              {(() => {
+                const PlatformIcon = event.platformIcon;
+                return <PlatformIcon className="h-4 w-4" />;
+              })()}
               <span>Synced from {event.platform}</span>
             </div>
           </div>

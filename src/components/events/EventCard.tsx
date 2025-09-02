@@ -124,7 +124,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
               className="h-8 w-8 rounded flex items-center justify-center"
               style={{ backgroundColor: event.platformColor + '20', color: event.platformColor }}
             >
-              <event.platformIcon className="h-4 w-4" />
+              {(() => {
+                const PlatformIcon = event.platformIcon;
+                return <PlatformIcon className="h-4 w-4" />;
+              })()}
             </div>
           </div>
         </div>
