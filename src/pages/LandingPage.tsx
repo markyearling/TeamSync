@@ -111,12 +111,7 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <img 
-                src="/famsink-new-logo.png" 
-                alt="FamSink Logo" 
-                className="h-10 w-10 rounded-full object-cover"
-              />
-              <span className="ml-3 text-2xl font-bold text-gray-900">FamSink</span>
+              <span className="text-2xl font-bold text-gray-900">FamSink</span>
             </div>
             <Link
               to="/auth/signin"
