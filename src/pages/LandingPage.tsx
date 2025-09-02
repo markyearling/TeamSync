@@ -525,12 +525,7 @@ const LandingPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-4">
-                <img 
-                  src="/famsink-new-logo.png" 
-                  alt="FamSink Logo" 
-                  className="h-8 w-8 rounded-full object-cover"
-                />
-                <span className="ml-3 text-xl font-bold">FamSink</span>
+                <span className="text-xl font-bold">FamSink</span>
               </div>
               <p className="text-gray-400 mb-4 max-w-md">
                 The ultimate family sports schedule management app. Simplifying youth sports for busy families everywhere.
