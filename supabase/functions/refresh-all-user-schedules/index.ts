@@ -166,12 +166,13 @@ Deno.serve(async (req) => {
                 break;
 
               case 'TeamSnap':
-                // TeamSnap requires OAuth tokens and API calls, not ICS URLs
-                // For now, we'll skip TeamSnap teams in the cron job
-                // A dedicated TeamSnap sync function would need to be created
-                console.warn(`TeamSnap sync for team ${team.team_name} requires OAuth tokens. Skipping in cron job.`);
-                errorMessages.push(`TeamSnap sync not implemented for cron jobs`);
-                continue;
+                syncFunctionName = 'sync-teamsnap-calendar';
+                syncBody = { 
+                  teamId: team.id, 
+                  profileId: mapping.profile_id, 
+                  userId: team.user_id 
+                };
+                break;
 
               default:
                 console.warn(`Unknown platform: ${team.platform}. Skipping sync for team ${team.id}.`);
