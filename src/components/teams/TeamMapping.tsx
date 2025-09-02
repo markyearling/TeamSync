@@ -178,9 +178,7 @@ const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
 
       setSyncing(null);
       console.log('TeamMapping: Calling onSaveSuccess');
-      if (onSaveSuccess) {
-        await onSaveSuccess();
-      }
+      await onSaveSuccess?.();
       console.log('TeamMapping: Modal closing');
       onClose();
     } catch (error) {
