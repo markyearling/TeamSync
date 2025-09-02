@@ -409,6 +409,21 @@ const ChildProfile: React.FC = () => {
       hour12: true
     });
   };
+
+  // Format birthdate correctly to avoid timezone issues
+  const formatBirthdate = (dateString: string | null) => {
+    if (!dateString) return 'Date of birth not set';
+    
+    // Parse as date-only to avoid timezone conversion issues
+    const birthDate = DateTime.fromISO(dateString, { zone: 'utc' });
+    if (!birthDate.isValid) return 'Invalid date';
+    
+    return `Born: ${birthDate.toLocaleString({ 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })}`;
+  };
   
   // Log the current child state with access role for debugging
   console.log('👀 CHILD PROFILE RENDER:', {
@@ -456,6 +471,11 @@ const ChildProfile: React.FC = () => {
                   </span>
                 )}
               </div>
+              {child.date_of_birth && (
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {formatBirthdate(child.date_of_birth)}
+                </p>
+              )}
               <div className="flex items-center mt-2 space-x-2">
                 {child.sports.map((sport, index) => (
                   <span
