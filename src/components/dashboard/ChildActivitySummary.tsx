@@ -16,12 +16,6 @@ const ChildActivitySummary: React.FC<ChildActivitySummaryProps> = ({ child }) =>
       </div>
       <div className="flex-1">
         <h3 className="text-sm font-medium text-gray-900 dark:text-white">{child.name}</h3>
-        <div className="text-xs text-gray-500 dark:text-gray-400">
-          {child.date_of_birth 
-            ? `Born: ${new Date(child.date_of_birth).toLocaleDateString()}`
-            : 'Date of birth not set'
-          }
-        </div>
         <div className="flex items-center mt-1">
           {child.sports.map((sport, index) => (
             <div 

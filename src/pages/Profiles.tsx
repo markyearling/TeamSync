@@ -185,12 +185,6 @@ const Profiles: React.FC = () => {
                     </div>
                     <div className="ml-4">
                       <h3 className="text-lg font-medium text-gray-900 dark:text-white">{child.name}</h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {child.date_of_birth 
-                          ? `Born: ${new Date(child.date_of_birth).toLocaleDateString()}`
-                          : 'Date of birth not set'
-                        }
-                      </p>
                       {!child.isOwnProfile && (
                         <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
                           {child.ownerName}'s child
