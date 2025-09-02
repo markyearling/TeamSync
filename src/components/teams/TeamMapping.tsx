@@ -28,6 +28,7 @@ interface Team {
 interface TeamMappingProps {
   profileId: string;
   onClose: () => void;
+  onSaveSuccess?: () => Promise<void>;
 }
 
 const TeamMapping: React.FC<TeamMappingProps> = ({ profileId, onClose }) => {
