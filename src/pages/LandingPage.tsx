@@ -108,7 +108,7 @@ const LandingPage: React.FC = () => {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[env(safe-area-inset-top)]">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <img 

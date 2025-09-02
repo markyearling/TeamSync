@@ -48,32 +48,32 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="container mx-auto max-w-7xl">
             {children}
           </div>
-        </main>
-        
-        {/* Footer */}
-        <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
-          <div className="container mx-auto max-w-7xl">
-            <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-              <div className="mb-2 sm:mb-0">
-                © 2025 FamSink. All rights reserved.
-              </div>
-              <div className="flex space-x-4">
-                <Link 
-                  to="/privacy" 
-                  className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-                >
-                  Privacy Policy
-                </Link>
-                <Link 
-                  to="/help" 
-                  className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-                >
-                  Help & Support
-                </Link>
+          
+          {/* Footer - now inside main content area so it only shows when scrolled to bottom */}
+          <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3 mt-8">
+            <div className="container mx-auto max-w-7xl">
+              <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+                <div className="mb-2 sm:mb-0">
+                  © 2025 FamSink. All rights reserved.
+                </div>
+                <div className="flex space-x-4">
+                  <Link 
+                    to="/privacy" 
+                    className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  >
+                    Privacy Policy
+                  </Link>
+                  <Link 
+                    to="/help" 
+                    className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                  >
+                    Help & Support
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
-        </footer>
+          </footer>
+        </main>
       </div>
     </div>
   );
