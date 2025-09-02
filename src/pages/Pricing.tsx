@@ -10,7 +10,8 @@ import {
   Users,
   Calendar,
   Bell,
-  Smartphone
+  Smartphone,
+  ArrowRight
 } from 'lucide-react';
 
 const Pricing: React.FC = () => {
