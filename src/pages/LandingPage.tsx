@@ -111,7 +111,12 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <span className="text-2xl font-bold text-gray-900">FamSink</span>
+              <img 
+                src="/famsink-new-logo.png" 
+                alt="FamSink Logo" 
+                className="h-8 w-8 rounded-full object-cover"
+              />
+              <span className="ml-2 text-2xl font-bold text-gray-900">FamSink</span>
             </div>
             <Link
               to="/auth/signin"
@@ -525,7 +530,12 @@ const LandingPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center mb-4">
-                <span className="text-xl font-bold">FamSink</span>
+                <img 
+                  src="/famsink-new-logo.png" 
+                  alt="FamSink Logo" 
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+                <span className="ml-3 text-xl font-bold">FamSink</span>
               </div>
               <p className="text-gray-400 mb-4 max-w-md">
                 The ultimate family sports schedule management app. Simplifying youth sports for busy families everywhere.
