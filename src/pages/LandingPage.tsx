@@ -118,6 +118,14 @@ const LandingPage: React.FC = () => {
               />
               <span className="ml-3 text-2xl font-bold text-gray-900">FamSink</span>
             </div>
+            <nav className="hidden md:flex items-center space-x-8">
+              <Link to="/features" className="text-gray-600 hover:text-gray-900 transition-colors">
+                Features
+              </Link>
+              <Link to="/pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
+                Pricing
+              </Link>
+            </nav>
             <Link
               to="/auth/signin"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
@@ -549,7 +557,7 @@ const LandingPage: React.FC = () => {
               <h4 className="font-semibold mb-4">Product</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><Link to="/features" className="hover:text-white transition-colors">Features</Link></li>
-                <li><Link to="/auth/signup" className="hover:text-white transition-colors">Pricing</Link></li>
+                <li><Link to="/pricing" className="hover:text-white transition-colors">Pricing</Link></li>
                 <li><Link to="/auth/signup" className="hover:text-white transition-colors">Mobile Apps</Link></li>
               </ul>
             </div>

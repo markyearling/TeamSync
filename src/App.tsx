@@ -16,6 +16,7 @@ import ChildProfile from './pages/ChildProfile';
 import NotFound from './pages/NotFound';
 import LandingPage from './pages/LandingPage';
 import Features from './pages/Features';
+import Pricing from './pages/Pricing';
 import SignIn from './pages/auth/SignIn';
 import SignUp from './pages/auth/SignUp';
 import ForgotPassword from './pages/auth/ForgotPassword';
@@ -190,6 +191,7 @@ const AppContent = () => {
       {/* Public routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/features" element={<Features />} />
+      <Route path="/pricing" element={<Pricing />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/help" element={<Help />} />
       
