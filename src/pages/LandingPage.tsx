@@ -125,7 +125,7 @@ const LandingPage: React.FC = () => {
               <Link to="/pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Pricing
               </Link>
-              <Link to="/mobile-apps" className="text-gray-600 hover:text-gray-900 transition-colors">
+              <Link to="/mobileapps" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Mobile Apps
               </Link>
             </nav>

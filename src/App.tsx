@@ -193,6 +193,7 @@ const AppContent = () => {
       <Route path="/" element={<LandingPage />} />
       <Route path="/features" element={<Features />} />
       <Route path="/pricing" element={<Pricing />} />
+      <Route path="/mobileapps" element={<MobileApps />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/help" element={<Help />} />
       
