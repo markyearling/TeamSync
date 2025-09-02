@@ -441,13 +441,14 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                         </div>
                       )}
                     </div>
-                  
-                  
+                  )}
+
                   {/* Get Directions Button */}
                   {event.location && (
                     <div className="mt-4">
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           const encodedLocation = encodeURIComponent(event.location);
                           const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedLocation}`;
                           window.open(directionsUrl, '_blank');
