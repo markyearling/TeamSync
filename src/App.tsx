@@ -78,6 +78,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
+  // Enhanced logging for protected route decisions
+  useEffect(() => {
+    console.log('[ProtectedRoute] Route evaluation:', {
+      path: location.pathname,
+      hasUser: !!user,
+      userId: user?.id || 'No user',
+      loading,
+      isAuthRoute: location.pathname.includes('/auth/reset-password') || location.pathname.includes('/auth/callback'),
+      timestamp: new Date().toISOString()
+    });
+  }, [user, loading, location.pathname]);
   // Log the current path and authentication state
   console.log(`[ProtectedRoute] Path: ${location.pathname}, User: ${user ? 'Authenticated' : 'Not authenticated'}, Loading: ${loading}`);
 
@@ -91,14 +102,21 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (loading) {
+    console.log('[ProtectedRoute] Still loading, showing spinner');
     return <LoadingSpinner />;
   }
 
   if (!user) {
     console.log('[ProtectedRoute] No user, redirecting to sign in');
+    console.log('[ProtectedRoute] Redirect details:', {
+      from: location.pathname,
+      to: '/auth/signin',
+      reason: 'No authenticated user found'
+    });
     return <Navigate to="/auth/signin" replace />;
   }
 
+  console.log('[ProtectedRoute] User authenticated, rendering protected content');
   return <>{children}</>;
 };
 
@@ -132,6 +150,12 @@ const AppContent = () => {
   useEffect(() => {
     if (!loading && user && location.pathname === '/') {
       console.log('[App] Authenticated user on landing page, redirecting to dashboard');
+      console.log('[App] Redirect details:', {
+        userId: user.id,
+        currentPath: location.pathname,
+        redirectingTo: '/dashboard',
+        timestamp: new Date().toISOString()
+      });
       navigate('/dashboard', { replace: true });
     }
   }, [user, loading, location.pathname, navigate]);

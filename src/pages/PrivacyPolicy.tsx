@@ -11,6 +11,13 @@ const PrivacyPolicy: React.FC = () => {
             <Link 
              to="/dashboard" 
               className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 mb-4"
+              onClick={() => {
+                console.log('[PrivacyPolicy] Back to Dashboard clicked:', {
+                  from: window.location.pathname,
+                  to: '/dashboard',
+                  timestamp: new Date().toISOString()
+                });
+              }}
             >
               <ArrowLeft className="h-4 w-4 mr-1" />
              Back to Dashboard
