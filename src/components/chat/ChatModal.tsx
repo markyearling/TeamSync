@@ -153,7 +153,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
             .from('user_settings')
             .select('full_name, profile_photo_url')
             .eq('user_id', newMessage.sender_id)
-            .single();
+            .maybeSingle();
 
           const messageWithSender = {
             ...newMessage,
@@ -201,7 +201,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
             .from('user_settings')
             .select('full_name, profile_photo_url')
             .eq('user_id', updatedMessage.sender_id)
-            .single();
+            .maybeSingle();
 
           const messageWithSender = {
             ...updatedMessage,
@@ -244,7 +244,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         .from('user_settings')
         .select('full_name, profile_photo_url')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       setCurrentUserInfo(userSettings);
 
@@ -339,7 +339,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
             .from('user_settings')
             .select('full_name, profile_photo_url')
             .eq('user_id', message.sender_id)
-            .single();
+            .maybeSingle();
 
           return {
             ...message,
