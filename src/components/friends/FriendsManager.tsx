@@ -862,12 +862,7 @@ const FriendsManager: React.FC = () => {
           <div className="text-center py-6 text-gray-500 dark:text-gray-400">
             <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">No friends added yet</p>
-            <button
-              onClick={onManageFriends}
-              className="mt-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-            >
-              Add friends
-            </button>
+            <p className="text-xs">Search for users by name to send friend requests</p>
           </div>
         )}
       </div>
@@ -883,40 +878,6 @@ const FriendsManager: React.FC = () => {
           onSave={handleSaveRole}
         />
       )}
-    </div>
-  );
-};
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => startEditingRole(friend.id, friend.role)}
-                          className="p-1 text-gray-400 hover:text-blue-500"
-                          title="Edit access level"
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <button
-                  onClick={() => removeFriend(friend.id)}
-                  className="p-1 text-red-600 hover:text-red-700"
-                  title="Remove friend"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-6 text-gray-500 dark:text-gray-400">
-            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No friends added yet</p>
-            <p className="text-xs">Search for users by name to send friend requests</p>
-          </div>
-        )}
-      </div>
     </div>
   );
 };
