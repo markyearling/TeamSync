@@ -183,11 +183,16 @@ const GameChangerConnection: React.FC = () => {
 
       // Immediately sync the calendar to get events and team name
       try {
+        // Get the current session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+        if (!session) throw new Error('No authenticated session');
+
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-gamechanger-calendar`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user.id}`, // Use user.id for authorization if needed, or session.access_token
+            'Authorization': `Bearer ${session.access_token}`,
           },
           body: JSON.stringify({
             icsUrl: icsUrl,

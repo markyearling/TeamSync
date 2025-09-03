@@ -385,6 +385,7 @@ const Dashboard: React.FC = () => {
       
       if (!teamsData || teamsData.length === 0) {
         console.log('No platform teams found to sync');
+         console.log('GameChanger sync - session access token available:', !!session.access_token);
         return;
       }
       
