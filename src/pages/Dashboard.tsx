@@ -725,9 +725,6 @@ const Dashboard: React.FC = () => {
           {lastRefreshedDate && (
             <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
               <span>Last refreshed: {lastRefreshedDate ? formatLastRefreshed() : 'Never' }</span>
-              {isRefreshing && (
-                <RefreshCw className="ml-2 h-3 w-3 animate-spin text-blue-500" />
-              )}
               {!isNative && (
                 <button
                   onClick={syncAllPlatformEvents}
