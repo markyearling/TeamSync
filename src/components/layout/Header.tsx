@@ -98,17 +98,113 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     setupNotificationSubscription();
   }, []);
 
+  const fetchFriends = React.useCallback(async () => {
+    try {
+      setLoadingFriends(true);
+      if (!authUser) return;
+
+      console.log('🔄 HEADER: Fetching friends for user:', authUser.id);
+
+      // Fetch friends
+      const { data: friendsData, error: friendsError } = await supabase
+        .from('friendships')
+        .select('id, friend_id, role, created_at')
+        .eq('user_id', authUser.id);
+
+      if (friendsError) throw friendsError;
+
+      console.log('👥 HEADER: Found friendships:', friendsData?.length || 0);
+
+      // Get user details for friends from user_settings table
+      const friendIds = friendsData?.map(f => f.friend_id) || [];
+      let friendUsers: any[] = [];
+      
+      if (friendIds.length > 0) {
+        const { data: userSettings, error: settingsError } = await supabase
+          .from('user_settings')
+          .select('user_id, full_name, profile_photo_url')
+          .in('user_id', friendIds);
+
+        if (settingsError) throw settingsError;
+
+        friendUsers = friendIds.map(friendId => {
+          const settings = userSettings?.find(s => s.user_id === friendId);
+          
+          return {
+            id: friendId,
+            full_name: settings?.full_name,
+            profile_photo_url: settings?.profile_photo_url
+          };
+        });
+      }
+
+      // Get unread message counts for each friend
+      const friendsWithUnreadCounts = await Promise.all(
+        (friendsData || []).map(async (friendship) => {
+          const friend = friendUsers.find(u => u.id === friendship.friend_id) || {
+            id: friendship.friend_id,
+            full_name: undefined,
+            profile_photo_url: undefined
+          };
+
+          // Get conversation with this friend
+          const { data: conversation } = await supabase
+            .from('conversations')
+            .select('id, last_message_at')
+            .or(`and(participant_1_id.eq.${authUser.id},participant_2_id.eq.${friendship.friend_id}),and(participant_1_id.eq.${friendship.friend_id},participant_2_id.eq.${authUser.id})`)
+            .maybeSingle();
+
+          let unreadCount = 0;
+          let lastMessageAt = null;
+
+          if (conversation) {
+            // Count unread messages from this friend
+            const { count } = await supabase
+              .from('messages')
+              .select('*', { count: 'exact', head: true })
+              .eq('conversation_id', conversation.id)
+              .eq('sender_id', friendship.friend_id)
+              .eq('read', false);
+
+            unreadCount = count || 0;
+            lastMessageAt = conversation.last_message_at;
+          }
+
+          return {
+            ...friendship,
+            friend,
+            unreadCount,
+            lastMessageAt
+          };
+        })
+      );
+
+      console.log('💬 HEADER: Friends with unread counts:', friendsWithUnreadCounts.map(f => ({
+        name: f.friend.full_name,
+        unreadCount: f.unreadCount
+      })));
+
+      setFriends(friendsWithUnreadCounts);
+    } catch (error) {
+      console.error('Error fetching friends:', error);
+    } finally {
+      setLoadingFriends(false);
+    }
+  }, [authUser]);
+
   // Fetch friends on initial mount
   useEffect(() => {
     if (authUser) {
       fetchFriends();
     }
-  }, [authUser]);
+  }, [authUser, fetchFriends]);
 
   useEffect(() => {
     // Set up real-time subscription for messages to update unread counts  
     const setupMessageSubscription = async () => {
       if (!authUser) return;
+      
+      console.log('🔔 HEADER: Setting up messages subscription for user:', authUser.id);
       
       const messagesSubscription = supabase
         .channel(`header-messages:user_id=eq.${authUser.id}`)
@@ -120,11 +216,14 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             table: 'messages'
           },
           () => {
+            console.log('💬 HEADER: Message change detected, refreshing friends');
             // Always refresh friends list to get accurate unread counts
             fetchFriends();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('💬 HEADER: Messages subscription status:', status);
+        });
 
       return () => {
         messagesSubscription.unsubscribe();
@@ -132,12 +231,14 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     };
 
     setupMessageSubscription();
-  }, [authUser]);
+  }, [authUser, fetchFriends]);
 
   // Set up real-time subscription for conversations to update when last_message_at changes
   useEffect(() => {
     const setupConversationSubscription = async () => {
       if (!authUser) return;
+      
+      console.log('🗨️ HEADER: Setting up conversations subscription for user:', authUser.id);
       
       const conversationSubscription = supabase
         .channel(`header-conversations:user_id=eq.${authUser.id}`)
@@ -150,11 +251,14 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             filter: `or(participant_1_id.eq.${authUser.id},participant_2_id.eq.${authUser.id})`
           },
           () => {
+            console.log('🗨️ HEADER: Conversation update detected, refreshing friends');
             // Refresh friends list when conversation is updated (new message timestamp)
             fetchFriends();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('🗨️ HEADER: Conversations subscription status:', status);
+        });
 
       return () => {
         conversationSubscription.unsubscribe();
@@ -162,12 +266,14 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     };
 
     setupConversationSubscription();
-  }, [authUser]);
+  }, [authUser, fetchFriends]);
 
   // Set up real-time subscription for friend requests to update when requests are sent/received
   useEffect(() => {
     const setupFriendRequestSubscription = async () => {
       if (!authUser) return;
+      
+      console.log('🤝 HEADER: Setting up friend requests subscription for user:', authUser.id);
       
       const friendRequestSubscription = supabase
         .channel(`header-friend-requests:user_id=eq.${authUser.id}`)
@@ -180,6 +286,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             filter: `or(requester_id.eq.${authUser.id},requested_id.eq.${authUser.id})`
           },
           () => {
+            console.log('🤝 HEADER: Friend request change detected, refreshing friends');
             // Refresh friends list when friend requests change
             fetchFriends();
           }
@@ -193,11 +300,14 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             filter: `or(user_id.eq.${authUser.id},friend_id.eq.${authUser.id})`
           },
           () => {
+            console.log('🤝 HEADER: Friendship change detected, refreshing friends');
             // Refresh friends list when friendships change
             fetchFriends();
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('🤝 HEADER: Friend requests subscription status:', status);
+        });
 
       return () => {
         friendRequestSubscription.unsubscribe();
@@ -205,7 +315,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     };
 
     setupFriendRequestSubscription();
-  }, [authUser]);
+  }, [authUser, fetchFriends]);
 
   // Filter friends based on search query and sort by unread messages
   useEffect(() => {
@@ -410,91 +520,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       }
     } catch (error) {
       console.error('Error fetching notification count:', error);
-    }
-  };
-
-  const fetchFriends = async () => {
-    try {
-      setLoadingFriends(true);
-      if (!authUser) return;
-
-      // Fetch friends
-      const { data: friendsData, error: friendsError } = await supabase
-        .from('friendships')
-        .select('id, friend_id, role, created_at')
-        .eq('user_id', authUser.id);
-
-      if (friendsError) throw friendsError;
-
-      // Get user details for friends from user_settings table
-      const friendIds = friendsData?.map(f => f.friend_id) || [];
-      let friendUsers: any[] = [];
-      
-      if (friendIds.length > 0) {
-        const { data: userSettings, error: settingsError } = await supabase
-          .from('user_settings')
-          .select('user_id, full_name, profile_photo_url')
-          .in('user_id', friendIds);
-
-        if (settingsError) throw settingsError;
-
-        friendUsers = friendIds.map(friendId => {
-          const settings = userSettings?.find(s => s.user_id === friendId);
-          
-          return {
-            id: friendId,
-            full_name: settings?.full_name,
-            profile_photo_url: settings?.profile_photo_url
-          };
-        });
-      }
-
-      // Get unread message counts for each friend
-      const friendsWithUnreadCounts = await Promise.all(
-        (friendsData || []).map(async (friendship) => {
-          const friend = friendUsers.find(u => u.id === friendship.friend_id) || {
-            id: friendship.friend_id,
-            full_name: undefined,
-            profile_photo_url: undefined
-          };
-
-          // Get conversation with this friend
-          const { data: conversation } = await supabase
-            .from('conversations')
-            .select('id, last_message_at')
-            .or(`and(participant_1_id.eq.${authUser.id},participant_2_id.eq.${friendship.friend_id}),and(participant_1_id.eq.${friendship.friend_id},participant_2_id.eq.${authUser.id})`)
-            .maybeSingle();
-
-          let unreadCount = 0;
-          let lastMessageAt = null;
-
-          if (conversation) {
-            // Count unread messages from this friend
-            const { count } = await supabase
-              .from('messages')
-              .select('*', { count: 'exact', head: true })
-              .eq('conversation_id', conversation.id)
-              .eq('sender_id', friendship.friend_id)
-              .eq('read', false);
-
-            unreadCount = count || 0;
-            lastMessageAt = conversation.last_message_at;
-          }
-
-          return {
-            ...friendship,
-            friend,
-            unreadCount,
-            lastMessageAt
-          };
-        })
-      );
-
-      setFriends(friendsWithUnreadCounts);
-    } catch (error) {
-      console.error('Error fetching friends:', error);
-    } finally {
-      setLoadingFriends(false);
     }
   };
 
