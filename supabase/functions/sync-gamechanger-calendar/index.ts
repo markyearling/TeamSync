@@ -72,12 +72,21 @@ Deno.serve(async (req) => {
     }
 
     // Fetch ICS file
-    const response = await fetch(fetchUrl, {
-      headers: {
-        'Accept': 'text/calendar',
-        'Cache-Control': 'no-cache'
-      }
-    });
+    let response;
+    try {
+      response = await fetch(fetchUrl, {
+        headers: {
+          'Accept': 'text/calendar',
+          'Cache-Control': 'no-cache'
+        }
+      });
+    } catch (fetchError) {
+      console.error('Network error while fetching ICS file:', {
+        url: fetchUrl,
+        error: fetchError instanceof Error ? fetchError.message : 'Unknown fetch error'
+      });
+      throw new Error(`Network error while fetching calendar: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`);
+    }
 
     if (!response.ok) {
       console.error('Failed to fetch ICS file:', {
@@ -89,7 +98,14 @@ Deno.serve(async (req) => {
     }
 
     // Parse ICS data
-    const icsData = await response.text();
+    let icsData;
+    try {
+      icsData = await response.text();
+    } catch (textError) {
+      console.error('Error reading response text:', textError);
+      throw new Error(`Error reading calendar data: ${textError instanceof Error ? textError.message : 'Unknown error'}`);
+    }
+    
     console.log('Successfully fetched ICS data, length:', icsData.length);
 
     try {
