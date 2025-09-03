@@ -283,90 +283,31 @@ const Settings: React.FC = () => {
     setDeleteError(null);
     
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) {
-        throw new Error('No authenticated user found.');
+      // Get the current session to obtain the access token for function invocation
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error('No active session. Please sign in first.');
+
+      console.log('Calling delete-user-account Edge Function...');
+      
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-user-account`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete account');
       }
 
-      const userId = user.id;
-      console.log(`Attempting to delete account for user ID: ${userId}`);
+      const result = await response.json();
+      console.log('Account deletion successful:', result.message);
 
-      // 1. Delete scheduled local notifications
-      console.log('Deleting scheduled_local_notifications...');
-      const { error: slnError } = await supabase
-        .from('scheduled_local_notifications')
-        .delete()
-        .eq('user_id', userId);
-      if (slnError) console.error('Error deleting scheduled_local_notifications:', slnError);
-
-      // 2. Delete notifications
-      console.log('Deleting notifications...');
-      const { error: notifError } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('user_id', userId);
-      if (notifError) console.error('Error deleting notifications:', notifError);
-
-      // 3. Delete platform teams
-      console.log('Deleting platform_teams...');
-      const { error: ptError } = await supabase
-        .from('platform_teams')
-        .delete()
-        .eq('user_id', userId);
-      if (ptError) console.error('Error deleting platform_teams:', ptError);
-
-      // 4. Get profiles to delete them (this should cascade to events, profile_teams, profile_sports)
-      console.log('Fetching profiles to delete...');
-      const { data: profilesToDelete, error: fetchProfilesError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('user_id', userId);
-      if (fetchProfilesError) console.error('Error fetching profiles for deletion:', fetchProfilesError);
-
-      if (profilesToDelete && profilesToDelete.length > 0) {
-        const profileIdsToDelete = profilesToDelete.map(p => p.id);
-        console.log('Deleting profiles and cascading data (events, profile_teams, profile_sports)...');
-        const { error: profilesError } = await supabase
-          .from('profiles')
-          .delete()
-          .in('id', profileIdsToDelete);
-        if (profilesError) console.error('Error deleting profiles:', profilesError);
-      }
-
-      // 5. Delete user settings
-      console.log('Deleting user_settings...');
-      const { error: usError } = await supabase
-        .from('user_settings')
-        .delete()
-        .eq('user_id', userId);
-      if (usError) console.error('Error deleting user_settings:', usError);
-
-      // 6. Delete conversations (where user is participant 1 or 2)
-      console.log('Deleting conversations...');
-      const { error: convError } = await supabase
-        .from('conversations')
-        .delete()
-        .or(`participant_1_id.eq.${userId},participant_2_id.eq.${userId}`);
-      if (convError) console.error('Error deleting conversations:', convError);
-
-      // 7. Delete friend requests (where user is requester or requested)
-      console.log('Deleting friend_requests...');
-      const { error: frError } = await supabase
-        .from('friend_requests')
-        .delete()
-        .or(`requester_id.eq.${userId},requested_id.eq.${userId}`);
-      if (frError) console.error('Error deleting friend_requests:', frError);
-
-      // 8. Delete friendships (where user is user_id or friend_id)
-      console.log('Deleting friendships...');
-      const { error: fsError } = await supabase
-        .from('friendships')
-        .delete()
-        .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
-      if (fsError) console.error('Error deleting friendships:', fsError);
-
-      // 9. Sign out and redirect
-      console.log('Account deletion process completed. Signing out...');
+      // Sign out after successful deletion
       await supabase.auth.signOut();
       navigate('/auth/signin', { 
         state: { 
