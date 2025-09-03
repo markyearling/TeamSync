@@ -629,13 +629,6 @@ const FriendsManager: React.FC = () => {
             )}
           </div>
 
-          {/* Debug Information */}
-          {searchDebugInfo && (
-            <div className="text-xs p-2 bg-blue-50 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800 rounded">
-              <strong>Debug:</strong> {searchDebugInfo}
-            </div>
-          )}
-
           <div className="text-xs text-gray-500 dark:text-gray-400">
             Search results will appear as you type (minimum 2 characters). Search is by user name only.
           </div>
@@ -653,11 +646,6 @@ const FriendsManager: React.FC = () => {
               </div>
 
               <div className="bg-white dark:bg-gray-600 rounded-md border border-gray-200 dark:border-gray-500 max-h-60 overflow-y-auto">
-                <div className="p-2 bg-green-50 dark:bg-green-900/50 border-b border-green-200 dark:border-green-800">
-                  <p className="text-xs text-green-700 dark:text-green-300">
-                    ✅ Found {searchResults.length} user(s) matching "{searchEmail.trim()}"
-                  </p>
-                </div>
                 {searchResults.map(user => (
                   <div key={user.id} className="flex items-center justify-between p-3 border-b border-gray-100 dark:border-gray-500 last:border-b-0">
                     <div className="flex items-center flex-1">
