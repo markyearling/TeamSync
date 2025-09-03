@@ -54,6 +54,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const emoticonRef = useRef<HTMLDivElement>(null);
   const subscriptionRef = useRef<any>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const { isNative } = useCapacitor();
 
   // Popular emoticons organized by category
   const emoticons = {
@@ -78,6 +79,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       scrollToBottom('auto');
     }, 50);
   };
+
+  // Determine if we should use full-screen modal on mobile
+  const containerClasses = isNative
+    ? "fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-800 overflow-hidden"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6";
+
+  const modalContentClasses = isNative
+    ? "flex flex-col h-full w-full overflow-hidden"
+    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl h-full max-h-full overflow-hidden flex flex-col";
 
   useEffect(() => {
     initializeChat();
@@ -494,48 +504,50 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6"
-      style={{ 
-        top: 'env(safe-area-inset-top, 0px)', 
-        bottom: 'env(safe-area-inset-bottom, 0px)' 
-      }}
+      className={containerClasses}
+      style={isNative ? {
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)'
+      } : {}}
     >
       <div 
-        ref={modalRef}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl h-full max-h-full overflow-hidden flex flex-col"
+        className={modalContentClasses}
         onClick={(e) => e.stopPropagation()}
-        //className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl md:h-auto md:max-h-[90vh] flex flex-col p-4"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-500 flex items-center justify-center">
-              {friend.friend.profile_photo_url ? (
-                <img 
-                  src={friend.friend.profile_photo_url} 
-                  alt="" 
-                  className="w-10 h-10 rounded-full object-cover" 
-                />
-              ) : (
-                <User className="h-6 w-6 text-gray-600 dark:text-gray-300" />
-              )}
-            </div>
-            <div>
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                {friend.friend.full_name || 'Friend'}
-              </h3>
-              <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                <MessageCircle className="h-4 w-4 mr-1" />
-                Chat
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-500 flex items-center justify-center">
+                {friend.friend.profile_photo_url ? (
+                  <img 
+                    src={friend.friend.profile_photo_url} 
+                    alt="" 
+                    className="w-10 h-10 rounded-full object-cover" 
+                  />
+                ) : (
+                  <User className="h-6 w-6 text-gray-600 dark:text-gray-300" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  {friend.friend.full_name || 'Friend'}
+                </h3>
+                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                  <MessageCircle className="h-4 w-4 mr-1" />
+                  Chat
+                </div>
               </div>
             </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+            >
+              <X className="h-5 w-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
-          >
-            <X className="h-6 w-6" />
-          </button>
         </div>
 
         {/* Messages */}
@@ -616,7 +628,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         {showEmoticons && (
           <div 
             ref={emoticonRef}
-            className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 max-h-64 overflow-y-auto"
+            className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 max-h-64 overflow-y-auto flex-shrink-0"
           >
             <div className="p-4">
               {Object.entries(emoticons).map(([category, emojis]) => (
@@ -643,7 +655,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         )}
 
         {/* Message Input */}
-        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="flex space-x-3">
             <button
               onClick={() => setShowEmoticons(!showEmoticons)}
@@ -662,6 +674,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               onKeyPress={handleKeyPress}
+              onFocus={() => {
+                console.log('Chat input focused - keyboard should appear');
+                // Scroll to bottom when input is focused to ensure visibility
+                setTimeout(() => forceScrollToBottom(), 100);
+              }}
               placeholder="Type a message..."
               className="flex-1 rounded-full border border-gray-300 dark:border-gray-600 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               disabled={sending}
