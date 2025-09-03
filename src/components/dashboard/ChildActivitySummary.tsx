@@ -12,7 +12,15 @@ const ChildActivitySummary: React.FC<ChildActivitySummaryProps> = ({ child }) =>
         className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold"
         style={{ backgroundColor: child.color }}
       >
-        {child.name.charAt(0)}
+        {child.photo_url ? (
+          <img 
+            src={child.photo_url} 
+            alt={child.name}
+            className="h-full w-full rounded-full object-cover"
+          />
+        ) : (
+          child.name.charAt(0)
+        )}
       </div>
       <div className="flex-1">
         <h3 className="text-sm font-medium text-gray-900 dark:text-white">{child.name}</h3>
