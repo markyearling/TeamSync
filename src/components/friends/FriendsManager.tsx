@@ -11,12 +11,11 @@ import {
   Trash2,
   Clock,
   AlertCircle,
-  Edit2,
-  Save,
   MessageCircle
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
+import EditFriendRoleModal from './EditFriendRoleModal';
 
 interface User {
   id: string;
@@ -60,8 +59,12 @@ const FriendsManager: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [searchDebugInfo, setSearchDebugInfo] = useState<string>('');
-  const [editingFriend, setEditingFriend] = useState<string | null>(null);
-  const [editingRole, setEditingRole] = useState<'none' | 'viewer' | 'administrator'>('none');
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingFriend, setEditingFriend] = useState<{
+    id: string;
+    name: string;
+    role: 'none' | 'viewer' | 'administrator';
+  } | null>(null);
 
   const searchUsers = useCallback(async () => {
     if (!searchEmail.trim() || searchEmail.trim().length < 2) {
@@ -522,7 +525,6 @@ const FriendsManager: React.FC = () => {
       if (error) throw error;
 
       setSuccess(`Friend access level updated to ${getRoleLabel(newRole)}`);
-      setEditingFriend(null);
       fetchFriendsData();
       
       // Refresh profiles to update the UI with any new friend profiles that now have administrator access
@@ -533,14 +535,23 @@ const FriendsManager: React.FC = () => {
     }
   };
 
-  const startEditingRole = (friendshipId: string, currentRole: 'none' | 'viewer' | 'administrator') => {
-    setEditingFriend(friendshipId);
-    setEditingRole(currentRole);
+  const startEditingRole = (friendshipId: string, currentRole: 'none' | 'viewer' | 'administrator', friendName: string) => {
+    setEditingFriend({
+      id: friendshipId,
+      name: friendName,
+      role: currentRole
+    });
+    setEditModalOpen(true);
   };
 
-  const cancelEditingRole = () => {
+  const handleCloseEditModal = () => {
     setEditingFriend(null);
-    setEditingRole('none');
+    setEditModalOpen(false);
+  };
+
+  const handleSaveRole = async (friendshipId: string, newRole: 'none' | 'viewer' | 'administrator') => {
+    await updateFriendRole(friendshipId, newRole);
+    handleCloseEditModal();
   };
 
   const getRoleIcon = (role: string) => {
@@ -814,44 +825,67 @@ const FriendsManager: React.FC = () => {
                     </div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{friend.friend.email || `ID: ${friend.friend_id.slice(0, 8)}...`}</div>
                     
-                    {/* Access Level Management */}
-                    {editingFriend === friend.id ? (
-                      <div className="mt-2 flex items-center space-x-2">
-                        <select
-                          value={editingRole}
-                          onChange={(e) => setEditingRole(e.target.value as 'none' | 'viewer' | 'administrator')}
-                          className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 dark:bg-gray-600 dark:text-white"
-                        >
-                          <option value="none">Friend (Chat only)</option>
-                          <option value="viewer">Viewer (View schedules)</option>
-                          <option value="administrator">Administrator (Full access)</option>
-                        </select>
-                        <button
-                          onClick={() => updateFriendRole(friend.id, editingRole)}
-                          className="p-1 text-green-600 hover:text-green-700"
-                          title="Save"
-                        >
-                          <Save className="h-3 w-3" />
-                        </button>
-                        <button
-                          onClick={cancelEditingRole}
-                          className="p-1 text-gray-400 hover:text-gray-500"
-                          title="Cancel"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
+                    {/* Access Level Display */}
+                    <div className="mt-1 flex items-center">
+                      {getRoleIcon(friend.role)}
+                      <div className="ml-1 flex-1">
+                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                          {getRoleLabel(friend.role)}
+                        </span>
+                        <div className="text-xs text-gray-500 dark:text-gray-500">
+                          {getAccessLevelDescription(friend.role)}
+                        </div>
                       </div>
-                    ) : (
-                      <div className="mt-1 flex items-center justify-between">
-                        <div className="flex items-center">
-                          {getRoleIcon(friend.role)}
-                          <div className="ml-1">
-                            <span className="text-xs text-gray-600 dark:text-gray-400">
-                              {getRoleLabel(friend.role)}
-                            </span>
-                            <div className="text-xs text-gray-500 dark:text-gray-500">
-                              {getAccessLevelDescription(friend.role)}
-                            </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => startEditingRole(friend.id, friend.role, friend.friend.full_name || 'Friend')}
+                    className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600"
+                    title="Edit access level"
+                  >
+                    <Shield className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => removeFriend(friend.id)}
+                    className="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600"
+                    title="Remove friend"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-gray-500 dark:text-gray-400">
+            <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No friends added yet</p>
+            <button
+              onClick={onManageFriends}
+              className="mt-2 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              Add friends
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Edit Friend Role Modal */}
+      {editModalOpen && editingFriend && (
+        <EditFriendRoleModal
+          isOpen={editModalOpen}
+          onClose={handleCloseEditModal}
+          friendshipId={editingFriend.id}
+          currentRole={editingFriend.role}
+          friendName={editingFriend.name}
+          onSave={handleSaveRole}
+        />
+      )}
+    </div>
+  );
+};
                           </div>
                         </div>
                         <button
