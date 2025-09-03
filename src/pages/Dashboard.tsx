@@ -713,7 +713,7 @@ const Dashboard: React.FC = () => {
       )}
       
       <div className="flex flex-row items-center justify-between flex-wrap sm:flex-nowrap space-y-2 sm:space-y-0">
-        <h1 className="text-lg font-bold text-gray-900 dark:text-white">Dashboard</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
         <div className="flex flex-col items-end">
           <div className="text-xs text-gray-500 dark:text-gray-400">
             {new Date().toLocaleDateString('en-US', { 
@@ -724,7 +724,7 @@ const Dashboard: React.FC = () => {
             })}
           </div>
           {lastRefreshedDate && (
-            <div className="text-xxs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
+            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
               <span>Last refreshed: {lastRefreshedDate ? formatLastRefreshed() : 'Never' }</span>
               {!isNative && (
                 <button
