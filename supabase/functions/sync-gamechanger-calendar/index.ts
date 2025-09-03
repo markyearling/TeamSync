@@ -218,7 +218,6 @@ Deno.serve(async (req) => {
         
       const sport = teamData?.sport || 'Baseball';
       const sportColor = teamData?.sport_color || getSportDetails(sport).color;
-      const sportColor = teamData?.sport_color || getSportDetails(sport).color;
 
       // Get user's timezone from settings
       let userTimezone = 'UTC';
