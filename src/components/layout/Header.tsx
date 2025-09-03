@@ -3,6 +3,7 @@ import { Bell, User, Search, Moon, Sun, LogOut, Users } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../hooks/useAuth';
 import NotificationCenter from '../notifications/NotificationCenter';
 import FriendsListModal from '../friends/FriendsListModal';
 import ChatModal from '../chat/ChatModal';
@@ -33,6 +34,7 @@ interface Friend {
 const Header: React.FC<HeaderProps> = ({ children }) => {
   const { user } = useApp();
   const { theme, toggleTheme } = useTheme();
+  const { user: authUser } = useAuth();
   const { isIOS, isNative } = useCapacitor();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -102,35 +104,106 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    // Set up real-time subscription for messages to update unread counts
+    // Set up real-time subscription for messages to update unread counts  
     const setupMessageSubscription = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      if (!authUser) return;
       
-      if (user) {
-        const messagesSubscription = supabase
-          .channel(`header-messages:user_id=eq.${user.id}`)
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'messages'
-            },
-            () => {
-              // Always refresh friends list to get accurate unread counts
-              fetchFriends();
-            }
-          )
-          .subscribe();
+      const messagesSubscription = supabase
+        .channel(`header-messages:user_id=eq.${authUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'messages'
+          },
+          () => {
+            // Always refresh friends list to get accurate unread counts
+            fetchFriends();
+          }
+        )
+        .subscribe();
 
-        return () => {
-          messagesSubscription.unsubscribe();
-        };
-      }
+      return () => {
+        messagesSubscription.unsubscribe();
+      };
     };
 
-    setupMessageSubscription(); // No dependency on friends.length
-  }, []);
+    setupMessageSubscription();
+  }, [authUser]);
+
+  // Set up real-time subscription for conversations to update when last_message_at changes
+  useEffect(() => {
+    const setupConversationSubscription = async () => {
+      if (!authUser) return;
+      
+      const conversationSubscription = supabase
+        .channel(`header-conversations:user_id=eq.${authUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'conversations',
+            filter: `or(participant_1_id.eq.${authUser.id},participant_2_id.eq.${authUser.id})`
+          },
+          () => {
+            // Refresh friends list when conversation is updated (new message timestamp)
+            fetchFriends();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        conversationSubscription.unsubscribe();
+      };
+    };
+
+    setupConversationSubscription();
+  }, [authUser]);
+
+  // Set up real-time subscription for friend requests to update when requests are sent/received
+  useEffect(() => {
+    const setupFriendRequestSubscription = async () => {
+      if (!authUser) return;
+      
+      const friendRequestSubscription = supabase
+        .channel(`header-friend-requests:user_id=eq.${authUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'friend_requests',
+            filter: `or(requester_id.eq.${authUser.id},requested_id.eq.${authUser.id})`
+          },
+          () => {
+            // Refresh friends list when friend requests change
+            fetchFriends();
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'friendships',
+            filter: `or(user_id.eq.${authUser.id},friend_id.eq.${authUser.id})`
+          },
+          () => {
+            // Refresh friends list when friendships change
+            fetchFriends();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        friendRequestSubscription.unsubscribe();
+      };
+    };
+
+    setupFriendRequestSubscription();
+  }, [authUser]);
 
   // Filter friends based on search query and sort by unread messages
   useEffect(() => {
@@ -211,19 +284,18 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
       setIsSearching(true);
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!authUser) return;
 
         // Get all profiles the user has access to (own profiles and friends' profiles with viewer/admin access)
         const { data: ownProfiles } = await supabase
           .from('profiles')
           .select('id')
-          .eq('user_id', user.id);
+          .eq('user_id', authUser.id);
 
         const { data: friendProfiles } = await supabase
           .from('profiles')
           .select('id, user_id')
-          .neq('user_id', user.id);
+          .neq('user_id', authUser.id);
 
         // Filter friend profiles to only those the user has access to
         const accessibleFriendProfiles = await Promise.all(
@@ -231,7 +303,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             const { data: friendship } = await supabase
               .from('friendships')
               .select('role')
-              .eq('friend_id', user.id)
+              .eq('friend_id', authUser.id)
               .eq('user_id', profile.user_id)
               .in('role', ['viewer', 'administrator'])
               .maybeSingle();
@@ -317,18 +389,17 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, authUser]);
 
   const fetchNotificationCount = async () => {
     try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError || !user) return;
+      if (!authUser) return;
 
       // Count unread notifications excluding message notifications
       const { count, error: countError } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
+        .eq('user_id', authUser.id)
         .eq('read', false)
         .neq('type', 'message'); // Exclude message notifications
 
@@ -343,14 +414,13 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const fetchFriends = async () => {
     try {
       setLoadingFriends(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!authUser) return;
 
       // Fetch friends
       const { data: friendsData, error: friendsError } = await supabase
         .from('friendships')
         .select('id, friend_id, role, created_at')
-        .eq('user_id', user.id);
+        .eq('user_id', authUser.id);
 
       if (friendsError) throw friendsError;
 
@@ -390,7 +460,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
           const { data: conversation } = await supabase
             .from('conversations')
             .select('id, last_message_at')
-            .or(`and(participant_1_id.eq.${user.id},participant_2_id.eq.${friendship.friend_id}),and(participant_1_id.eq.${friendship.friend_id},participant_2_id.eq.${user.id})`)
+            .or(`and(participant_1_id.eq.${authUser.id},participant_2_id.eq.${friendship.friend_id}),and(participant_1_id.eq.${friendship.friend_id},participant_2_id.eq.${authUser.id})`)
             .maybeSingle();
 
           let unreadCount = 0;
