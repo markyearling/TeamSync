@@ -517,18 +517,18 @@ const ChildProfile: React.FC = () => {
           <div className="flex flex-wrap justify-end gap-2">
             <button
               onClick={() => setShowAddEventModal(true)}
-             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
               title="Add event"
               disabled={isFriendProfile && child.accessRole !== 'administrator'}
             >
               <Plus className="h-5 w-5" />
-             Add Event
+              Add Event
             </button>
             <button
               onClick={() => setShowTeamMapping(true)}
               className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Map teams"
-             disabled={isFriendProfile && child.accessRole !== 'administrator'}
+              disabled={isFriendProfile && child.accessRole !== 'administrator'}
             >
               <Users className="h-5 w-5" />
             </button>
@@ -536,7 +536,7 @@ const ChildProfile: React.FC = () => {
               onClick={handleEdit}
               className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Edit profile"
-             disabled={isFriendProfile && child.accessRole !== 'administrator'}
+              disabled={isFriendProfile && child.accessRole !== 'administrator'}
             >
               <Pencil className="h-5 w-5" />
             </button>
@@ -544,7 +544,7 @@ const ChildProfile: React.FC = () => {
               onClick={() => setShowDeleteModal(true)}
               className="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               title="Delete profile"
-             disabled={isFriendProfile && child.accessRole !== 'administrator'}
+              disabled={isFriendProfile && child.accessRole !== 'administrator'}
             >
               <Trash2 className="h-5 w-5" />
             </button>
@@ -560,12 +560,12 @@ const ChildProfile: React.FC = () => {
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
           {upcomingEvents.map(event => (
             <EventCard
-                  key={event.id}
-                  event={event}
-                  mapsLoaded={mapsLoaded}
-                  mapsLoadError={mapsLoadError}
-                  userTimezone={userTimezone}
-                  onClick={() => setSelectedEvent(event)}
+              key={event.id}
+              event={event}
+              mapsLoaded={mapsLoaded}
+              mapsLoadError={mapsLoadError}
+              userTimezone={userTimezone}
+              onClick={() => setSelectedEvent(event)}
             />
           ))}
           {upcomingEvents.length === 0 && (
@@ -971,9 +971,9 @@ const ChildProfile: React.FC = () => {
                     ))}
                   </div>
                 </div>
-                className="flex items-center px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 text-sm text-gray-700 dark:text-gray-300"
+
                 <div>
-                <Filter className="h-3 w-3 mr-1" />
+                  <label htmlFor="notes" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Additional Notes
                   </label>
                   <textarea
@@ -986,48 +986,48 @@ const ChildProfile: React.FC = () => {
                     className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   ></textarea>
                 </div>
-                  <Calendar className="h-4 w-4" />
+
                 {isFriendProfile && (
                   <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
                     <div className="flex items-center text-yellow-800 dark:text-yellow-200 mb-2">
-                  className={`p-0.5 rounded ${
+                      {child.accessRole === 'administrator' ? (
                         <>
                           <Crown className="h-5 w-5 mr-2" />
                           <span className="font-medium">Administrator Access</span>
                         </>
                       ) : (
                         <>
-                  <div className="w-4 h-4 flex flex-col justify-center items-center">
-                    <div className="w-2.5 h-0.5 bg-current mb-0.5"></div>
-                    <div className="w-2.5 h-0.5 bg-current mb-0.5"></div>
-                    <div className="w-2.5 h-0.5 bg-current"></div>
+                          <Eye className="h-5 w-5 mr-2" />
+                          <span className="font-medium">Viewer Access</span>
+                        </>
+                      )}
                     </div>
                     <p className="text-sm text-yellow-700 dark:text-yellow-300">
                       {child.accessRole === 'administrator'
                         ? `You are editing ${child.ownerName}'s child profile. Any changes you make will be visible to them.`
-                  className={`p-0.5 rounded ${
+                        : `You can view but not edit ${child.ownerName}'s child profile.`}
                     </p>
                   </div>
                 )}
               </div>
 
               <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">
-                  <div className="w-4 h-4 flex flex-col justify-center items-center">
-                    <div className="w-2.5 h-0.5 bg-current mb-0.5"></div>
-                    <div className="w-2.5 h-0.5 bg-current mb-0.5"></div>
-                    <div className="w-2.5 h-0.5 bg-current"></div>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
                 >
-                  <ChevronLeft className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                  Cancel
                 </button>
                 <button
-                  className={`p-0.5 rounded ${
+                  type="submit"
                   className={`px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
                     isFriendProfile 
                       ? 'bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-800 focus:ring-yellow-500' 
                       : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 focus:ring-blue-500'
-                  className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-                <h2 className="text-base font-semibold text-gray-700 dark:text-gray-300 ml-1">
-                  <LayoutList className="h-4 w-4" />
+                  }`}
+                >
+                  Save Changes
                 </button>
               </div>
             </form>
