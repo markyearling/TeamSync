@@ -712,14 +712,24 @@ const Dashboard: React.FC = () => {
             year: 'numeric'
             })}
           </div>
-        {lastRefreshedDate && (
-          <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
-            <span>Last refreshed: {lastRefreshedDate ? formatLastRefreshed() : 'Never' }</span>
-            {isRefreshing && (
-              <RefreshCw className="ml-2 h-3 w-3 animate-spin text-blue-500" />
-            )}
-          </div>
-        )}
+          {lastRefreshedDate && (
+            <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
+              <span>Last refreshed: {lastRefreshedDate ? formatLastRefreshed() : 'Never' }</span>
+              {isRefreshing && (
+                <RefreshCw className="ml-2 h-3 w-3 animate-spin text-blue-500" />
+              )}
+              {!isNative && (
+                <button
+                  onClick={syncAllPlatformEvents}
+                  disabled={isRefreshing || lastRefreshInProgress}
+                  className="ml-2 p-1 text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 disabled:opacity-50 disabled:cursor-not-allowed rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Refresh all platform events"
+                >
+                  <RefreshCw className={`h-3 w-3 ${isRefreshing ? 'animate-spin' : ''}`} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
