@@ -305,26 +305,26 @@ const Calendar: React.FC = () => {
       <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
         <div className="flex items-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mr-4">Calendar</h1>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
             <button
               onClick={navigatePrevious}
-              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              <ChevronLeft className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <ChevronLeft className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             </button>
             <button
               onClick={navigateToday}
-              className="px-3 py-1 text-sm bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
+              className="px-2 py-0.5 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600"
             >
               Today
             </button>
             <button
               onClick={navigateNext}
-              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+              className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
             >
-              <ChevronRight className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              <ChevronRight className="h-4 w-4 text-gray-500 dark:text-gray-400" />
             </button>
-            <h2 className="text-xl font-semibold text-gray-700 dark:text-gray-300 ml-2">{renderTitle()}</h2>
+            <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 ml-1">{renderTitle()}</h2>
           </div>
         </div>
         
@@ -337,7 +337,7 @@ const Calendar: React.FC = () => {
               }`}
               title="Month view"
             >
-              <CalendarIcon className="h-5 w-5" />
+              <CalendarIcon className="h-4 w-4" />
             </button>
             <button
               onClick={() => setView('week')}
@@ -346,7 +346,7 @@ const Calendar: React.FC = () => {
               }`}
               title="Week view"
             >
-              <LayoutGrid className="h-5 w-5" />
+              <LayoutGrid className="h-4 w-4" />
             </button>
             <button
               onClick={() => setView('day')}
@@ -355,10 +355,10 @@ const Calendar: React.FC = () => {
               }`}
               title="Day view"
             >
-              <div className="w-5 h-5 flex flex-col justify-center items-center">
-                <div className="w-4 h-0.5 bg-current mb-0.5"></div>
-                <div className="w-4 h-0.5 bg-current mb-0.5"></div>
-                <div className="w-4 h-0.5 bg-current"></div>
+              <div className="w-4 h-4 flex flex-col justify-center items-center">
+                <div className="w-3 h-0.5 bg-current mb-0.5"></div>
+                <div className="w-3 h-0.5 bg-current mb-0.5"></div>
+                <div className="w-3 h-0.5 bg-current"></div>
               </div>
             </button>
             <button
@@ -368,15 +368,15 @@ const Calendar: React.FC = () => {
               }`}
               title="List view"
             >
-              <LayoutList className="h-5 w-5" />
+              <LayoutList className="h-4 w-4" />
             </button>
           </div>
           
           <button
             onClick={() => setFilterOpen(!filterOpen)}
-            className="flex items-center px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 text-sm text-gray-700 dark:text-gray-300"
+            className="flex items-center px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-600 text-sm text-gray-700 dark:text-gray-300"
           >
-            <Filter className="h-4 w-4 mr-1" />
+            <Filter className="h-3 w-3 mr-1" />
             Filter
           </button>
         </div>
