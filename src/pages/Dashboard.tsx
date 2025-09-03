@@ -580,6 +580,16 @@ const Dashboard: React.FC = () => {
       
     } catch (error) {
       console.error('Error syncing platform events:', error);
+      
+      // Provide specific troubleshooting for fetch errors
+      if (error instanceof TypeError && error.message === 'Failed to fetch') {
+        console.error(
+          'Troubleshooting Tip: The application failed to connect to the Supabase Edge Function. ' +
+          'This often indicates a network issue, an incorrect VITE_SUPABASE_URL, or a problem with the Edge Function deployment. ' +
+          'Please verify your internet connection, check the VITE_SUPABASE_URL in your .env file and Netlify environment settings, ' +
+          'and ensure the "sync-gamechanger-calendar" function is deployed and healthy in your Supabase project.'
+        );
+      }
     } finally {
       setIsRefreshing(false);
       setLastRefreshInProgress(false);
