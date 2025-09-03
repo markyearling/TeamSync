@@ -82,7 +82,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
   // Determine if we should use full-screen modal on mobile
   const containerClasses = isNative
-    ? "fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-800 overflow-hidden"
+    ? "fixed inset-0 z-50 bg-white dark:bg-gray-800"
     : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 sm:p-6";
 
   const modalContentClasses = isNative
@@ -513,6 +513,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       } : {}}
     >
       <div 
+        ref={modalRef}
         className={modalContentClasses}
         onClick={(e) => e.stopPropagation()}
       >

@@ -123,17 +123,17 @@ const EditFriendRoleModal: React.FC<EditFriendRoleModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 space-y-4 flex-1 overflow-y-auto">
           <div className="text-center">
             <h4 className="text-base font-medium text-gray-900 dark:text-white mb-2">
               {friendName}
             </h4>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              Choose what level of access this friend should have to your family's schedules and profiles.
+            <p className="text-xs text-gray-600 dark:text-gray-400">
+              Choose access level for your family's schedules and profiles.
             </p>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {[
               { value: 'none', label: 'Friend', icon: MessageCircle, color: 'text-green-500' },
               { value: 'viewer', label: 'Viewer', icon: Eye, color: 'text-blue-500' },
@@ -141,7 +141,7 @@ const EditFriendRoleModal: React.FC<EditFriendRoleModalProps> = ({
             ].map((option) => (
               <label
                 key={option.value}
-                className={`flex items-start p-4 rounded-lg border cursor-pointer transition-colors ${
+                className={`flex items-start p-3 rounded-lg border cursor-pointer transition-colors ${
                   selectedRole === option.value
                     ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 dark:border-blue-700'
                     : 'border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -157,20 +157,20 @@ const EditFriendRoleModal: React.FC<EditFriendRoleModalProps> = ({
                 />
                 <div className="flex items-center flex-1">
                   <div className="flex-shrink-0 mr-3">
-                    <option.icon className={`h-6 w-6 ${option.color}`} />
+                    <option.icon className={`h-5 w-5 ${option.color}`} />
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white mb-1">
                       {option.label}
                     </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    <div className="text-xs text-gray-600 dark:text-gray-400">
                       {getRoleDescription(option.value)}
                     </div>
                   </div>
                   {selectedRole === option.value && (
                     <div className="flex-shrink-0 ml-3">
-                      <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center">
-                        <div className="w-2 h-2 rounded-full bg-white"></div>
+                      <div className="w-3 h-3 rounded-full bg-blue-500 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-white"></div>
                       </div>
                     </div>
                   )}
@@ -179,27 +179,27 @@ const EditFriendRoleModal: React.FC<EditFriendRoleModalProps> = ({
             ))}
           </div>
 
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
             <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
               Access Level Details
             </h4>
-            <div className="space-y-2 text-sm text-blue-700 dark:text-blue-300">
+            <div className="space-y-1 text-xs text-blue-700 dark:text-blue-300">
               <div className="flex items-start">
-                <MessageCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                <MessageCircle className="h-3 w-3 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
                 <div>
-                  <span className="font-medium">Friend:</span> Basic friendship with messaging capabilities only
+                  <span className="font-medium">Friend:</span> Messaging only
                 </div>
               </div>
               <div className="flex items-start">
-                <Eye className="h-4 w-4 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
+                <Eye className="h-3 w-3 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
                 <div>
-                  <span className="font-medium">Viewer:</span> Can see your children's schedules and events in their dashboard and calendar
+                  <span className="font-medium">Viewer:</span> Can view schedules and events
                 </div>
               </div>
               <div className="flex items-start">
-                <Shield className="h-4 w-4 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                <Shield className="h-3 w-3 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
                 <div>
-                  <span className="font-medium">Administrator:</span> Full access to view and manage your children's profiles, schedules, and events
+                  <span className="font-medium">Administrator:</span> Full access to manage profiles and events
                 </div>
               </div>
             </div>
@@ -207,7 +207,7 @@ const EditFriendRoleModal: React.FC<EditFriendRoleModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">
+        <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3 flex-shrink-0">
           <button
             onClick={onClose}
             disabled={saving}
