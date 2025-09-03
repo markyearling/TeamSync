@@ -109,6 +109,7 @@ const AppContent = () => {
   const { isInitialized: notificationsInitialized } = useScheduledNotifications();
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
     const initializeConnection = async () => {
@@ -126,6 +127,14 @@ const AppContent = () => {
 
     initializeConnection();
   }, []);
+
+  // Redirect authenticated users from landing page to dashboard
+  useEffect(() => {
+    if (!loading && user && location.pathname === '/') {
+      console.log('[App] Authenticated user on landing page, redirecting to dashboard');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, loading, location.pathname, navigate]);
 
   // Check for password reset tokens in URL
   useEffect(() => {
