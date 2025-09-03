@@ -100,8 +100,10 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
   // Fetch friends on initial mount
   useEffect(() => {
-    fetchFriends();
-  }, []);
+    if (authUser) {
+      fetchFriends();
+    }
+  }, [authUser]);
 
   useEffect(() => {
     // Set up real-time subscription for messages to update unread counts  
