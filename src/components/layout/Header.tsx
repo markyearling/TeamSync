@@ -94,29 +94,35 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               schema: 'public',
               table: 'notifications'
             },
-            (payload: any) => {
-              console.log('🗨️ HEADER: *** CONVERSATION UPDATE DETECTED ***');
-              console.log('🗨️ HEADER: Payload:', payload);
-              console.log('🗨️ HEADER: Updated conversation ID:', payload.new?.id);
-              console.log('🗨️ HEADER: New last_message_at:', payload.new?.last_message_at);
-              console.log('🗨️ HEADER: Participant 1:', payload.new?.participant_1_id);
-              console.log('🗨️ HEADER: Participant 2:', payload.new?.participant_2_id);
-              console.log('🗨️ HEADER: Current user ID:', authUser.id);
-
-              const isUserInvolved =
-                payload.new?.participant_1_id === authUser.id ||
-                payload.new?.participant_2_id === authUser.id;
-              console.log('🗨️ HEADER: Is current user involved in this conversation?', isUserInvolved);
-
-              if (isUserInvolved) {
-                console.log('🗨️ HEADER: User is involved - calling fetchFriends()');
-                fetchFriends();
-              } else {
-                console.log('🗨️ HEADER: User not involved - ignoring this update');
+            (payload) => {
+              console.log('🔔 HEADER: Notification change received:', payload);
+              
+              if (payload.eventType === 'INSERT') {
+                const newNotification = payload.new as Notification;
+                if (newNotification && newNotification.type !== 'message') { // Only add non-message notifications
+                  setNotifications(prev => [newNotification, ...prev]);
+                }
+              } else if (payload.eventType === 'UPDATE') {
+                const updatedNotification = payload.new as Notification;
+                if (updatedNotification) {
+                  setNotifications(prev => 
+                    prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
+                  );
+                }
+              } else if (payload.eventType === 'DELETE') {
+                const deletedId = payload.old?.id; // Use payload.old for DELETE events
+                if (deletedId) {
+                  setNotifications(prev => prev.filter(n => n.id !== deletedId));
+                }
               }
+              // Re-fetch notification count to ensure accuracy
+              fetchNotificationCount();
             }
           )
           .subscribe();
+
+        // Store the subscription reference for cleanup
+        subscriptionRef.current = notificationsSubscription;
 
         return () => {
           notificationsSubscription.unsubscribe();
@@ -270,8 +276,8 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         )
         .on(
           'system',
-          'ERROR',
-          (err) => console.error('🗨️ HEADER: Conversation P1 channel: ERROR', err)
+          'ERROR', // This catches system-level errors from the Realtime client
+          (err) => console.log('🗨️ HEADER: Conversation P1 channel: SYSTEM ERROR (might be benign)', err)
         )
         .subscribe((status) => {
           console.log('🗨️ HEADER: Conversations P1 subscription status:', status);
@@ -315,8 +321,8 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         )
         .on(
           'system',
-          'ERROR',
-          (err) => console.error('🗨️ HEADER: Conversation P2 channel: ERROR', err)
+          'ERROR', // This catches system-level errors from the Realtime client
+          (err) => console.log('🗨️ HEADER: Conversation P2 channel: SYSTEM ERROR (might be benign)', err)
         )
         .subscribe((status) => {
           console.log('🗨️ HEADER: Conversations P2 subscription status:', status);
