@@ -87,7 +87,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       if (user) {
         const notificationsSubscription = supabase
           .channel(`header-notifications:user_id=eq.${user.id}`) // This channel name is fine as it's for a specific user's notifications table
-          .channel(`header-notifications:user_id=eq.${user.id}`)
           .on(
             'postgres_changes',
             {
@@ -240,7 +239,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       
       const conversationSubscription = supabase
         .channel('conversations_realtime_channel')
-        .on( // This is the correct place for the RLS filter
         .on(
           'postgres_changes',
           {
