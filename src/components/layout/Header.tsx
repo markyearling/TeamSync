@@ -219,29 +219,27 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   // Set up real-time subscription for conversations to update when last_message_at changes
   useEffect(() => {
     const setupConversationSubscription = async () => {
-      if (!authUser) return;
+          (payload) => {
       
       console.log('🗨️ HEADER: Setting up conversations subscription for user:', authUser.id);
+      console.log('🗨️ HEADER: AuthUser object:', { id: authUser.id, email: authUser.email });
       
       const conversationSubscription = supabase
-        .channel(`header-conversations:user_id=eq.${authUser.id}`)
+        .channel('conversations_realtime_channel')
         .on(
           'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'conversations',
-            filter: `or(participant_1_id.eq.${authUser.id},participant_2_id.eq.${authUser.id})`
-          },
-          () => {
-            console.log('🗨️ HEADER: Conversation update detected (last_message_at changed), refreshing friends');
-            console.log('🗨️ HEADER: This should happen when a new message is sent and triggers the database function');
-            // Refresh friends list when conversation is updated (new message timestamp)
+            // Since we're using a filter, all events should be relevant to this user
+            console.log('🗨️ HEADER: Calling fetchFriends() due to conversation update');
             fetchFriends();
           }
         )
         .subscribe((status) => {
           console.log('🗨️ HEADER: Conversations subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('🗨️ HEADER: Successfully subscribed to conversations realtime updates');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('🗨️ HEADER: Error subscribing to conversations realtime updates');
+          }
         });
 
       console.log('🗨️ HEADER: Conversations subscription setup complete for user:', authUser.id);
