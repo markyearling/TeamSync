@@ -234,56 +234,103 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       console.log('Header: Attempting to set up conversation subscription.');
       if (!authUser) return;
       
-      console.log('🗨️ HEADER: Setting up conversations subscription for user:', authUser.id);
-      console.log('🗨️ HEADER: AuthUser object:', { id: authUser.id, email: authUser.email });
+      console.log('🗨️ HEADER: Setting up conversations subscriptions for user:', authUser.id);
+      console.log('🗨️ HEADER: AuthUser object:', { id: authUser.id, email: authUser.email || 'N/A' });
       
-      const conversationSubscription = supabase
-        .channel('conversations_realtime_channel')
+      // Subscription for when current user is participant_1
+      const conversationSubscription1 = supabase
+        .channel(`conversations_realtime_channel_p1_${authUser.id}`)
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
             table: 'conversations',
-            filter: `or(participant_1_id.eq.${authUser.id},participant_2_id.eq.${authUser.id})`
+            filter: `participant_1_id.eq.${authUser.id}`
           },
           (payload) => {
-            console.log('🗨️ HEADER: Conversation channel event:', payload.eventType, payload.new);
+            console.log('🗨️ HEADER: Conversation P1 channel event:', payload.eventType, payload.new);
             fetchFriends();
           }
         )
         .on(
           'system',
           'CONNECTING',
-          () => console.log('🗨️ HEADER: Conversation channel: CONNECTING')
+          () => console.log('🗨️ HEADER: Conversation P1 channel: CONNECTING')
         )
         .on(
           'system',
           'CONNECTED',
-          () => console.log('🗨️ HEADER: Conversation channel: CONNECTED')
+          () => console.log('🗨️ HEADER: Conversation P1 channel: CONNECTED')
         )
         .on(
           'system',
           'CLOSED',
-          () => console.log('🗨️ HEADER: Conversation channel: CLOSED')
+          () => console.log('🗨️ HEADER: Conversation P1 channel: CLOSED')
         )
         .on(
           'system',
           'ERROR',
-          (err) => console.error('🗨️ HEADER: Conversation channel: ERROR', err)
+          (err) => console.error('🗨️ HEADER: Conversation P1 channel: ERROR', err)
         )
         .subscribe((status) => {
-          console.log('🗨️ HEADER: Conversations subscription status:', status);
+          console.log('🗨️ HEADER: Conversations P1 subscription status:', status);
           if (status === 'SUBSCRIBED') {
-            console.log('🗨️ HEADER: Successfully subscribed to conversations realtime updates');
+            console.log('🗨️ HEADER: Successfully subscribed to conversations P1 realtime updates');
           } else if (status === 'CHANNEL_ERROR') {
-            console.error('🗨️ HEADER: Error subscribing to conversations realtime updates');
+            console.error('🗨️ HEADER: Error subscribing to conversations P1 realtime updates');
           }
         });
 
-      console.log('🗨️ HEADER: Conversations subscription setup complete for user:', authUser.id);
+      // Subscription for when current user is participant_2
+      const conversationSubscription2 = supabase
+        .channel(`conversations_realtime_channel_p2_${authUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'conversations',
+            filter: `participant_2_id.eq.${authUser.id}`
+          },
+          (payload) => {
+            console.log('🗨️ HEADER: Conversation P2 channel event:', payload.eventType, payload.new);
+            fetchFriends();
+          }
+        )
+        .on(
+          'system',
+          'CONNECTING',
+          () => console.log('🗨️ HEADER: Conversation P2 channel: CONNECTING')
+        )
+        .on(
+          'system',
+          'CONNECTED',
+          () => console.log('🗨️ HEADER: Conversation P2 channel: CONNECTED')
+        )
+        .on(
+          'system',
+          'CLOSED',
+          () => console.log('🗨️ HEADER: Conversation P2 channel: CLOSED')
+        )
+        .on(
+          'system',
+          'ERROR',
+          (err) => console.error('🗨️ HEADER: Conversation P2 channel: ERROR', err)
+        )
+        .subscribe((status) => {
+          console.log('🗨️ HEADER: Conversations P2 subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('🗨️ HEADER: Successfully subscribed to conversations P2 realtime updates');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('🗨️ HEADER: Error subscribing to conversations P2 realtime updates');
+          }
+        });
+
+      console.log('🗨️ HEADER: Conversations subscriptions setup complete for user:', authUser.id);
       return () => {
-        conversationSubscription.unsubscribe();
+        conversationSubscription1.unsubscribe();
+        conversationSubscription2.unsubscribe();
       };
     };
 
