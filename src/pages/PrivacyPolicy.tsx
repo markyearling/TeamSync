@@ -151,10 +151,10 @@ const PrivacyPolicy: React.FC = () => {
               </p>
                 </div>
               </section>
-    </div>
+              </div>
+            </div>
+          </div> 
   );
 };
 
 export default PrivacyPolicy;
-  )
-}
