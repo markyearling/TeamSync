@@ -81,10 +81,25 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               event: '*',
               schema: 'public',
               table: 'notifications',
-              filter: `user_id=eq.${user.id}`
-            },
-            () => {
-              fetchNotificationCount();
+              console.log('🗨️ HEADER: *** CONVERSATION UPDATE DETECTED ***');
+              console.log('🗨️ HEADER: Payload:', payload);
+              console.log('🗨️ HEADER: Updated conversation ID:', payload.new?.id);
+              console.log('🗨️ HEADER: New last_message_at:', payload.new?.last_message_at);
+              console.log('🗨️ HEADER: Participant 1:', payload.new?.participant_1_id);
+              console.log('🗨️ HEADER: Participant 2:', payload.new?.participant_2_id);
+              console.log('🗨️ HEADER: Current user ID:', authUser.id);
+              
+              // Check if this conversation involves the current user
+              const isUserInvolved = payload.new?.participant_1_id === authUser.id || 
+                                   payload.new?.participant_2_id === authUser.id;
+              console.log('🗨️ HEADER: Is current user involved in this conversation?', isUserInvolved);
+              
+              if (isUserInvolved) {
+                console.log('🗨️ HEADER: User is involved - calling fetchFriends()');
+                fetchFriends();
+              } else {
+                console.log('🗨️ HEADER: User not involved - ignoring this update');
+              }
             }
           )
           .subscribe();
