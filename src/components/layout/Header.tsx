@@ -246,7 +246,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             event: '*',
             schema: 'public',
             table: 'conversations',
-            filter: `participant_1_id.eq.${authUser.id}`
+            filter: `participant_1_id=eq.${authUser.id}`
           },
           (payload) => {
             console.log('🗨️ HEADER: Conversation P1 channel event:', payload.eventType, payload.new);
@@ -291,7 +291,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             event: '*',
             schema: 'public',
             table: 'conversations',
-            filter: `participant_2_id.eq.${authUser.id}`
+            filter: `participant_2_id=eq.${authUser.id}`
           },
           (payload) => {
             console.log('🗨️ HEADER: Conversation P2 channel event:', payload.eventType, payload.new);
@@ -353,7 +353,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             event: '*',
             schema: 'public',
             table: 'friend_requests',
-            filter: `or(requester_id.eq.${authUser.id},requested_id.eq.${authUser.id})`
+            filter: `or(requester_id=eq.${authUser.id},requested_id=eq.${authUser.id})`
           },
           () => {
             console.log('🤝 HEADER: Friend request change detected, refreshing friends');
@@ -367,7 +367,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             event: '*',
             schema: 'public',
             table: 'friendships',
-            filter: `or(user_id.eq.${authUser.id},friend_id.eq.${authUser.id})`
+            filter: `or(user_id=eq.${authUser.id},friend_id=eq.${authUser.id})`
           }, 
           (payload) => {
             console.log('🤝 HEADER: Friendship channel event:', payload.eventType, payload.new);
