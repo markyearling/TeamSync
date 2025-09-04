@@ -27,6 +27,7 @@ import TestEmail from './pages/TestEmail';
 import Help from './pages/Help';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import MobileOptimizations from './components/mobile/MobileOptimizations';
+import AuthAwarePageWrapper from './components/layout/AuthAwarePageWrapper';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProfilesProvider } from './context/ProfilesContext';
@@ -227,8 +228,16 @@ const AppContent = () => {
       <Route path="/features" element={<Features />} />
       <Route path="/pricing" element={<Pricing />} />
       <Route path="/mobileapps" element={<MobileApps />} />
-      <Route path="/privacy" element={<PrivacyPolicy />} />
-      <Route path="/help" element={<Help />} />
+      <Route path="/privacy" element={
+        <AuthAwarePageWrapper>
+          <PrivacyPolicy />
+        </AuthAwarePageWrapper>
+      } />
+      <Route path="/help" element={
+        <AuthAwarePageWrapper>
+          <Help />
+        </AuthAwarePageWrapper>
+      } />
       
       {/* Auth routes */}
       <Route path="/auth/signin" element={<SignIn />} />
