@@ -219,7 +219,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   // Set up real-time subscription for conversations to update when last_message_at changes
   useEffect(() => {
     const setupConversationSubscription = async () => {
-          (payload) => {
+      if (!authUser) return;
       
       console.log('🗨️ HEADER: Setting up conversations subscription for user:', authUser.id);
       console.log('🗨️ HEADER: AuthUser object:', { id: authUser.id, email: authUser.email });
@@ -228,6 +228,13 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         .channel('conversations_realtime_channel')
         .on(
           'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'conversations',
+            filter: `or(participant_1_id.eq.${authUser.id},participant_2_id.eq.${authUser.id})`
+          },
+          (payload) => {
             // Since we're using a filter, all events should be relevant to this user
             console.log('🗨️ HEADER: Calling fetchFriends() due to conversation update');
             fetchFriends();
