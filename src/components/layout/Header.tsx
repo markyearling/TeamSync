@@ -222,10 +222,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       if (!authUser) return;
       
       console.log('🗨️ HEADER: Setting up conversations subscription for user:', authUser.id);
-      // Log the authUser object to ensure ID is present
-      console.log('🗨️ HEADER: AuthUser object:', { id: authUser.id, email: authUser.email });
-      // Log the exact filter string being used
-      console.log('🗨️ HEADER: Conversation filter string:', `or(participant_1_id.eq.${authUser.id},participant_2_id.eq.${authUser.id})`);
       console.log('🗨️ HEADER: AuthUser object:', { id: authUser.id, email: authUser.email });
       
       const conversationSubscription = supabase
