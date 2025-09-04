@@ -707,7 +707,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 
                 {notificationsOpen && (
                   isNative ? (
-                    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-800" style={{
+                    <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-800" style={{
                       top: 'env(safe-area-inset-top, 0px)',
                       bottom: 'env(safe-area-inset-bottom, 0px)',
                       left: 'env(safe-area-inset-left, 0px)',
@@ -719,7 +719,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                       />
                     </div>
                   ) : (
-                    <div className="absolute right-0 mt-2 w-full md:w-96 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+                    <div className="absolute right-0 mt-2 w-full md:w-96 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-[60]">
                       <NotificationCenter 
                         onClose={() => setNotificationsOpen(false)} 
                         onOpenChat={handleOpenChatFromNotification}
@@ -748,7 +748,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 
                 {friendsOpen && (
                   isNative ? (
-                    <div className="fixed inset-0 z-50 bg-white dark:bg-gray-800" style={{
+                    <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-800" style={{
                       top: 'env(safe-area-inset-top, 0px)', 
                       bottom: 'env(safe-area-inset-bottom, 0px)',
                       left: 'env(safe-area-inset-left, 0px)',
@@ -766,7 +766,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                       />
                     </div>
                   ) : (
-                    <div className="absolute right-0 mt-2 w-full md:w-80 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="absolute right-0 mt-2 w-full md:w-80 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-[60]">
                       <FriendsListModal
                         friends={friends}
                         filteredFriends={filteredFriends}
