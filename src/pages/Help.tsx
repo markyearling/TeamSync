@@ -49,51 +49,6 @@ const Help: React.FC = () => {
           </button>
         </section>
       </div>
-    </div>
-
-    {isModalOpen && (
-      <SupportModal onClose={() => setIsModalOpen(false)} />
-    )}
-  );
-};
-
-export default Help;
-
-            </div>
-          </div>
-
-          <div className="px-6 py-8 space-y-8">
-            <section>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">About FamSink</h2>
-              <div className="space-y-4 text-gray-600 dark:text-gray-300 leading-relaxed">
-                <p>
-                  FamSink is your ultimate family sports schedule management app, designed to simplify the chaotic world of youth sports. We help parents effortlessly organize, track, and share their children's activities, ensuring no game or practice is ever missed.
-                </p>
-                <p>
-                  Our mission is to bring peace of mind to busy families by centralizing schedules, facilitating communication, and integrating with popular sports platforms like TeamSnap, SportsEngine, and Playmetrics.
-                </p>
-                <p>
-                  FamSink is proudly based out of Grafton, WI.
-                </p>
-              </div>
-            </section>
-
-            <section>
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Support Issues</h2>
-              <p className="text-gray-600 dark:text-gray-300 mb-6">
-                If you encounter any issues or have questions that aren't covered in our FAQs, please don't hesitate to reach out to our support team.
-              </p>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <Mail className="h-5 w-5 mr-2" />
-                Contact Support
-              </button>
-            </section>
-          </div>
-        </div>
-      </div>
 
       {isModalOpen && (
         <SupportModal onClose={() => setIsModalOpen(false)} />
