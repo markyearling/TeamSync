@@ -199,40 +199,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     }
   }, [authUser, fetchFriends]);
 
-  useEffect(() => {
-    // Set up real-time subscription for messages to update unread counts  
-    const setupMessageSubscription = async () => {
-      if (!authUser) return;
-      
-      console.log('🔔 HEADER: Setting up messages subscription for user:', authUser.id);
-      
-      const messagesSubscription = supabase
-        .channel(`header-messages:user_id=eq.${authUser.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'messages'
-          },
-          () => {
-            console.log('💬 HEADER: Message change detected, refreshing friends');
-            // Always refresh friends list to get accurate unread counts
-            fetchFriends();
-          }
-        )
-        .subscribe((status) => {
-          console.log('💬 HEADER: Messages subscription status:', status);
-        });
-
-      return () => {
-        messagesSubscription.unsubscribe();
-      };
-    };
-
-    setupMessageSubscription();
-  }, [authUser, fetchFriends]);
-
   // Set up real-time subscription for conversations to update when last_message_at changes
   useEffect(() => {
     const setupConversationSubscription = async () => {
@@ -251,7 +217,8 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             filter: `or(participant_1_id.eq.${authUser.id},participant_2_id.eq.${authUser.id})`
           },
           () => {
-            console.log('🗨️ HEADER: Conversation update detected, refreshing friends');
+            console.log('🗨️ HEADER: Conversation update detected (last_message_at changed), refreshing friends');
+            console.log('🗨️ HEADER: This should happen when a new message is sent and triggers the database function');
             // Refresh friends list when conversation is updated (new message timestamp)
             fetchFriends();
           }
@@ -260,6 +227,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
           console.log('🗨️ HEADER: Conversations subscription status:', status);
         });
 
+      console.log('🗨️ HEADER: Conversations subscription setup complete for user:', authUser.id);
       return () => {
         conversationSubscription.unsubscribe();
       };
