@@ -32,6 +32,8 @@ interface Friend {
 }
 
 const Header: React.FC<HeaderProps> = ({ children }) => {
+  console.log('Header: Component rendering');
+
   const { user } = useApp();
   const { theme, toggleTheme } = useTheme();
   const { user: authUser } = useAuth();
@@ -56,13 +58,21 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const navigate = useNavigate();
   
   const toggleNotifications = () => setNotificationsOpen(!notificationsOpen);
-
-  console.log('Header component rendered.');
-
+  
   useEffect(() => {
-    console.log('Header: authUser state changed:', authUser ? 'User is present' : 'User is null/undefined');
+    console.log('Header: authUser useEffect triggered. Current authUser:', authUser ? 'Present' : 'Null');
     if (authUser) {
       console.log('Header: authUser ID:', authUser.id);
+    }
+  }, [authUser]);
+
+  useEffect(() => {
+    console.log('Header: Supabase client defined?', !!supabase);
+    if (!supabase) {
+      console.error('Header: Supabase client is undefined!');
+    } else {
+      // Log the Supabase URL to ensure it's correctly configured
+      console.log('Header: Supabase URL:', (supabase as any).supabaseUrl);
     }
   }, [authUser]);
 
@@ -80,6 +90,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     
     // Set up real-time subscription for notifications count (excluding messages)
     console.log('Header: Setting up notification subscription effect.');
+    console.log('Header: authUser for notification subscription:', authUser ? authUser.id : 'Not available');
 
     const setupNotificationSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -128,6 +139,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   }, []);
 
   const fetchFriends = React.useCallback(async () => {
+    console.log('Header: fetchFriends called.');
     try {
       setLoadingFriends(true);
       if (!authUser) return;
@@ -232,6 +244,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   useEffect(() => {
     const setupConversationSubscription = async () => {
       console.log('Header: Attempting to set up conversation subscription.');
+      console.log('Header: Attempting to set up conversation subscription.');
       if (!authUser) return;
       
       console.log('🗨️ HEADER: Setting up conversations subscription for user:', authUser.id);
@@ -274,6 +287,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   // Set up real-time subscription for friend requests to update when requests are sent/received
   useEffect(() => {
     const setupFriendRequestSubscription = async () => {
+      console.log('Header: Attempting to set up friend request subscription.');
       console.log('Header: Attempting to set up friend request subscription.');
       if (!authUser) return;
       
@@ -320,10 +334,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
     setupFriendRequestSubscription();
   }, [authUser, fetchFriends]);
-
-  useEffect(() => {
-    console.log('Header: Supabase client defined?', !!supabase);
-  }, []);
 
   // Filter friends based on search query and sort by unread messages
   useEffect(() => {
