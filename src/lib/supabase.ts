@@ -8,7 +8,6 @@ console.log('Supabase configuration check:', {
   url: supabaseUrl ? 'Present' : 'Missing',
   key: supabaseAnonKey ? 'Present' : 'Missing',
   urlValue: supabaseUrl || 'undefined'
-  options: { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' } }
 });
 
 if (!supabaseUrl || !supabaseAnonKey) {
