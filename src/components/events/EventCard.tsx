@@ -67,7 +67,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
 
   return (
       <div
-        className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer relative" // Add 'relative' here
+        className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer flex flex-col"
         onClick={onClick}
       >
         <div className="flex items-start space-x-4">
@@ -131,9 +131,8 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
             </div>
           </div>
         </div>
-        {/* Add the new conditional div here */}
         {!event.isOwnEvent && event.ownerName && (
-          <div className="absolute bottom-2 right-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full z-10">
+          <div className="mt-2 self-end bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
             {event.ownerName}'s schedule
           </div>
         )}
