@@ -355,49 +355,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             table: 'friend_requests',
             filter: `or(requester_id.eq.${authUser.id},requested_id.eq.${authUser.id})`
           },
-          (payload) => {
-            console.log('🤝 HEADER: Friend request channel event:', payload.eventType, payload.new);
-            // Since we're using a filter, all events should be relevant to this user
-            console.log('🗨️ HEADER: Calling fetchFriends() due to conversation update');
-            fetchFriends();
-          }
-        )
-        .subscribe((status) => {
-          console.log('🗨️ HEADER: Conversations subscription status:', status);
-          if (status === 'SUBSCRIBED') {
-            console.log('🗨️ HEADER: Successfully subscribed to conversations realtime updates');
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('🗨️ HEADER: Error subscribing to conversations realtime updates');
-          }
-        });
-
-      console.log('🗨️ HEADER: Conversations subscription setup complete for user:', authUser.id);
-      return () => {
-        conversationSubscription.unsubscribe();
-      };
-    };
-
-    setupConversationSubscription();
-  }, [authUser, fetchFriends]);
-
-  // Set up real-time subscription for friend requests to update when requests are sent/received
-  useEffect(() => {
-    const setupFriendRequestSubscription = async () => {
-      console.log('Header: Attempting to set up friend request subscription.');
-      if (!authUser) return;
-      
-      console.log('🤝 HEADER: Setting up friend requests subscription for user:', authUser.id);
-      
-      const friendRequestSubscription = supabase
-        .channel(`header-friend-requests:user_id=eq.${authUser.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'friend_requests',
-            filter: `or(requester_id.eq.${authUser.id},requested_id.eq.${authUser.id})`
-          },
           () => {
             console.log('🤝 HEADER: Friend request change detected, refreshing friends');
             // Refresh friends list when friend requests change
@@ -447,6 +404,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         friendRequestSubscription.unsubscribe();
       };
     };
+    
     setupFriendRequestSubscription();
   }, [authUser, fetchFriends]);
 
