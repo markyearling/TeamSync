@@ -344,64 +344,88 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       if (!authUser) return;
       
       console.log('🤝 HEADER: Setting up friend requests subscription for user:', authUser.id);
-      
-      const friendRequestSubscription = supabase
-        .channel(`header-friend-requests:user_id=eq.${authUser.id}`)
+
+      // Subscription for friend_requests where current user is the requester
+      const friendRequestRequesterSubscription = supabase
+        .channel(`friend_requests_requester_channel_${authUser.id}`)
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
             table: 'friend_requests',
-            filter: `or(requester_id=eq.${authUser.id},requested_id=eq.${authUser.id})`
+            filter: `requester_id=eq.${authUser.id}`
           },
           () => {
-            console.log('🤝 HEADER: Friend request change detected, refreshing friends');
+            console.log('🤝 HEADER: Friend request (requester) change detected, refreshing friends');
             // Refresh friends list when friend requests change
             fetchFriends();
           }
         )
+        .subscribe();
+
+      // Subscription for friend_requests where current user is the requested
+      const friendRequestRequestedSubscription = supabase
+        .channel(`friend_requests_requested_channel_${authUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'friend_requests',
+            filter: `requested_id=eq.${authUser.id}`
+          },
+          () => {
+            console.log('🤝 HEADER: Friend request (requested) change detected, refreshing friends');
+            fetchFriends();
+          }
+        )
+        .subscribe();
+
+      // Subscription for friendships where current user is user_id
+      const friendshipsUserSubscription = supabase
+        .channel(`friendships_user_channel_${authUser.id}`)
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
             table: 'friendships',
-            filter: `or(user_id=eq.${authUser.id},friend_id=eq.${authUser.id})`
+            filter: `user_id=eq.${authUser.id}`
           }, 
           (payload) => {
-            console.log('🤝 HEADER: Friendship channel event:', payload.eventType, payload.new);
-            console.log('🤝 HEADER: Friendship change detected, refreshing friends');
-            // Refresh friends list when friendships change
+            console.log('🤝 HEADER: Friendship (user) channel event:', payload.eventType, payload.new);
             fetchFriends();
           }
         )
+        .subscribe();
+
+      // Subscription for friendships where current user is friend_id
+      const friendshipsFriendSubscription = supabase
+        .channel(`friendships_friend_channel_${authUser.id}`)
         .on(
-          'system',
-          'CONNECTING',
-          () => console.log('🤝 HEADER: Friend request channel: CONNECTING')
-        )
-        .on(
-          'system',
-          'CONNECTED',
-          () => console.log('🤝 HEADER: Friend request channel: CONNECTED')
-        )
-        .on(
-          'system',
-          'CLOSED',
-          () => console.log('🤝 HEADER: Friend request channel: CLOSED')
-        )
-        .on(
-          'system',
-          'ERROR',
-          (err) => console.error('🤝 HEADER: Friend request channel: ERROR', err)
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'friendships',
+            filter: `friend_id=eq.${authUser.id}`
+          }, 
+          (payload) => {
+            console.log('🤝 HEADER: Friendship (friend) channel event:', payload.eventType, payload.new);
+            // Refresh friends list when friendships change
+            fetchFriends();
+          }
         )
         .subscribe((status) => {
           console.log('🤝 HEADER: Friend requests subscription status:', status);
         });
 
       return () => {
-        friendRequestSubscription.unsubscribe();
+        friendRequestRequesterSubscription.unsubscribe();
+        friendRequestRequestedSubscription.unsubscribe();
+        friendshipsUserSubscription.unsubscribe();
+        friendshipsFriendSubscription.unsubscribe();
       };
     };
     
