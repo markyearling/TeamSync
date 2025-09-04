@@ -69,36 +69,7 @@ const MobileApps: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[env(safe-area-inset-top)]">
-          <div className="flex justify-between items-center py-4">
-            <Link 
-              to="/" 
-              className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Home
-            </Link>
-            <div className="flex items-center">
-              <img 
-                src="/famsink-new-logo.png" 
-                alt="FamSink Logo" 
-                className="h-8 w-8 rounded-full object-cover"
-              />
-              <span className="ml-3 text-2xl font-bold text-gray-900">FamSink</span>
-            </div>
-            <Link
-              to="/auth/signin"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors"
-            >
-              Sign In
-            </Link>
-          </div>
-        </div>
-      </header>
-
+    <>
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-blue-50 to-indigo-100 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -577,7 +548,7 @@ const MobileApps: React.FC = () => {
           </div>
         </div>
       </footer>
-    </div>
+    </>
   );
 };
 

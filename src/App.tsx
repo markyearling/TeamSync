@@ -225,16 +225,28 @@ const AppContent = () => {
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/features" element={<Features />} />
-      <Route path="/pricing" element={<Pricing />} />
-      <Route path="/mobileapps" element={<MobileApps />} />
+      <Route path="/features" element={
+        <AuthAwarePageWrapper showBackToHome={false}>
+          <Features />
+        </AuthAwarePageWrapper>
+      } />
+      <Route path="/pricing" element={
+        <AuthAwarePageWrapper showBackToHome={false}>
+          <Pricing />
+        </AuthAwarePageWrapper>
+      } />
+      <Route path="/mobileapps" element={
+        <AuthAwarePageWrapper showBackToHome={false}>
+          <MobileApps />
+        </AuthAwarePageWrapper>
+      } />
       <Route path="/privacy" element={
-        <AuthAwarePageWrapper>
+        <AuthAwarePageWrapper showBackToHome={false}>
           <PrivacyPolicy />
         </AuthAwarePageWrapper>
       } />
       <Route path="/help" element={
-        <AuthAwarePageWrapper>
+        <AuthAwarePageWrapper showBackToHome={false}>
           <Help />
         </AuthAwarePageWrapper>
       } />
