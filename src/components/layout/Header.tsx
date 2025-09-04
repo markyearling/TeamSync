@@ -80,7 +80,9 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             {
               event: '*',
               schema: 'public',
-              table: 'notifications',
+              table: 'notifications'
+            },
+            (payload: any) => {
               console.log('🗨️ HEADER: *** CONVERSATION UPDATE DETECTED ***');
               console.log('🗨️ HEADER: Payload:', payload);
               console.log('🗨️ HEADER: Updated conversation ID:', payload.new?.id);
@@ -88,12 +90,12 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               console.log('🗨️ HEADER: Participant 1:', payload.new?.participant_1_id);
               console.log('🗨️ HEADER: Participant 2:', payload.new?.participant_2_id);
               console.log('🗨️ HEADER: Current user ID:', authUser.id);
-              
-              // Check if this conversation involves the current user
-              const isUserInvolved = payload.new?.participant_1_id === authUser.id || 
-                                   payload.new?.participant_2_id === authUser.id;
+
+              const isUserInvolved =
+                payload.new?.participant_1_id === authUser.id ||
+                payload.new?.participant_2_id === authUser.id;
               console.log('🗨️ HEADER: Is current user involved in this conversation?', isUserInvolved);
-              
+
               if (isUserInvolved) {
                 console.log('🗨️ HEADER: User is involved - calling fetchFriends()');
                 fetchFriends();
