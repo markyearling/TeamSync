@@ -33,10 +33,18 @@ interface Friend {
 
 const Header: React.FC<HeaderProps> = ({ children }) => {
   console.log('Header: Component rendering');
+  console.log('Header: Component mounted/re-rendered at:', new Date().toISOString());
 
   const { user } = useApp();
   const { theme, toggleTheme } = useTheme();
   const { user: authUser } = useAuth();
+  
+  console.log('Header: Initial authUser state:', {
+    hasAuthUser: !!authUser,
+    authUserId: authUser?.id || 'No ID',
+    authUserEmail: authUser?.email || 'No email'
+  });
+  
   const { isIOS, isNative } = useCapacitor();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -61,6 +69,12 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   
   useEffect(() => {
     console.log('Header: authUser useEffect triggered. Current authUser:', authUser ? 'Present' : 'Null');
+    console.log('Header: authUser details in useEffect:', {
+      hasAuthUser: !!authUser,
+      authUserId: authUser?.id || 'No ID',
+      authUserEmail: authUser?.email || 'No email',
+      timestamp: new Date().toISOString()
+    });
     if (authUser) {
       console.log('Header: authUser ID:', authUser.id);
     }
@@ -68,6 +82,12 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
   useEffect(() => {
     console.log('Header: Supabase client defined?', !!supabase);
+    console.log('Header: Supabase client details:', {
+      isDefined: !!supabase,
+      hasAuth: !!(supabase as any)?.auth,
+      hasChannel: !!(supabase as any)?.channel,
+      timestamp: new Date().toISOString()
+    });
     if (!supabase) {
       console.error('Header: Supabase client is undefined!');
     } else {
@@ -93,11 +113,19 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     console.log('Header: authUser for notification subscription:', authUser ? authUser.id : 'Not available');
 
     const setupNotificationSubscription = async () => {
+      console.log('Header: setupNotificationSubscription called');
       const { data: { user } } = await supabase.auth.getUser();
+      console.log('Header: Got user from supabase.auth.getUser():', {
+        hasUser: !!user,
+        userId: user?.id || 'No ID',
+        userEmail: user?.email || 'No email'
+      });
       
       if (user) {
+        console.log('Header: User exists, setting up notifications subscription for:', user.id);
         const notificationsSubscription = supabase
           .channel(`header-notifications:user_id=eq.${user.id}`) // This channel name is fine as it's for a specific user's notifications table
+        console.log('Header: Created notifications channel, about to call .on()');
           .on(
             'postgres_changes',
             {
@@ -130,11 +158,15 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
           .subscribe();
 
         return () => {
+          console.log('Header: Cleaning up notifications subscription');
           notificationsSubscription.unsubscribe();
         };
+      } else {
+        console.log('Header: No user found in setupNotificationSubscription, skipping subscription setup');
       }
     };
 
+    console.log('Header: About to call setupNotificationSubscription');
     setupNotificationSubscription();
   }, []);
 
@@ -243,22 +275,33 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   // Set up real-time subscription for conversations to update when last_message_at changes
   useEffect(() => {
     const setupConversationSubscription = async () => {
+      console.log('Header: setupConversationSubscription called');
       console.log('Header: Attempting to set up conversation subscription.');
       console.log('Header: Attempting to set up conversation subscription.');
       if (!authUser) return;
       
+      console.log('Header: authUser exists in setupConversationSubscription:', {
+        id: authUser.id,
+        email: authUser.email
+      });
+      
       console.log('🗨️ HEADER: Setting up conversations subscription for user:', authUser.id);
       console.log('🗨️ HEADER: AuthUser object:', { id: authUser.id, email: authUser.email });
       
+      const filterString = `or(participant_1_id.eq.${authUser.id},participant_2_id.eq.${authUser.id})`;
+      console.log('🗨️ HEADER: Filter string for conversations subscription:', filterString);
+      
+      console.log('🗨️ HEADER: About to create supabase.channel()');
       const conversationSubscription = supabase
         .channel('conversations_realtime_channel')
+      console.log('🗨️ HEADER: Channel created, about to call .on()');
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
             table: 'conversations',
-            filter: `or(participant_1_id.eq.${authUser.id},participant_2_id.eq.${authUser.id})`
+            filter: filterString
           },
           (payload) => {
             // Since we're using a filter, all events should be relevant to this user
@@ -266,8 +309,10 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             fetchFriends();
           }
         )
+        console.log('🗨️ HEADER: About to call .subscribe()');
         .subscribe((status) => {
           console.log('🗨️ HEADER: Conversations subscription status:', status);
+          console.log('🗨️ HEADER: Conversations subscription status changed to:', status, 'at', new Date().toISOString());
           if (status === 'SUBSCRIBED') {
             console.log('🗨️ HEADER: Successfully subscribed to conversations realtime updates');
           } else if (status === 'CHANNEL_ERROR') {
@@ -275,33 +320,49 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
           }
         });
 
+      console.log('🗨️ HEADER: Conversations subscription setup complete');
       console.log('🗨️ HEADER: Conversations subscription setup complete for user:', authUser.id);
       return () => {
+        console.log('🗨️ HEADER: Cleaning up conversations subscription');
         conversationSubscription.unsubscribe();
       };
     };
 
+    console.log('Header: About to call setupConversationSubscription');
     setupConversationSubscription();
   }, [authUser, fetchFriends]);
 
   // Set up real-time subscription for friend requests to update when requests are sent/received
   useEffect(() => {
     const setupFriendRequestSubscription = async () => {
+      console.log('Header: setupFriendRequestSubscription called');
       console.log('Header: Attempting to set up friend request subscription.');
       console.log('Header: Attempting to set up friend request subscription.');
       if (!authUser) return;
       
+      console.log('Header: authUser exists in setupFriendRequestSubscription:', {
+        id: authUser.id,
+        email: authUser.email
+      });
+      
       console.log('🤝 HEADER: Setting up friend requests subscription for user:', authUser.id);
       
+      const friendRequestFilter = `or(requester_id.eq.${authUser.id},requested_id.eq.${authUser.id})`;
+      const friendshipFilter = `or(user_id.eq.${authUser.id},friend_id.eq.${authUser.id})`;
+      console.log('🤝 HEADER: Friend request filter:', friendRequestFilter);
+      console.log('🤝 HEADER: Friendship filter:', friendshipFilter);
+      
+      console.log('🤝 HEADER: About to create friend requests channel');
       const friendRequestSubscription = supabase
         .channel(`header-friend-requests:user_id=eq.${authUser.id}`)
+        console.log('🤝 HEADER: Friend requests channel created, setting up listeners');
         .on(
           'postgres_changes',
           {
             event: '*',
             schema: 'public',
             table: 'friend_requests',
-            filter: `or(requester_id.eq.${authUser.id},requested_id.eq.${authUser.id})`
+            filter: friendRequestFilter
           },
           () => {
             console.log('🤝 HEADER: Friend request change detected, refreshing friends');
@@ -315,7 +376,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             event: '*',
             schema: 'public',
             table: 'friendships',
-            filter: `or(user_id.eq.${authUser.id},friend_id.eq.${authUser.id})`
+            filter: friendshipFilter
           },
           () => {
             console.log('🤝 HEADER: Friendship change detected, refreshing friends');
@@ -323,15 +384,20 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             fetchFriends();
           }
         )
+        console.log('🤝 HEADER: About to subscribe to friend requests channel');
         .subscribe((status) => {
+          console.log('🤝 HEADER: Friend requests subscription status changed to:', status, 'at', new Date().toISOString());
           console.log('🤝 HEADER: Friend requests subscription status:', status);
         });
 
+      console.log('🤝 HEADER: Friend requests subscription setup complete');
       return () => {
+        console.log('🤝 HEADER: Cleaning up friend requests subscription');
         friendRequestSubscription.unsubscribe();
       };
     };
 
+    console.log('Header: About to call setupFriendRequestSubscription');
     setupFriendRequestSubscription();
   }, [authUser, fetchFriends]);
 
