@@ -2,6 +2,7 @@ import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import Layout from './Layout';
 import PublicHeader from './PublicHeader';
+import PublicFooter from './PublicFooter';
 
 interface AuthAwarePageWrapperProps {
   children: React.ReactNode;
@@ -35,11 +36,10 @@ const AuthAwarePageWrapper: React.FC<AuthAwarePageWrapperProps> = ({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <PublicHeader showBackToHome={showBackToHome} />
-      <main className="py-12">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          {children}
-        </div>
+      <main>
+        {children}
       </main>
+      <PublicFooter />
     </div>
   );
 };
