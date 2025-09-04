@@ -56,6 +56,16 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const navigate = useNavigate();
   
   const toggleNotifications = () => setNotificationsOpen(!notificationsOpen);
+
+  console.log('Header component rendered.');
+
+  useEffect(() => {
+    console.log('Header: authUser state changed:', authUser ? 'User is present' : 'User is null/undefined');
+    if (authUser) {
+      console.log('Header: authUser ID:', authUser.id);
+    }
+  }, [authUser]);
+
   const toggleUserMenu = () => setUserMenuOpen(!userMenuOpen);
   const toggleFriends = () => {
     setFriendsOpen(!friendsOpen);
@@ -69,11 +79,14 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     fetchNotificationCount();
     
     // Set up real-time subscription for notifications count (excluding messages)
+    console.log('Header: Setting up notification subscription effect.');
+
     const setupNotificationSubscription = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (user) {
         const notificationsSubscription = supabase
+          .channel(`header-notifications:user_id=eq.${user.id}`) // This channel name is fine as it's for a specific user's notifications table
           .channel(`header-notifications:user_id=eq.${user.id}`)
           .on(
             'postgres_changes',
@@ -219,6 +232,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   // Set up real-time subscription for conversations to update when last_message_at changes
   useEffect(() => {
     const setupConversationSubscription = async () => {
+      console.log('Header: Attempting to set up conversation subscription.');
       if (!authUser) return;
       
       console.log('🗨️ HEADER: Setting up conversations subscription for user:', authUser.id);
@@ -226,6 +240,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       
       const conversationSubscription = supabase
         .channel('conversations_realtime_channel')
+        .on( // This is the correct place for the RLS filter
         .on(
           'postgres_changes',
           {
@@ -261,6 +276,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   // Set up real-time subscription for friend requests to update when requests are sent/received
   useEffect(() => {
     const setupFriendRequestSubscription = async () => {
+      console.log('Header: Attempting to set up friend request subscription.');
       if (!authUser) return;
       
       console.log('🤝 HEADER: Setting up friend requests subscription for user:', authUser.id);
@@ -306,6 +322,10 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
     setupFriendRequestSubscription();
   }, [authUser, fetchFriends]);
+
+  useEffect(() => {
+    console.log('Header: Supabase client defined?', !!supabase);
+  }, []);
 
   // Filter friends based on search query and sort by unread messages
   useEffect(() => {
