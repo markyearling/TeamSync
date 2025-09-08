@@ -113,7 +113,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
 
     // Set up real-time subscription for messages in this event
     subscriptionRef.current = supabase
-      .channel(\`event_messages:event_id=eq.${event.id}`)
+      .channel(`event_messages:event_id=eq.${event.id}`)
       .on(
         'postgres_changes',
         {
