@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, Edit } from 'lucide-react';
+import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, Edit, MessageCircle } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import { GoogleMap } from '@react-google-maps/api';
 import { supabase } from '../../lib/supabase';
 import EditEventModal from './EditEventModal';
+import EventMessagesModal from './EventMessagesModal';
 import { DateTime } from 'luxon';
 import { useCapacitor } from '../../hooks/useCapacitor';
 
@@ -19,6 +20,7 @@ interface EventModalProps {
 const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, mapsLoadError, userTimezone = 'UTC' }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showMessagesModal, setShowMessagesModal] = useState(false);
   const [shareEmail, setShareEmail] = useState('');
   const [isSharing, setIsSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
@@ -126,8 +128,8 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   // Handle click outside to close modal
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      // Only close if edit modal is not open
-      if (!showEditModal && modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      // Only close if edit modal and messages modal are not open
+      if (!showEditModal && !showMessagesModal && modalRef.current && !modalRef.current.contains(e.target as Node)) {
         onClose();
       }
     };
@@ -136,7 +138,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [onClose, showEditModal]);
+  }, [onClose, showEditModal, showMessagesModal]);
 
   const handleMapLoad = (map: google.maps.Map) => {
     setMapRef(map);
@@ -331,6 +333,16 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  setShowMessagesModal(true);
+                }}
+                className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                title="View messages"
+              >
+                <MessageCircle className="h-5 w-5" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
                   setShowShareModal(true);
                 }}
                 className="p-2 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -499,6 +511,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
           mapsLoaded={mapsLoaded}
           mapsLoadError={mapsLoadError}
           userTimezone={userTimezone}
+        />
+      )}
+
+      {showMessagesModal && (
+        <EventMessagesModal 
+          event={event} 
+          onClose={() => setShowMessagesModal(false)}
         />
       )}
     </>
