@@ -53,6 +53,11 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const searchRef = useRef<HTMLDivElement>(null);
   const friendsDropdownRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
+
+  // add missing subscription ref and notifications state used by the realtime handlers
+  const subscriptionRef = useRef<any | null>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
   const navigate = useNavigate();
 
   const toggleNotifications = () => setNotificationsOpen(!notificationsOpen);
@@ -956,3 +961,5 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     </>
   );
 };
+
+export default Header;
