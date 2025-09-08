@@ -106,7 +106,8 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
 
     // Clean up previous subscription
     if (subscriptionRef.current) {
-      subscriptionRef.current.unsubscribe();
+      try { subscriptionRef.current.unsubscribe(); } catch (err) { /* ignore */ }
+      subscriptionRef.current = null;
     }
 
     console.log('Setting up real-time subscription for event messages:', event.id);
@@ -120,56 +121,46 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
           event: 'INSERT',
           schema: 'public',
           table: 'event_messages',
-          filter: \`event_id=eq.${event.id}`
+          filter: `event_id=eq.${event.id}` // <-- fixed: proper template literal (no stray backslash)
         },
         async (payload) => {
           console.log('New event message received via realtime:', payload);
-          const newMessage = payload.new as Message;
+          const incomingMsg = payload.new as Message; // <-- renamed to avoid shadowing the input state
           
           // Get sender info
           const { data: senderSettings } = await supabase
             .from('user_settings')
             .select('full_name, profile_photo_url')
-            .eq('user_id', newMessage.sender_id)
+            .eq('user_id', incomingMsg.sender_id)
             .maybeSingle();
 
           const messageWithSender = {
-            ...newMessage,
-            created_at: newMessage.created_at,
+            ...incomingMsg,
+            created_at: incomingMsg.created_at,
             sender: senderSettings
           };
 
           setMessages(prev => {
-            // Check if message already exists to prevent duplicates
-            const exists = prev.some(msg => msg.id === newMessage.id);
-            if (exists) {
-              console.log('Message already exists, skipping duplicate');
-              return prev;
-            }
-            
-            console.log('Adding new message to state');
+            const exists = prev.some(msg => msg.id === incomingMsg.id);
+            if (exists) return prev;
+
             const newMessages = [...prev, messageWithSender];
-            
-            // Auto-scroll to bottom when new message arrives
             setTimeout(() => forceScrollToBottom(), 50);
-            
             return newMessages;
           });
         }
       )
       .subscribe((status) => {
         console.log('Event messages chat subscription status:', status);
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to real-time event messages for event:', event.id);
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Error subscribing to real-time event messages');
-        }
       });
 
     return () => {
-      if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
+      try {
+        subscriptionRef.current?.unsubscribe();
+      } catch (err) {
+        console.warn('Error unsubscribing', err);
       }
+      subscriptionRef.current = null;
     };
   }, [event.id]);
 
@@ -281,7 +272,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
     if (date.hasSame(now, 'day')) {
       return date.toLocaleString(DateTime.TIME_SIMPLE);
     } else if (date.hasSame(now.minus({ days: 1 }), 'day')) {
-      return \`Yesterday ${date.toLocaleString(DateTime.TIME_SIMPLE)}`;
+      return `Yesterday ${date.toLocaleString(DateTime.TIME_SIMPLE)}`;
     } else if (date.hasSame(now, 'week')) {
       return date.toLocaleString({ weekday: 'short', hour: 'numeric', minute: '2-digit' });
     } else {
@@ -355,7 +346,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
               return (
                 <div
                   key={message.id}
-                  className={\`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} ${
+                  className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} ${
                     showAvatar ? 'mt-4' : 'mt-1'
                   }`}
                 >
@@ -378,9 +369,9 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
                     <div className="w-8 mr-2 flex-shrink-0"></div>
                   )}
                   
-                  <div className={\`max-w-xs lg:max-w-md ${isCurrentUser ? 'order-1' : 'order-2'}`}>
+                  <div className={`max-w-xs lg:max-w-md ${isCurrentUser ? 'order-1' : 'order-2'}`}>
                     <div
-                      className={\`px-4 py-2 rounded-lg ${
+                      className={`px-4 py-2 rounded-lg ${
                         isCurrentUser
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
@@ -388,7 +379,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
                     >
                       <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     </div>
-                    <div className={\`mt-1 text-xs text-gray-500 dark:text-gray-400 ${
+                    <div className={`mt-1 text-xs text-gray-500 dark:text-gray-400 ${
                       isCurrentUser ? 'text-right' : 'text-left'
                     }`}>
                       {formatTime(message.created_at)}
