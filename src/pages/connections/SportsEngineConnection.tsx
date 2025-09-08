@@ -245,9 +245,16 @@ const SportsEngineConnection: React.FC = () => {
 
     try {
       // Get the current session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const { data, error: sessionError } = await supabase.auth.getSession();
       if (sessionError) throw sessionError;
+      const session = data?.session;
       if (!session) throw new Error('No authenticated session');
+
+      // Get the current user
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      const user = userData?.user;
+      if (!user) throw new Error('No authenticated user');
 
       // Extract team name from URL
       const urlParts = icsUrl.split('/');
