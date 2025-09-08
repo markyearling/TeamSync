@@ -114,14 +114,14 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
 
     // Set up real-time subscription for messages in this event
     subscriptionRef.current = supabase
-      .channel(`event_messages:event_id=eq.${event.id}`)
+      .channel(\`event_messages:event_id=eq.${event.id}`)
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
           table: 'event_messages',
-          filter: `event_id=eq.${event.id}`
+          filter: \`event_id=eq.${event.id}`
         },
         async (payload) => {
           console.log('New event message received via realtime:', payload);
@@ -282,7 +282,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
     if (date.hasSame(now, 'day')) {
       return date.toLocaleString(DateTime.TIME_SIMPLE);
     } else if (date.hasSame(now.minus({ days: 1 }), 'day')) {
-      return `Yesterday ${date.toLocaleString(DateTime.TIME_SIMPLE)}`;
+      return \`Yesterday ${date.toLocaleString(DateTime.TIME_SIMPLE)}`;
     } else if (date.hasSame(now, 'week')) {
       return date.toLocaleString({ weekday: 'short', hour: 'numeric', minute: '2-digit' });
     } else {
@@ -356,7 +356,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
               return (
                 <div
                   key={message.id}
-                  className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} ${
+                  className={\`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} ${
                     showAvatar ? 'mt-4' : 'mt-1'
                   }`}
                 >
@@ -379,9 +379,9 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
                     <div className="w-8 mr-2 flex-shrink-0"></div>
                   )}
                   
-                  <div className={`max-w-xs lg:max-w-md ${isCurrentUser ? 'order-1' : 'order-2'}`}>
+                  <div className={\`max-w-xs lg:max-w-md ${isCurrentUser ? 'order-1' : 'order-2'}`}>
                     <div
-                      className={`px-4 py-2 rounded-lg ${
+                      className={\`px-4 py-2 rounded-lg ${
                         isCurrentUser
                           ? 'bg-blue-600 text-white'
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
@@ -389,7 +389,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
                     >
                       <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     </div>
-                    <div className={`mt-1 text-xs text-gray-500 dark:text-gray-400 ${
+                    <div className={\`mt-1 text-xs text-gray-500 dark:text-gray-400 ${
                       isCurrentUser ? 'text-right' : 'text-left'
                     }`}>
                       {formatTime(message.created_at)}
