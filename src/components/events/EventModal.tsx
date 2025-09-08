@@ -179,28 +179,38 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     setShareError(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session) throw new Error('Not authenticated');
 
-      const response = await fetch('/api/share-event', {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/share-event`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           event,
-          recipientEmail: shareEmail,
-          senderEmail: user.email
+          recipientEmail: shareEmail
         })
       });
 
-      if (!response.ok) throw new Error('Failed to share event');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to share event');
+      }
+
+      const result = await response.json();
+      console.log('Event shared successfully:', result);
 
       setShowShareModal(false);
       setShareEmail('');
+      
+      // Show success message (you could add a success state if needed)
+      alert('Event shared successfully!');
     } catch (error) {
-      setShareError('Failed to share event. Please try again.');
+      console.error('Error sharing event:', error);
+      setShareError(error instanceof Error ? error.message : 'Failed to share event. Please try again.');
     } finally {
       setIsSharing(false);
     }
@@ -265,7 +275,9 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
           </div>
 
           {shareError && (
-            <p className="text-sm text-red-600 dark:text-red-400">{shareError}</p>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-3">
+              <p className="text-sm text-red-700 dark:text-red-300">{shareError}</p>
+            </div>
           )}
 
           <button
