@@ -47,6 +47,8 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
 
   // Force scroll to bottom (for initial load and new messages)
   const forceScrollToBottom = () => {
+    setTimeout(() => scrollToBottom(), 50);
+  };
 
   const modalContentClasses = isNative
     ? "flex flex-col h-full w-full overflow-hidden bg-white dark:bg-gray-800"
