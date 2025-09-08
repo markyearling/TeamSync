@@ -1,430 +1,958 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, MessageCircle, User, Loader2, AlertCircle } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
-import { useCapacitor } from '../../hooks/useCapacitor';
-import { Event } from '../../types';
-import { DateTime } from 'luxon';
+import React, { ReactNode, useState, useEffect, useRef } from 'react';
+import { Bell, User, Search, Moon, Sun, LogOut, Users } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useApp } from '../../context/AppContext';
+import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
+import NotificationCenter from '../notifications/NotificationCenter';
+import FriendsListModal from '../friends/FriendsListModal';
+import ChatModal from '../chat/ChatModal';
+import { supabase } from '../../lib/supabase';
+import EventModal from '../events/EventModal';
+import { Event } from '../../types';
+import { useCapacitor } from '../../hooks/useCapacitor';
+import { getSportDetails } from '../../utils/sports';
 
-interface Message {
+interface HeaderProps {
+  children?: ReactNode;
+}
+
+interface Friend {
   id: string;
-  event_id: string;
-  sender_id: string;
-  content: string;
+  friend_id: string;
+  role: 'none' | 'viewer' | 'administrator';
   created_at: string;
-  sender?: {
+  friend: {
+    id: string;
     full_name?: string;
     profile_photo_url?: string;
   };
+  unreadCount?: number;
+  lastMessageAt?: string;
 }
 
-interface EventMessagesModalProps {
-  event: Event;
-  onClose: () => void;
-  userTimezone?: string;
-}
-
-const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose, userTimezone = 'UTC' }) => {
+const Header: React.FC<HeaderProps> = ({ children }) => {
+  const { user } = useApp();
+  const { theme, toggleTheme } = useTheme();
   const { user: authUser } = useAuth();
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const subscriptionRef = useRef<any>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
-  const { isNative } = useCapacitor();
+  const { isIOS, isNative } = useCapacitor();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [filteredFriends, setFilteredFriends] = useState<Friend[]>([]);
+  const [friendSearchQuery, setFriendSearchQuery] = useState('');
+  const [loadingFriends, setLoadingFriends] = useState(false);
+  const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Event[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const friendsDropdownRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
-  // Auto-scroll to bottom function
-  const scrollToBottom = (behavior: 'smooth' | 'auto' = 'auto') => {
-    if (messagesContainerRef.current) {
-      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+  const toggleNotifications = () => setNotificationsOpen(!notificationsOpen);
+
+  console.log('Header component rendered.');
+
+  useEffect(() => {
+    console.log('Header: authUser state changed:', authUser ? 'User is present' : 'User is null/undefined');
+    if (authUser) {
+      console.log('Header: authUser ID:', authUser.id);
+    }
+  }, [authUser]);
+
+  const toggleUserMenu = () => setUserMenuOpen(!userMenuOpen);
+  const toggleFriends = () => {
+    setFriendsOpen(!friendsOpen);
+    // Reset search when opening/closing
+    if (!friendsOpen) {
+      setFriendSearchQuery('');
     }
   };
 
-  // Force scroll to bottom (for initial load and new messages)
-  const forceScrollToBottom = () => {
-    setTimeout(() => scrollToBottom(), 50);
-  };
-
-  const modalContentClasses = isNative
-    ? "flex flex-col h-full w-full overflow-hidden bg-white dark:bg-gray-800"
-    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl h-full max-h-full overflow-hidden flex flex-col";
-
   useEffect(() => {
-    initializeMessages();
-    
-    
-    // Close emoticon picker when clicking outside (only for web)
-    const handleEmoticonClickOutside = (event: MouseEvent) => {
-      if (!isNative && emoticonRef.current && !emoticonRef.current.contains(event.target as Node)) {
-        setShowEmoticons(false);
+    fetchNotificationCount();
+
+    // Set up real-time subscription for notifications count (excluding messages)
+    console.log('Header: Setting up notification subscription effect.');
+
+    const setupNotificationSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const notificationsSubscription = supabase
+          .channel(`header-notifications:user_id=eq.${user.id}`) // This channel name is fine as it's for a specific user's notifications table
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'notifications'
+            },
+            (payload) => {
+              console.log('🔔 HEADER: Notification change received:', payload);
+              
+              if (payload.eventType === 'INSERT') {
+                const newNotification = payload.new as Notification;
+                if (newNotification && newNotification.type !== 'message') { // Only add non-message notifications
+                  setNotifications(prev => [newNotification, ...prev]);
+                }
+              } else if (payload.eventType === 'UPDATE') {
+                const updatedNotification = payload.new as Notification;
+                if (updatedNotification) {
+                  setNotifications(prev => 
+                    prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
+                  );
+                }
+              } else if (payload.eventType === 'DELETE') {
+                const deletedId = payload.old?.id; // Use payload.old for DELETE events
+                if (deletedId) {
+                  setNotifications(prev => prev.filter(n => n.id !== deletedId));
+                }
+              }
+              // Re-fetch notification count to ensure accuracy
+              fetchNotificationCount();
+            }
+          )
+          .subscribe();
+
+        // Store the subscription reference for cleanup
+        subscriptionRef.current = notificationsSubscription;
+
+        return () => {
+          notificationsSubscription.unsubscribe();
+        };
       }
     };
 
-    document.addEventListener('mousedown', handleEmoticonClickOutside);
+    setupNotificationSubscription();
+  }, []);
 
-    return () => {
-      document.removeEventListener('mousedown', handleEmoticonClickOutside);
-      // Clean up subscription
-      if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
-      }
-    };
-  }, [event.id, onClose, isNative]);
-
-  // Scroll to bottom whenever messages change
-  useEffect(() => {
-    if (messages.length > 0) {
-      forceScrollToBottom();
-    }
-  }, [messages]);
-
-  // Scroll to bottom when modal first opens and messages are loaded
-  useEffect(() => {
-    if (!loading && messages.length > 0) {
-      forceScrollToBottom();
-    }
-  }, [loading]);
-
-  useEffect(() => {
-    if (!event.id) return;
-
-    // Clean up previous subscription
-    if (subscriptionRef.current) {
-      try { subscriptionRef.current.unsubscribe(); } catch (err) { /* ignore */ }
-      subscriptionRef.current = null;
-    }
-
-    console.log('Setting up real-time subscription for event messages:', event.id);
-
-    // Set up real-time subscription for messages in this event
-    subscriptionRef.current = supabase
-      .channel(`event_messages:event_id=eq.${event.id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'event_messages',
-          filter: `event_id=eq.${event.id}` // <-- fixed: proper template literal (no stray backslash)
-        },
-        async (payload) => {
-          console.log('New event message received via realtime:', payload);
-          const incomingMsg = payload.new as Message; // <-- renamed to avoid shadowing the input state
-          
-          // Get sender info
-          const { data: senderSettings } = await supabase
-            .from('user_settings')
-            .select('full_name, profile_photo_url')
-            .eq('user_id', incomingMsg.sender_id)
-            .maybeSingle();
-
-          const messageWithSender = {
-            ...incomingMsg,
-            created_at: incomingMsg.created_at,
-            sender: senderSettings
-          };
-
-          setMessages(prev => {
-            const exists = prev.some(msg => msg.id === incomingMsg.id);
-            if (exists) return prev;
-
-            const newMessages = [...prev, messageWithSender];
-            setTimeout(() => forceScrollToBottom(), 50);
-            return newMessages;
-          });
-        }
-      )
-      .subscribe((status) => {
-        console.log('Event messages chat subscription status:', status);
-      });
-
-    return () => {
-      try {
-        subscriptionRef.current?.unsubscribe();
-      } catch (err) {
-        console.warn('Error unsubscribing', err);
-      }
-      subscriptionRef.current = null;
-    };
-  }, [event.id]);
-
-  const initializeMessages = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchFriends = React.useCallback(async () => {
     try {
-      const { data: messagesData, error: fetchError } = await supabase
-        .from('event_messages')
-        .select('*')
-        .eq('event_id', event.id)
-        .order('created_at', { ascending: true });
+      setLoadingFriends(true);
+      if (!authUser) return;
 
-      if (fetchError) throw fetchError;
+      console.log('🔄 HEADER: Fetching friends for user:', authUser.id);
 
-      // Get sender info for each message
-      const messagesWithSenders = await Promise.all(
-        (messagesData || []).map(async (message) => {
-          const { data: senderSettings } = await supabase
-            .from('user_settings')
-            .select('full_name, profile_photo_url')
-            .eq('user_id', message.sender_id)
-            .maybeSingle();
+      // Fetch friends
+      const { data: friendsData, error: friendsError } = await supabase
+        .from('friendships')
+        .select('id, friend_id, role, created_at')
+        .eq('user_id', authUser.id);
+
+      if (friendsError) throw friendsError;
+
+      console.log('👥 HEADER: Found friendships:', friendsData?.length || 0);
+
+      // Get user details for friends from user_settings table
+      const friendIds = friendsData?.map(f => f.friend_id) || [];
+      let friendUsers: any[] = [];
+
+      if (friendIds.length > 0) {
+        const { data: userSettings, error: settingsError } = await supabase
+          .from('user_settings')
+          .select('user_id, full_name, profile_photo_url')
+          .in('user_id', friendIds);
+
+        if (settingsError) throw settingsError;
+
+        friendUsers = friendIds.map(friendId => {
+          const settings = userSettings?.find(s => s.user_id === friendId);
 
           return {
-            ...message,
-            sender: senderSettings
+            id: friendId,
+            full_name: settings?.full_name,
+            profile_photo_url: settings?.profile_photo_url
+          };
+        });
+      }
+
+      // Get unread message counts for each friend
+      const friendsWithUnreadCounts = await Promise.all(
+        (friendsData || []).map(async (friendship) => {
+          const friend = friendUsers.find(u => u.id === friendship.friend_id) || {
+            id: friendship.friend_id,
+            full_name: undefined,
+            profile_photo_url: undefined
+          };
+
+          // Get conversation with this friend
+          const { data: conversation } = await supabase
+            .from('conversations')
+            .select('id, last_message_at')
+            .or(`and(participant_1_id.eq.${authUser.id},participant_2_id.eq.${friendship.friend_id}),and(participant_1_id.eq.${friendship.friend_id},participant_2_id.eq.${authUser.id})`)
+            .maybeSingle();
+
+          let unreadCount = 0;
+          let lastMessageAt = null;
+
+          if (conversation) {
+            // Count unread messages from this friend
+            const { count } = await supabase
+              .from('messages')
+              .select('*', { count: 'exact', head: true })
+              .eq('conversation_id', conversation.id)
+              .eq('sender_id', friendship.friend_id)
+              .eq('read', false);
+
+            unreadCount = count || 0;
+            lastMessageAt = conversation.last_message_at;
+          }
+
+          return {
+            ...friendship,
+            friend,
+            unreadCount,
+            lastMessageAt
           };
         })
       );
 
-      setMessages(messagesWithSenders);
-    } catch (err) {
-      console.error('Error initializing event messages:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load messages');
+      console.log('💬 HEADER: Friends with unread counts:', friendsWithUnreadCounts.map(f => ({
+        name: f.friend.full_name,
+        unreadCount: f.unreadCount
+      })));
+
+      setFriends(friendsWithUnreadCounts);
+    } catch (error) {
+      console.error('Error fetching friends:', error);
     } finally {
-      setLoading(false);
+      setLoadingFriends(false);
     }
-  };
+  }, [authUser]);
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !authUser || sending) return;
+  // Fetch friends on initial mount
+  useEffect(() => {
+    if (authUser) {
+      fetchFriends();
+    }
+  }, [authUser, fetchFriends]);
 
-    setSending(true);
-    const messageContent = newMessage.trim();
-    
-    // Clear input immediately for better UX
-    setNewMessage('');
+  // Set up real-time subscription for conversations to update when last_message_at changes
+  useEffect(() => {
+    const setupConversationSubscription = async () => {
+      console.log('Header: Attempting to set up conversation subscription.');
+      if (!authUser) return;
 
-    try {
-      const { data: insertedMessage, error: insertError } = await supabase
-        .from('event_messages')
-        .insert({
-          event_id: event.id,
-          sender_id: authUser.id,
-          content: messageContent
-        })
-        .select()
-        .single();
+      console.log('🗨️ HEADER: Setting up conversations subscriptions for user:', authUser.id);
+      console.log('🗨️ HEADER: AuthUser object:', { id: authUser.id, email: authUser.email || 'N/A' });
 
-      if (insertError) throw insertError;
+      // Subscription for when current user is participant_1
+      const conversationSubscription1 = supabase
+        .channel(`conversations_realtime_channel_p1_${authUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'conversations',
+            filter: `participant_1_id=eq.${authUser.id}`
+          },
+          (payload) => {
+            console.log('🗨️ HEADER: Conversation P1 channel event:', payload.eventType, payload.new);
+            fetchFriends();
+          }
+        )
+        .on(
+          'system',
+          'CONNECTING',
+          () => console.log('🗨️ HEADER: Conversation P1 channel: CONNECTING')
+        )
+        .on(
+          'system',
+          'CONNECTED',
+          () => console.log('🗨️ HEADER: Conversation P1 channel: CONNECTED')
+        )
+        .on(
+          'system',
+          'CLOSED',
+          () => console.log('🗨️ HEADER: Conversation P1 channel: CLOSED')
+        )
+        .on(
+          'system',
+                    'ERROR', // This catches system-level errors from the Realtime client
+          (err) => console.log('🗨️ HEADER: Conversation P1 channel: SYSTEM ERROR (might be benign)', err)
+        )
+        .subscribe((status) => {
+          console.log('🗨️ HEADER: Conversations P1 subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('🗨️ HEADER: Successfully subscribed to conversations P1 realtime updates');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('🗨️ HEADER: Error subscribing to conversations P1 realtime updates');
+          }
+        });
 
-      console.log('Event message sent successfully:', insertedMessage);
+      // Subscription for when current user is participant_2
+      const conversationSubscription2 = supabase
+        .channel(`conversations_realtime_channel_p2_${authUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'conversations',
+            filter: `participant_2_id=eq.${authUser.id}`
+          },
+          (payload) => {
+            console.log('🗨️ HEADER: Conversation P2 channel event:', payload.eventType, payload.new);
+            fetchFriends();
+          }
+        )
+        .on(
+          'system',
+          'CONNECTING',
+          () => console.log('🗨️ HEADER: Conversation P2 channel: CONNECTING')
+        )
+        .on(
+          'system',
+          'CONNECTED',
+          () => console.log('🗨️ HEADER: Conversation P2 channel: CONNECTED')
+        )
+        .on(
+          'system',
+          'CLOSED',
+          () => console.log('🗨️ HEADER: Conversation P2 channel: CLOSED')
+        )
+        .on(
+          'system',
+                   'ERROR', // This catches system-level errors from the Realtime client
+          (err) => console.log('🗨️ HEADER: Conversation P2 channel: SYSTEM ERROR (might be benign)', err)
+        )
+        .subscribe((status) => {
+          console.log('🗨️ HEADER: Conversations P2 subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('🗨️ HEADER: Successfully subscribed to conversations P2 realtime updates');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('🗨️ HEADER: Error subscribing to conversations P2 realtime updates');
+          }
+        });
 
-      // Add message optimistically for immediate feedback
-      const messageWithSender = {
-        ...insertedMessage,
-        sender: {
-          full_name: authUser.user_metadata.full_name || authUser.email,
-          profile_photo_url: authUser.user_metadata.profile_photo_url
-        }
+      console.log('🗨️ HEADER: Conversations subscriptions setup complete for user:', authUser.id);
+      return () => {
+        conversationSubscription1.unsubscribe();
+        conversationSubscription2.unsubscribe();
       };
+    };
 
-      setMessages(prev => {
-        // Check if message already exists (from real-time subscription)
-        const exists = prev.some(msg => msg.id === insertedMessage.id);
-        if (exists) {
-          return prev;
+    setupConversationSubscription();
+  }, [authUser, fetchFriends]);
+
+  // Set up real-time subscription for friend requests to update when requests are sent/received
+  useEffect(() => {
+    const setupFriendRequestSubscription = async () => {
+      console.log('Header: Attempting to set up friend request subscription.');
+      if (!authUser) return;
+
+      console.log('🤝 HEADER: Setting up friend requests subscription for user:', authUser.id);
+
+      // Subscription for friend_requests where current user is the requester
+      const friendRequestRequesterSubscription = supabase
+        .channel(`friend_requests_requester_channel_${authUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'friend_requests',
+            filter: `requester_id=eq.${authUser.id}`
+          },
+          () => {
+            console.log('🤝 HEADER: Friend request (requester) change detected, refreshing friends');
+            // Refresh friends list when friend requests change
+            fetchFriends();
+          }
+        )
+        .subscribe();
+
+      // Subscription for friend_requests where current user is the requested
+      const friendRequestRequestedSubscription = supabase
+        .channel(`friend_requests_requested_channel_${authUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'friend_requests',
+            filter: `requested_id=eq.${authUser.id}`
+          },
+          () => {
+            console.log('🤝 HEADER: Friend request (requested) change detected, refreshing friends');
+            fetchFriends();
+          }
+        )
+        .subscribe();
+
+      // Subscription for friendships where current user is user_id
+      const friendshipsUserSubscription = supabase
+        .channel(`friendships_user_channel_${authUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'friendships',
+            filter: `user_id=eq.${authUser.id}`
+          }, 
+          (payload) => {
+            console.log('🤝 HEADER: Friendship (user) channel event:', payload.eventType, payload.new);
+            fetchFriends();
+          }
+        )
+        .subscribe();
+
+      // Subscription for friendships where current user is friend_id
+      const friendshipsFriendSubscription = supabase
+        .channel(`friendships_friend_channel_${authUser.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'friendships',
+            filter: `friend_id=eq.${authUser.id}`
+          }, 
+          (payload) => {
+            console.log('🤝 HEADER: Friendship (friend) channel event:', payload.eventType, payload.new);
+            // Refresh friends list when friendships change
+            fetchFriends();
+          }
+        )
+        .subscribe((status) => {
+          console.log('🤝 HEADER: Friend requests subscription status:', status);
+        });
+
+      return () => {
+        friendRequestRequesterSubscription.unsubscribe();
+        friendRequestRequestedSubscription.unsubscribe();
+        friendshipsUserSubscription.unsubscribe();
+        friendshipsFriendSubscription.unsubscribe();
+      };
+    };
+
+    setupFriendRequestSubscription();
+  }, [authUser, fetchFriends]);
+
+  useEffect(() => {
+    console.log('Header: Supabase client defined?', !!supabase);
+  }, []);
+
+  // Filter friends based on search query and sort by unread messages
+  useEffect(() => {
+    if (!friendSearchQuery.trim()) {
+      // Sort friends: unread messages first, then by most recent message, then alphabetically
+      const sorted = [...friends].sort((a, b) => {
+        // First, sort by unread count (descending)
+        if ((a.unreadCount || 0) !== (b.unreadCount || 0)) {
+          return (b.unreadCount || 0) - (a.unreadCount || 0);
         }
-        const newMessages = [...prev, messageWithSender];
-        
-        // Auto-scroll to bottom when sending message
-        setTimeout(() => forceScrollToBottom(), 50);
-        
-        return newMessages;
+
+        // Then by last message time (most recent first)
+        if (a.lastMessageAt && b.lastMessageAt) {
+          return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+        }
+
+        // Finally alphabetically
+        const nameA = a.friend.full_name || 'No name set';
+        const nameB = b.friend.full_name || 'No name set';
+        return nameA.localeCompare(nameB);
       });
 
-    } catch (err) {
-      console.error('Error sending event message:', err);
-      setError(err instanceof Error ? err.message : 'An error occurred during sending');
-      // Restore input on error
-      setNewMessage(messageContent);
-    } finally {
-      setSending(false);
-    }
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  const formatTime = (dateString: string) => {
-    const date = DateTime.fromISO(dateString).setZone(userTimezone);
-    const now = DateTime.now().setZone(userTimezone);
-
-    if (date.hasSame(now, 'day')) {
-      return date.toLocaleString(DateTime.TIME_SIMPLE);
-    } else if (date.hasSame(now.minus({ days: 1 }), 'day')) {
-      return `Yesterday ${date.toLocaleString(DateTime.TIME_SIMPLE)}`;
-    } else if (date.hasSame(now, 'week')) {
-      return date.toLocaleString({ weekday: 'short', hour: 'numeric', minute: '2-digit' });
+      setFilteredFriends(sorted);
     } else {
-      return date.toLocaleString(DateTime.DATETIME_SHORT);
+      const query = friendSearchQuery.toLowerCase();
+      const filtered = friends.filter(friend => 
+        (friend.friend.full_name || '').toLowerCase().includes(query)
+      );
+
+      // Apply same sorting to filtered results
+      const sorted = filtered.sort((a, b) => {
+        if ((a.unreadCount || 0) !== (b.unreadCount || 0)) {
+          return (b.unreadCount || 0) - (a.unreadCount || 0);
+        }
+
+        if (a.lastMessageAt && b.lastMessageAt) {
+          return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
+        }
+
+        const nameA = a.friend.full_name || 'No name set';
+        const nameB = b.friend.full_name || 'No name set';
+        return nameA.localeCompare(nameB);
+      });
+
+      setFilteredFriends(sorted);
+    }
+  }, [friends, friendSearchQuery]);
+
+  // Handle clicks outside of search results
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+
+      if (friendsDropdownRef.current && !friendsDropdownRef.current.contains(event.target as Node)) {
+        setFriendsOpen(false);
+      }
+
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Search events when query changes
+  useEffect(() => {
+    const searchEvents = async () => {
+      if (!searchQuery.trim() || searchQuery.length < 2) {
+        setSearchResults([]);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        if (!authUser) return;
+
+        // Get all profiles the user has access to (own profiles and friends' profiles with viewer/admin access)
+        const { data: ownProfiles } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', authUser.id);
+
+        const { data: friendProfiles } = await supabase
+          .from('profiles')
+          .select('id, user_id')
+          .neq('user_id', authUser.id);
+
+        // Filter friend profiles to only those the user has access to
+        const accessibleFriendProfiles = await Promise.all(
+          (friendProfiles || []).map(async (profile) => {
+            const { data: friendship } = await supabase
+              .from('friendships')
+              .select('role')
+              .eq('friend_id', authUser.id)
+              .eq('user_id', profile.user_id)
+              .in('role', ['viewer', 'administrator'])
+              .maybeSingle();
+
+            return friendship ? profile : null;
+          })
+        );
+
+        const allAccessibleProfiles = [
+          ...(ownProfiles || []),
+          ...accessibleFriendProfiles.filter(Boolean)
+        ];
+
+        const profileIds = allAccessibleProfiles.map(p => p?.id).filter(Boolean);
+
+        // Search events by title, description, or location
+        const { data: eventData, error } = await supabase
+          .from('events')
+          .select(`
+            *,
+            profiles:profile_id (
+              id,
+              name,
+              color,
+              user_id
+            )
+          `)
+          .in('profile_id', profileIds)
+          .or(`title.ilike.%${searchQuery}%,description.ilike.%${searchQuery}%,location.ilike.%${searchQuery}%`)
+          .order('start_time', { ascending: true })
+          .limit(10);
+
+        if (error) throw error;
+
+        // Format events for display
+        const formattedEvents = eventData.map(event => {
+          const isOwnEvent = ownProfiles?.some(p => p.id === event.profile_id) || false;
+          const sportDetails = getSportDetails(event.sport);
+
+          return {
+            ...event,
+            id: event.id,
+            title: event.title,
+            description: event.description || '',
+            startTime: new Date(event.start_time),
+            endTime: new Date(event.end_time),
+            location: event.location || '',
+            sport: event.sport,
+            color: event.color,
+            platform: event.platform,
+            sportIcon: sportDetails.icon,
+            platformColor: event.platform_color,
+            platformIcon: () => null, // This will be replaced with the actual icon component
+            child: {
+              id: event.profiles.id,
+              name: event.profiles.name,
+              color: event.profiles.color,
+              user_id: event.profiles.user_id,
+              sports: [],
+              eventCount: 0
+            },
+            isOwnEvent,
+            isToday: new Date(event.start_time).toDateString() === new Date().toDateString()
+          };
+        });
+
+        setSearchResults(formattedEvents);
+      } catch (error) {
+        console.error('Error searching events:', error);
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim().length >= 2) {
+        searchEvents();
+        setShowSearchResults(true);
+      } else {
+        setSearchResults([]);
+        setShowSearchResults(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, authUser]);
+
+  const fetchNotificationCount = async () => {
+    try {
+      if (!authUser) return;
+
+      // Count unread notifications excluding message notifications
+      const { count, error: countError } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', authUser.id)
+        .eq('read', false)
+        .neq('type', 'message'); // Exclude message notifications
+
+      if (!countError) {
+        setNotificationCount(count || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching notification count:', error);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/auth/signin');
+  };
+
+  const handleFriendClick = (friend: Friend) => {
+    // Clear unread count for this friend
+    setFriends(prevFriends => 
+      prevFriends.map(f => 
+        f.id === friend.id ? { ...f, unreadCount: 0 } : f
+      )
+    );
+
+    setSelectedFriend(friend);
+    setFriendsOpen(false);
+    setFriendSearchQuery(''); // Reset search when opening chat
+  };
+
+  const handleManageFriends = () => {
+    setFriendsOpen(false);
+    navigate('/friends');
+  };
+
+  const handleOpenChatFromNotification = (friendId: string, friendInfo: any) => {
+    setSelectedFriend(friendInfo);
+    setNotificationsOpen(false);
+  };
+
+  const handleEventSelect = (event: Event) => {
+    setSelectedEvent(event);
+    setSearchQuery('');
+    setShowSearchResults(false);
+  };
+
+  const formatEventDate = (date: Date) => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return 'Today';
+    } else if (date.toDateString() === tomorrow.toDateString()) {
+      return 'Tomorrow';
+    } else {
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'short', 
+        month: 'short', 
+        day: 'numeric' 
+      });
     }
   };
 
   return (
-    <div
-      className={`fixed inset-0 z-[999] ${isNative ? '' : 'bg-black bg-opacity-50 flex items-center justify-center p-4 sm:p-6'}`}
-      onClick={isNative ? undefined : onClose} // Close modal on overlay click for web
-    >
-      <div 
-        ref={modalRef}
-        className={`
-          ${isNative 
-            ? 'flex flex-col h-full w-full overflow-hidden bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]'
-            : 'bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl h-full max-h-full overflow-hidden flex flex-col'
-          }
-        `}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className="flex justify-between items-center">
+    <>
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="flex min-h-16 items-center justify-between pt-[env(safe-area-inset-top)]">
             <div className="flex items-center space-x-3">
-              <MessageCircle className="h-6 w-6 text-blue-600 mr-2" />
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                  Event Messages
-                </h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                  {event.title}
-                </p>
+              {children}
+              <div className="ml-4 md:ml-6">
+                <Link to="/dashboard" className="text-xl font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                  FamSink
+                </Link>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
-            >
-              <X className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
 
-        {/* Messages */}
-        <div 
-          ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto p-4 space-y-4"
-          style={{ scrollBehavior: 'auto' }}
-        >
-          {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center h-full text-red-600 dark:text-red-400">
-              <AlertCircle className="h-12 w-12 mb-4" />
-              <p className="text-lg font-medium">Error loading messages</p>
-              <p className="text-sm text-center">{error}</p>
-            </div>
-          ) : messages.length > 0 ? (
-            messages.map((message, index) => {
-              const isCurrentUser = authUser && message.sender_id === authUser.id;
-              const showAvatar = !isCurrentUser && (
-                index === 0 || 
-                messages[index - 1].sender_id !== message.sender_id ||
-                DateTime.fromISO(message.created_at).diff(DateTime.fromISO(messages[index - 1].created_at), 'minutes').minutes > 5
-              );
+            <div className="hidden md:block relative" ref={searchRef}>
+              <div className="relative mx-4 w-64">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search events..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => {
+                    if (searchResults.length > 0) {
+                      setShowSearchResults(true);
+                    }
+                  }}
+                  className="block w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 py-2 pl-10 pr-3 text-sm placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                {isSearching && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent"></div>
+                  </div>
+                )}
+              </div>
 
-              return (
-                <div
-                  key={message.id}
-                  className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} ${
-                    showAvatar ? 'mt-4' : 'mt-1'
-                  }`}
-                >
-                  {!isCurrentUser && showAvatar && (
-                    <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-500 flex items-center justify-center mr-2 flex-shrink-0 overflow-hidden">
-                      {message.sender?.profile_photo_url ? (
-                        <img 
-                          src={message.sender.profile_photo_url} 
-                          alt="" 
-                          className="w-8 h-8 rounded-full object-cover" 
-                        />
-                      ) : (
-                        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                          {(message.sender?.full_name || 'U').charAt(0).toUpperCase()}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                  {!isCurrentUser && !showAvatar && (
-                    <div className="w-8 mr-2 flex-shrink-0"></div>
-                  )}
-                  
-                  <div className={`max-w-xs lg:max-w-md ${isCurrentUser ? 'order-1' : 'order-2'}`}>
-                    <div
-                      className={`px-4 py-2 rounded-lg ${
-                        isCurrentUser
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
-                      }`}
-                    >
-                      <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-                    </div>
-                    <div className={`mt-1 text-xs text-gray-500 dark:text-gray-400 ${
-                      isCurrentUser ? 'text-right' : 'text-left'
-                    }`}>
-                      {formatTime(message.created_at)}
-                    </div>
+              {/* Search Results Dropdown */}
+              {showSearchResults && searchResults.length > 0 && (
+                <div className="absolute right-0 mt-2 w-full sm:w-96 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto">
+                  <div className="py-2 px-3 border-b border-gray-200 dark:border-gray-700">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Search Results ({searchResults.length})
+                    </h3>
+                  </div>
+                  <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {searchResults.map(event => (
+                      <div 
+                        key={event.id}
+                        className="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                        onClick={() => handleEventSelect(event)}
+                      >
+                        <div className="flex items-center mb-1">
+                          <span 
+                            className="w-2 h-2 rounded-full mr-2"
+                            style={{ backgroundColor: event.color }}
+                          ></span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-white">
+                            {event.title}
+                          </span>
+                          {!event.isOwnEvent && (
+                            <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full">
+                              👥 Friend's
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <div className="flex items-center">
+                            <span 
+                              className="w-2 h-2 rounded-full mr-1"
+                              style={{ backgroundColor: event.child.color }}
+                            ></span>
+                            <span>{event.child.name}</span>
+                          </div>
+                          <div>
+                            {formatEventDate(event.startTime)} • {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                          </div>
+                        </div>
+                        {event.location && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                            {event.location}
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
-              );
-            })
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-gray-500 dark:text-gray-400">
-              <MessageCircle className="h-12 w-12 mb-4 opacity-50" />
-              <p className="text-lg font-medium">No messages yet</p>
-              <p className="text-sm">Be the first to send a message about this event!</p>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Message Input */}
-        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className="flex space-x-3">
-            <input
-              ref={inputRef}
-              type="text"
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              onFocus={() => {
-                // Scroll to bottom when input is focused to ensure visibility
-                setTimeout(() => forceScrollToBottom(), 100);
-              }}
-              placeholder="Type a message..."
-              className="flex-1 rounded-full border border-gray-300 dark:border-gray-600 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              disabled={sending || !authUser}
-            />
-            <button
-              onClick={sendMessage}
-              disabled={!newMessage.trim() || sending || !authUser}
-              className="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {sending ? (
-                <Loader2 className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
-              ) : (
-                <Send className="h-5 w-5" />
               )}
-            </button>
+
+              {/* No Results Message */}
+              {showSearchResults && searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 border border-gray-200 dark:border-gray-700">
+                  <div className="p-4 text-center">
+                    <Search className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500 dark:text-gray-400">No events found</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Try a different search term</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="ml-auto flex items-center space-x-3">
+              <button
+                onClick={toggleTheme}
+                className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {theme === 'dark' ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
+              </button>
+
+              {/* Notifications */}
+              <div className="relative" ref={notificationsRef}>
+                <button
+                  type="button"
+                  className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onClick={toggleNotifications}
+                >
+                  <span className="sr-only">View notifications</span>
+                  <Bell className="h-5 w-5" />
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white font-medium">
+                      {notificationCount > 99 ? '99+' : notificationCount}
+                    </span>
+                  )}
+                </button>
+
+                {notificationsOpen && (
+                  isNative ? (
+                    <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-800" style={{
+                      top: 'env(safe-area-inset-top, 0px)',
+                      bottom: 'env(safe-area-inset-bottom, 0px)',
+                      left: 'env(safe-area-inset-left, 0px)',
+                      right: 'env(safe-area-inset-right, 0px)'
+                    }}>
+                      <NotificationCenter 
+                        onClose={() => setNotificationsOpen(false)} 
+                        onOpenChat={handleOpenChatFromNotification}
+                      />
+                    </div>
+                  ) : (
+                    <div className="absolute right-0 mt-2 w-full md:w-96 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-[60]">
+                      <NotificationCenter 
+                        onClose={() => setNotificationsOpen(false)} 
+                        onOpenChat={handleOpenChatFromNotification}
+                      />
+                    </div>
+                  )
+                )}
+              </div>
+
+              {/* Friends Dropdown */}
+              <div className="relative" ref={friendsDropdownRef}>
+                <button
+                  type="button"
+                  className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onClick={toggleFriends}
+                >
+                  <span className="sr-only">View friends</span>
+                  <Users className="h-5 w-5" />
+                  {/* Show total unread messages count */}
+                  {friends.some(f => (f.unreadCount || 0) > 0) && (
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white font-medium">
+                      {friends.reduce((total, f) => total + (f.unreadCount || 0), 0)}
+                    </span>
+                  )}
+                </button>
+
+                {friendsOpen && (
+                  isNative ? (
+                    <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-800" style={{
+                      top: 'env(safe-area-inset-top, 0px)', 
+                      bottom: 'env(safe-area-inset-bottom, 0px)',
+                      left: 'env(safe-area-inset-left, 0px)',
+                      right: 'env(safe-area-inset-right, 0px)'
+                    }}>
+                      <FriendsListModal
+                        friends={friends}
+                        filteredFriends={filteredFriends}
+                        friendSearchQuery={friendSearchQuery}
+                        setFriendSearchQuery={setFriendSearchQuery}
+                        onFriendClick={handleFriendClick}
+                        onManageFriends={handleManageFriends}
+                        onClose={() => setFriendsOpen(false)}
+                        loadingFriends={loadingFriends}
+                      />
+                    </div>
+                  ) : (
+                    <div className="absolute right-0 mt-2 w-full md:w-80 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-[60]">
+                      <FriendsListModal
+                        friends={friends}
+                        filteredFriends={filteredFriends}
+                        friendSearchQuery={friendSearchQuery}
+                        setFriendSearchQuery={setFriendSearchQuery}
+                        onFriendClick={handleFriendClick}
+                        onManageFriends={handleManageFriends}
+                        onClose={() => setFriendsOpen(false)}
+                        loadingFriends={loadingFriends}
+                      />
+                    </div>
+                  )
+                )}
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onClick={toggleUserMenu}
+                >
+                  <span className="sr-only">Open user menu</span>
+                  <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                    <User className="h-5 w-5" />
+                  </div>
+                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-gray-700 py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <Link to="/settings" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</Link>
+                    <button
+                      onClick={handleSignOut}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          {!authUser && (
-            <p className="text-center text-sm text-red-500 dark:text-red-400 mt-2">
-              You must be logged in to send messages.
-            </p>
-          )}
         </div>
-      </div>
-    </div>
+      </header>
+
+      {/* Chat Modal */}
+      {selectedFriend && (
+        <ChatModal 
+          friend={selectedFriend} 
+          onClose={() => setSelectedFriend(null)} 
+        />
+      )}
+
+      {/* Event Modal */}
+      {selectedEvent && (
+        <EventModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          mapsLoaded={true}
+          mapsLoadError={undefined}
+        />
+      )}
+    </>
   );
 };
-
-export default EventMessagesModal;
