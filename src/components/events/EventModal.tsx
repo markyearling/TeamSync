@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, Edit } from 'lucide-react';
+import { X, MapPin, Clock, Calendar, User, MessageSquare, Edit } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import { GoogleMap } from '@react-google-maps/api';
 import { supabase } from '../../lib/supabase';
 import EditEventModal from './EditEventModal';
+import EventMessagesModal from './EventMessagesModal';
 import { DateTime } from 'luxon';
 import { useCapacitor } from '../../hooks/useCapacitor';
 
@@ -17,11 +18,8 @@ interface EventModalProps {
 }
 
 const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, mapsLoadError, userTimezone = 'UTC' }) => {
-  const [showShareModal, setShowShareModal] = useState(false);
+  const [showEventMessagesModal, setShowEventMessagesModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [shareEmail, setShareEmail] = useState('');
-  const [isSharing, setIsSharing] = useState(false);
-  const [shareError, setShareError] = useState<string | null>(null);
   const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral | null>(null);
   const [geocodingAttempted, setGeocodingAttempted] = useState(false);
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
@@ -169,41 +167,6 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     }
   };
 
-  const handleShare = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!shareEmail) return;
-
-    setIsSharing(true);
-    setShareError(null);
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const response = await fetch('/api/share-event', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          event,
-          recipientEmail: shareEmail,
-          senderEmail: user.email
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to share event');
-
-      setShowShareModal(false);
-      setShareEmail('');
-    } catch (error) {
-      setShareError('Failed to share event. Please try again.');
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
   const handleEventUpdated = () => {
     setShowEditModal(false);
     // Refresh the page to show updated event data
@@ -227,67 +190,6 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
       hour12: true
     });
   };
-
-  const ShareModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]" onClick={(e) => e.stopPropagation()}>
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">Share Event</h3>
-          <button
-            onClick={() => setShowShareModal(false)}
-            className="text-gray-400 hover:text-gray-500 dark:text-gray-300 dark:hover:text-gray-200"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleShare} className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Recipient Email
-            </label>
-            <div className="mt-1 relative rounded-md shadow-sm">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-              </div>
-              <input
-                type="email"
-                id="email"
-                value={shareEmail}
-                onChange={(e) => setShareEmail(e.target.value)}
-                className="block w-full pl-10 pr-12 sm:text-sm border-gray-300 dark:border-gray-600 rounded-md dark:bg-gray-700 dark:text-white focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter email address"
-                autoComplete="off"
-              />
-            </div>
-          </div>
-
-          {shareError && (
-            <p className="text-sm text-red-600 dark:text-red-400">{shareError}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={isSharing || !shareEmail}
-            className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSharing ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
-                Sharing...
-              </>
-            ) : (
-              <>
-                <Send className="h-4 w-4 mr-2" />
-                Share Event
-              </>
-            )}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-
   // Determine modal styling based on whether we're on mobile or desktop
   const modalContainerClasses = isNative
     ? "fixed inset-0 z-[999]"
@@ -329,13 +231,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                 </button>
               )}
               <button
-                onClick={(e) => {
+                onClick={() => {
                   e.stopPropagation();
-                  setShowShareModal(true);
+                  setShowEventMessagesModal(true);
                 }}
                 className="p-2 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               >
-                <Share2 className="h-5 w-5" />
+                <MessageSquare className="h-5 w-5" />
               </button>
               <button
                 onClick={(e) => {
@@ -488,7 +390,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
           </div>
         </div>
 
-        {showShareModal && <ShareModal />}
+        {showEventMessagesModal && (
+          <EventMessagesModal
+            event={event}
+            onClose={() => setShowEventMessagesModal(false)}
+            userTimezone={userTimezone}
+          />
+        )}
       </div>
 
       {showEditModal && (
