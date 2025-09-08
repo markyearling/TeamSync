@@ -231,7 +231,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                 </button>
               )}
               <button
-                onClick={() => {
+                onClick={(e) => {
                   e.stopPropagation();
                   setShowEventMessagesModal(true);
                 }}
