@@ -1,4 +1,3 @@
-```typescript
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, MessageCircle, User, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
@@ -449,4 +448,3 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose,
 };
 
 export default EventMessagesModal;
-```
