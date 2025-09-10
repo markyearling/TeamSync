@@ -177,7 +177,11 @@ const MobileApps: React.FC = () => {
                   </div>
                 </div>
                 <div className="bg-gray-100 rounded-xl p-6 text-center">
-                  <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <img 
+                    src="/ios-app-qr.png" 
+                    alt="iOS App Store QR Code"
+                    className="h-16 w-16 mx-auto mb-4 object-contain"
+                  />
                   <p className="text-gray-500 font-medium">QR Code Available Soon</p>
                   <p className="text-sm text-gray-400 mt-2">Scan to download from App Store</p>
                 </div>
@@ -200,7 +204,11 @@ const MobileApps: React.FC = () => {
                   </div>
                 </div>
                 <div className="bg-gray-100 rounded-xl p-6 text-center">
-                  <QrCode className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                  <img 
+                    src="/android-app-qr.png" 
+                    alt="Google Play Store QR Code"
+                    className="h-16 w-16 mx-auto mb-4 object-contain"
+                  />
                   <p className="text-gray-500 font-medium">QR Code Available Soon</p>
                   <p className="text-sm text-gray-400 mt-2">Scan to download from Play Store</p>
                 </div>
