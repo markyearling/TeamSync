@@ -283,7 +283,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                   name="sport"
                   value={formData.sport}
                   onChange={handleInputChange}
-                  className="block w-full pl-12 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                  className="block w-full pl-14 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white truncate"
                 >
                   {availableSports.map(sport => (
                     <option key={sport.name} value={sport.name}>
