@@ -786,7 +786,7 @@ const Dashboard: React.FC = () => {
               Upcoming Events
             </h2>
           </div>
-          <a href="/dashboard/calendar" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
+          <a href="/calendar" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
             View calendar <ArrowRight className="ml-1 h-4 w-4" />
           </a>
         </div>
@@ -820,7 +820,7 @@ const Dashboard: React.FC = () => {
               <Users className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
               <h2 className="text-lg font-medium text-gray-900 dark:text-white">Children's Activities</h2>
             </div>
-            <a href="/dashboard/profiles" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
+            <a href="/profiles" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-500 dark:hover:text-blue-300 flex items-center">
               View all <ArrowRight className="ml-1 h-4 w-4" />
             </a>
           </div>
