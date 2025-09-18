@@ -7,10 +7,10 @@ interface MonthViewProps {
   currentDate: Date;
   events: Event[];
   userTimezone?: string;
+  onEventClick?: (event: Event) => void;
 }
 
-const MonthView: React.FC<MonthViewProps> = ({ currentDate, events, userTimezone = 'UTC' }) => {
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+const MonthView: React.FC<MonthViewProps> = ({ currentDate, events, userTimezone = 'UTC', onEventClick }) => {
   
   // Calculate grid days for the month view using Luxon for consistent timezone handling
   const getDaysInMonth = (year: number, month: number) => {
@@ -118,7 +118,7 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events, userTimezone
                     backgroundColor: event.color + '20',
                     color: event.color 
                   }}
-                  onClick={() => setSelectedEvent(event)}
+                  onClick={() => onEventClick?.(event)}
                 >
                   <span 
                     className="w-1.5 h-1.5 rounded-full mr-1 flex-shrink-0"
@@ -139,16 +139,6 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events, userTimezone
           </div>
         );
       })}
-
-      {selectedEvent && (
-        <EventModal 
-          event={selectedEvent} 
-          onClose={() => setSelectedEvent(null)}
-          mapsLoaded={true}
-          mapsLoadError={undefined}
-          userTimezone={userTimezone}
-        />
-      )}
     </div>
   );
 };

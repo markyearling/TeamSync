@@ -8,10 +8,10 @@ interface AgendaViewProps {
   currentDate: Date;
   events: Event[];
   userTimezone?: string;
+  onEventClick?: (event: Event) => void;
 }
 
-const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezone = 'UTC' }) => {
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezone = 'UTC', onEventClick }) => {
   
   // Get the start of the month using Luxon with proper timezone handling
   const startOfMonthLuxon = DateTime.fromJSDate(currentDate).setZone(userTimezone).startOf('month');
@@ -66,7 +66,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
                 <h3 
                   className={`text-base font-medium ${
                     isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
-                  }`}
+                  onClick={() => onEventClick?.(event)}
                 >
                   {dateLuxon.toLocaleString({ 
                     weekday: 'long', 
@@ -150,16 +150,6 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
           <h3 className="text-lg font-medium text-gray-900 dark:text-white">No events this month</h3>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Try changing your filters or adding new connections</p>
         </div>
-      )}
-
-      {selectedEvent && (
-        <EventModal 
-          event={selectedEvent} 
-          onClose={() => setSelectedEvent(null)}
-          mapsLoaded={true}
-          mapsLoadError={undefined}
-          userTimezone={userTimezone}
-        />
       )}
     </div>
   );

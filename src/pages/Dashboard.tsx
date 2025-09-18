@@ -37,6 +37,15 @@ const Dashboard: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const { isNative } = useCapacitor();
 
+  const refreshDashboardEvents = useCallback(async () => {
+    try {
+      await fetchOwnEvents();
+      await fetchFriendsEvents();
+    } catch (error) {
+      console.error('Error refreshing dashboard events:', error);
+    }
+  }, [fetchOwnEvents, fetchFriendsEvents]);
+
   // Centralized Google Maps loading
   const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -945,6 +954,7 @@ const Dashboard: React.FC = () => {
         mapsLoaded={mapsLoaded}
         mapsLoadError={mapsLoadError}
         userTimezone={userTimezone}
+        onEventUpdated={refreshDashboardEvents}
         />
       )}
     </div>

@@ -8,10 +8,10 @@ interface WeekViewProps {
   currentDate: Date;
   events: Event[];
   userTimezone?: string;
+  onEventClick?: (event: Event) => void;
 }
 
-const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone = 'UTC' }) => {
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone = 'UTC', onEventClick }) => {
   
   // Get the start of the week (Sunday) using Luxon with proper timezone handling
   const getStartOfWeek = (date: Date) => {
@@ -142,7 +142,7 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
                           backgroundColor: event.color + '20',
                           borderLeft: `3px solid ${event.color}`
                         }}
-                        onClick={() => setSelectedEvent(event)}
+                        onClick={() => onEventClick?.(event)}
                       >
                         <div className="p-1 h-full overflow-hidden">
                           <div className="font-medium flex items-center" style={{ color: event.color }}>
@@ -196,16 +196,6 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
           </div>
         </div>
       </div>
-
-      {selectedEvent && (
-        <EventModal 
-          event={selectedEvent} 
-          onClose={() => setSelectedEvent(null)}
-          mapsLoaded={true}
-          mapsLoadError={undefined}
-          userTimezone={userTimezone}
-        />
-      )}
     </div>
   );
 };

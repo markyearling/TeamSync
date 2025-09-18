@@ -8,10 +8,10 @@ interface DayViewProps {
   currentDate: Date;
   events: Event[];
   userTimezone?: string;
+  onEventClick?: (event: Event) => void;
 }
 
-const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = 'UTC' }) => {
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = 'UTC', onEventClick }) => {
   
   // Check if the current date is today using Luxon with proper timezone handling
   const todayLuxon = DateTime.now().setZone(userTimezone);
@@ -108,7 +108,7 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = '
                     backgroundColor: event.color + '20',
                     borderLeft: `3px solid ${event.color}`
                   }}
-                  onClick={() => setSelectedEvent(event)}
+                  onClick={() => onEventClick?.(event)}
                 >
                   <div className="p-2 h-full overflow-hidden">
                     <div className="flex items-center">
@@ -168,16 +168,6 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = '
           </div>
         </div>
       </div>
-
-      {selectedEvent && (
-        <EventModal 
-          event={selectedEvent} 
-          onClose={() => setSelectedEvent(null)}
-          mapsLoaded={true}
-          mapsLoadError={undefined}
-          userTimezone={userTimezone}
-        />
-      )}
     </div>
   );
 };

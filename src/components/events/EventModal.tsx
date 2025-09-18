@@ -16,9 +16,10 @@ interface EventModalProps {
   mapsLoaded: boolean;
   mapsLoadError: Error | undefined;
   userTimezone?: string;
+  onEventUpdated?: () => void;
 }
 
-const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, mapsLoadError, userTimezone = 'UTC' }) => {
+const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, mapsLoadError, userTimezone = 'UTC', onEventUpdated }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showMessagesModal, setShowMessagesModal] = useState(false);
@@ -29,6 +30,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const { isNative } = useCapacitor();
+
+  const handleEventUpdated = () => {
+    if (onEventUpdated) {
+      onEventUpdated();
+    }
+    onClose(); // Close the modal after updating
+  };
 
   // Helper function to format date
   const formatDate = (dateString: string) => {

@@ -37,6 +37,16 @@ const Calendar: React.FC = () => {
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['game', 'practice', 'tournament', 'other']);
   const [showFriendsEvents, setShowFriendsEvents] = useState(true);
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  const refreshCalendarEvents = useCallback(async () => {
+    try {
+      await fetchOwnEvents();
+      await fetchFriendsEvents();
+    } catch (error) {
+      console.error('Error refreshing calendar events:', error);
+    }
+  }, [fetchOwnEvents, fetchFriendsEvents]);
 
   // Centralized Google Maps loading
   const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
@@ -279,13 +289,13 @@ const Calendar: React.FC = () => {
 
     switch (view) {
       case 'month':
-        return <MonthView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
+        return <MonthView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} onEventClick={setSelectedEvent} />;
       case 'week':
-        return <WeekView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
+        return <WeekView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} onEventClick={setSelectedEvent} />;
       case 'day':
-        return <DayView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
+        return <DayView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} onEventClick={setSelectedEvent} />;
       case 'agenda':
-        return <AgendaView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} />;
+        return <AgendaView currentDate={currentDate} events={filteredEvents} userTimezone={userTimezone} onEventClick={setSelectedEvent} />;
     }
   };
 
@@ -542,6 +552,17 @@ const Calendar: React.FC = () => {
           {renderView()}
         </div>
       </div>
+
+      {selectedEvent && (
+        <EventModal 
+          event={selectedEvent} 
+          onClose={() => setSelectedEvent(null)}
+          mapsLoaded={mapsLoaded}
+          mapsLoadError={mapsLoadError}
+          userTimezone={userTimezone}
+          onEventUpdated={refreshCalendarEvents}
+        />
+      )}
     </div>
   );
 };
