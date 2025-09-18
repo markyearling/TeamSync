@@ -12,6 +12,7 @@ interface AgendaViewProps {
 }
 
 const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezone = 'UTC', onEventClick }) => {
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   
   // Get the start of the month using Luxon with proper timezone handling
   const startOfMonthLuxon = DateTime.fromJSDate(currentDate).setZone(userTimezone).startOf('month');
@@ -66,7 +67,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
                 <h3 
                   className={`text-base font-medium ${
                     isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'
-                  onClick={() => onEventClick?.(event)}
+                  }`}
                 >
                   {dateLuxon.toLocaleString({ 
                     weekday: 'long', 
