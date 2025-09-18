@@ -37,15 +37,6 @@ const Dashboard: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const { isNative } = useCapacitor();
 
-  const refreshDashboardEvents = useCallback(async () => {
-    try {
-      await fetchOwnEvents();
-      await fetchFriendsEvents();
-    } catch (error) {
-      console.error('Error refreshing dashboard events:', error);
-    }
-  }, [fetchOwnEvents, fetchFriendsEvents]);
-
   // Centralized Google Maps loading
   const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -306,6 +297,15 @@ const Dashboard: React.FC = () => {
       console.error('💥 DASHBOARD: Error fetching friends events:', error);
     }
   }, [friendsProfiles]);
+
+  const refreshDashboardEvents = useCallback(async () => {
+    try {
+      await fetchOwnEvents();
+      await fetchFriendsEvents();
+    } catch (error) {
+      console.error('Error refreshing dashboard events:', error);
+    }
+  }, [fetchOwnEvents, fetchFriendsEvents]);
 
   // Main effect - only runs when dependencies actually change
   useEffect(() => {
