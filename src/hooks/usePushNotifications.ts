@@ -10,6 +10,7 @@ import {
   LocalNotifications,
   LocalNotificationSchema
 } from '@capacitor/local-notifications';
+import { supabase } from '../lib/supabase';
 
 export const usePushNotifications = () => {
   const [token, setToken] = useState<string | null>(null);
@@ -35,7 +36,9 @@ export const usePushNotifications = () => {
         PushNotifications.addListener('registration', (token: Token) => {
           console.log('Push registration success, token: ' + token.value);
           setToken(token.value);
-          // TODO: Send token to your backend
+          
+          // Save FCM token to Supabase user_settings
+          saveFCMTokenToSupabase(token.value);
         });
 
         // Listen for registration errors
@@ -85,6 +88,43 @@ export const usePushNotifications = () => {
       PushNotifications.removeAllListeners();
     };
   }, []);
+
+  // Function to save FCM token to Supabase
+  const saveFCMTokenToSupabase = async (fcmToken: string) => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('Error getting user for FCM token save:', userError);
+        return;
+      }
+      
+      if (!user) {
+        console.log('No authenticated user found, skipping FCM token save');
+        return;
+      }
+
+      console.log('Saving FCM token for user:', user.id);
+      
+      const { error } = await supabase
+        .from('user_settings')
+        .upsert({
+          user_id: user.id,
+          fcm_token: fcmToken,
+          updated_at: new Date().toISOString()
+        }, { 
+          onConflict: 'user_id' 
+        });
+
+      if (error) {
+        console.error('Error saving FCM token to Supabase:', error);
+      } else {
+        console.log('FCM token saved to Supabase successfully');
+      }
+    } catch (error) {
+      console.error('Exception while saving FCM token:', error);
+    }
+  };
 
   const scheduleLocalNotification = async (notification: LocalNotificationSchema) => {
     if (!Capacitor.isNativePlatform()) {
