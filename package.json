@@ -18,10 +18,8 @@
   "dependencies": {
     "@capacitor/app": "^7.0.2-nightly-20250630T150612.0",
     "@capacitor/camera": "^7.0.2-nightly-20250630T150612.0",
-    "@capacitor/core": "^7.4.0",
     "@capacitor/filesystem": "^7.1.1",
     "@capacitor/haptics": "^7.0.2-nightly-20250630T150612.0",
-    "@capacitor/ios": "^7.4.0",
     "@capacitor/keyboard": "^7.0.2-nightly-20250630T150612.0",
     "@capacitor/local-notifications": "^7.0.2-nightly-20250630T150612.0",
     "@capacitor/push-notifications": "^7.0.2-nightly-20250630T150612.0",
@@ -49,6 +47,8 @@
   "devDependencies": {
     "@capacitor/android": "7.4.0",
     "@capacitor/cli": "7.4.0",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/ios": "^7.4.3",
     "@types/luxon": "^3.4.2",
     "@types/react": "^18.2.37",
     "@types/react-dom": "^18.2.15",
