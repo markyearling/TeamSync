@@ -1,13 +1,13 @@
-const corsHeaders = { // Define globally
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
 // This function is executed at the very top level.
 console.log("sync-teamsnap-calendar: Function file loaded.");
 
-const corsHeaders = { // Define globally
+const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
-
 
 interface TeamSnapSyncRequest {
   teamId: string;
@@ -19,20 +19,23 @@ interface TeamSnapSyncRequest {
 const TEAMSNAP_TOKEN_URL = 'https://auth.teamsnap.com/oauth/token';
 const TEAMSNAP_API_URL = 'https://api.teamsnap.com/v3';
 
-export default async function handler(req: Request): Promise<Response> {
-  let body: TeamSnapSyncRequest | null = null; // Declare body outside try block
+Deno.serve(async (req: Request): Promise<Response> => {
   let body: TeamSnapSyncRequest | null = null;
 
-  // Initialize Supabase client
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-    { auth: { persistSession: false } });
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
       headers: corsHeaders,
     });
   }
+
+  // Initialize Supabase client
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    { auth: { persistSession: false } }
+  );
 
   try {
     console.log('Processing TeamSnap sync request...'); // Added logging
@@ -285,8 +288,8 @@ export default async function handler(req: Request): Promise<Response> {
     
     // Update team sync status to error
     try {
-      // Access teamId from the 'teamId' variable which is in scope
-      const currentTeamId = teamId;
+      // Access teamId from the 'body' variable if it was successfully parsed
+      const currentTeamId = body?.teamId;
       
       if (currentTeamId) {
         const supabaseClient = createClient(
@@ -323,4 +326,4 @@ export default async function handler(req: Request): Promise<Response> {
       }
     );
   }
-}
+});
