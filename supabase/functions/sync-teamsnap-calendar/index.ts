@@ -96,6 +96,7 @@ Deno.serve(async (req) => {
       console.log(`[TeamSnap Sync] Final userTimezone set to: ${userTimezone}`);
     } catch (error) {
       console.warn('[TeamSnap Sync] Exception getting user timezone, using UTC:', error);
+    }
 
     // Helper function to make TeamSnap API requests
     const makeTeamSnapRequest = async (endpoint: string, token: string): Promise<any> => {
