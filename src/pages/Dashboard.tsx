@@ -394,7 +394,6 @@ const Dashboard: React.FC = () => {
       
       if (!teamsData || teamsData.length === 0) {
         console.log('No platform teams found to sync');
-         console.log('GameChanger sync - session access token available:', !!session.access_token);
         return;
       }
       
@@ -452,6 +451,7 @@ const Dashboard: React.FC = () => {
               try {
                 console.log(`[Dashboard] SportsEngine Making fetch request for profile ${mapping.profile_id} to sync-sportsengine-calendar`);
                 const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-sportsengine-calendar`, {
+                  // Add more logging for the fetch request
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
@@ -497,6 +497,7 @@ const Dashboard: React.FC = () => {
               try {
                 console.log(`[Dashboard] Playmetrics Making fetch request for profile ${mapping.profile_id} to sync-playmetrics-calendar`);
                 const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
+                  // Add more logging for the fetch request
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
@@ -536,12 +537,14 @@ const Dashboard: React.FC = () => {
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
             if (sessionError) throw sessionError;
             if (!session) throw new Error('No authenticated session');
+            console.log('GameChanger sync - session access token available:', !!session.access_token);
             
             // Sync events for each mapped profile
             for (const mapping of profileMappings) {
               try {
                 console.log(`[Dashboard] GameChanger Making fetch request for profile ${mapping.profile_id} to sync-gamechanger-calendar`);
                 const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-gamechanger-calendar`, {
+                  // Add more logging for the fetch request
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
