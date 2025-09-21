@@ -450,6 +450,7 @@ const Dashboard: React.FC = () => {
             // Sync events for each mapped profile
             for (const mapping of profileMappings) {
               try {
+                console.log(`[Dashboard] SportsEngine Making fetch request for profile ${mapping.profile_id} to sync-sportsengine-calendar`);
                 const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-sportsengine-calendar`, {
                   method: 'POST',
                   headers: {
@@ -462,10 +463,11 @@ const Dashboard: React.FC = () => {
                     profileId: mapping.profile_id
                   })
                 });
+                console.log(`[Dashboard] SportsEngine Fetch response status for profile ${mapping.profile_id}: ${response.status}`);
                 
                 if (!response.ok) {
                   const errorData = await response.json();
-                  console.error(`Error syncing SportsEngine team ${team.team_name}:`, errorData);
+                  console.error(`[Dashboard] SportsEngine Error response from function for profile ${mapping.profile_id}:`, errorData);
                 }
               } catch (error) {
                 console.error(`Error syncing SportsEngine team ${team.team_name} for profile ${mapping.profile_id}:`, error);
@@ -493,6 +495,7 @@ const Dashboard: React.FC = () => {
             // Sync events for each mapped profile
             for (const mapping of profileMappings) {
               try {
+                console.log(`[Dashboard] Playmetrics Making fetch request for profile ${mapping.profile_id} to sync-playmetrics-calendar`);
                 const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
                   method: 'POST',
                   headers: {
@@ -505,10 +508,11 @@ const Dashboard: React.FC = () => {
                     profileId: mapping.profile_id
                   })
                 });
+                console.log(`[Dashboard] Playmetrics Fetch response status for profile ${mapping.profile_id}: ${response.status}`);
                 
                 if (!response.ok) {
                   const errorData = await response.json();
-                  console.error(`Error syncing Playmetrics team ${team.team_name}:`, errorData);
+                  console.error(`[Dashboard] Playmetrics Error response from function for profile ${mapping.profile_id}:`, errorData);
                 }
               } catch (error) {
                 console.error(`Error syncing Playmetrics team ${team.team_name} for profile ${mapping.profile_id}:`, error);
@@ -536,6 +540,7 @@ const Dashboard: React.FC = () => {
             // Sync events for each mapped profile
             for (const mapping of profileMappings) {
               try {
+                console.log(`[Dashboard] GameChanger Making fetch request for profile ${mapping.profile_id} to sync-gamechanger-calendar`);
                 const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-gamechanger-calendar`, {
                   method: 'POST',
                   headers: {
@@ -548,10 +553,11 @@ const Dashboard: React.FC = () => {
                     profileId: mapping.profile_id
                   })
                 });
+                console.log(`[Dashboard] GameChanger Fetch response status for profile ${mapping.profile_id}: ${response.status}`);
                 
                 if (!response.ok) {
                   const errorData = await response.json();
-                  console.error(`Error syncing GameChanger team ${team.team_name}:`, errorData);
+                  console.error(`[Dashboard] GameChanger Error response from function for profile ${mapping.profile_id}:`, errorData);
                 }
               } catch (error) {
                 console.error(`Error syncing GameChanger team ${team.team_name} for profile ${mapping.profile_id}:`, error);

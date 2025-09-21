@@ -345,6 +345,7 @@ const SportsEngineConnection: React.FC = () => {
       setError(null);
       setSuccess(null);
       setRefreshingTeam(teamId);
+      console.log(`[SportsEngine] Attempting to refresh team: ${teamId}`);
       
       // Fetch the latest team data with profile mappings directly from the database
       const { data: freshTeamData, error: freshTeamError } = await supabase
@@ -390,6 +391,7 @@ const SportsEngineConnection: React.FC = () => {
       // Sync events for each mapped profile
       let totalEvents = 0;
       for (const profile of mappedProfiles) {
+        console.log(`[SportsEngine] Making fetch request for profile ${profile.id} to sync-sportsengine-calendar`);
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-sportsengine-calendar`, {
           method: 'POST',
           headers: {
@@ -402,10 +404,12 @@ const SportsEngineConnection: React.FC = () => {
             profileId: profile.id
           })
         });
+        console.log(`[SportsEngine] Fetch response status for profile ${profile.id}: ${response.status}`);
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to sync calendar');
+          console.error(`[SportsEngine] Error response from function for profile ${profile.id}:`, errorData);
+          throw new Error(errorData.error || `Failed to sync calendar for profile ${profile.id}`);
         }
 
         const syncResult = await response.json();

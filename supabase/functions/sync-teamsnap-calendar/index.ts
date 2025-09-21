@@ -78,25 +78,25 @@ Deno.serve(async (req) => {
     let userTimezone = 'UTC';
     try {
       console.log(`[TeamSnap Sync] Attempting to fetch timezone for user: ${userId}`);
-      console.log(`[TeamSnap Sync] Calling RPC 'get_user_timezone' with p_user_id: ${userId}`);
       
       // Use RPC function to get timezone directly by user_id
+      console.log(`[TeamSnap Sync] Calling RPC 'get_user_timezone' with p_user_id: ${userId}`);
       const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone', { 
         p_user_id: userId 
       });
       
       if (rpcError) {
-        console.warn('Error calling get_user_timezone RPC:', rpcError.message);
-        console.log('Using default timezone UTC');
+        console.warn('[TeamSnap Sync] Error calling get_user_timezone RPC:', rpcError.message);
+        console.log('[TeamSnap Sync] Using default timezone UTC');
       } else if (timezoneResult) {
         console.log(`[TeamSnap Sync] RPC returned timezone: ${timezoneResult}`);
         userTimezone = timezoneResult;
       } else {
-        console.log('No timezone returned from RPC, using UTC');
+        console.log('[TeamSnap Sync] No timezone returned from RPC, using UTC');
       }
       console.log(`[TeamSnap Sync] Final userTimezone set to: ${userTimezone}`);
     } catch (error) {
-      console.warn('Exception getting user timezone, using UTC:', error);
+      console.warn('[TeamSnap Sync] Exception getting user timezone, using UTC:', error);
     }
 
     // Helper function to make TeamSnap API requests

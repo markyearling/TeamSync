@@ -221,9 +221,50 @@ Deno.serve(async (req) => {
 
       // Get user's timezone from settings
       let userTimezone = 'UTC';
+      let profileUserId: string | null = null;
+
       try {
-        console.log(`[GameChanger Sync] Attempting to fetch timezone for profile: ${profileId}`);
-        console.log(`[GameChanger Sync] Calling RPC 'get_user_timezone_by_profile' with p_profile_id: ${profileId}`);
+        // First, get the user_id associated with the profile_id
+        console.log(`[GameChanger Sync] Fetching user_id for profile: ${profileId}`);
+        const { data: profileData, error: profileFetchError } = await supabaseClient
+          .from('profiles')
+          .select('user_id')
+          .eq('id', profileId)
+          .single();
+
+        if (profileFetchError) {
+          console.warn(`[GameChanger Sync] Error fetching user_id for profile ${profileId}:`, profileFetchError.message);
+          // Fallback to UTC if profile not found or error
+        } else if (profileData) {
+          profileUserId = profileData.user_id;
+          console.log(`[GameChanger Sync] Found user_id ${profileUserId} for profile ${profileId}`);
+        }
+
+        if (profileUserId) {
+          console.log(`[GameChanger Sync] Calling RPC 'get_user_timezone' with p_user_id: ${profileUserId}`);
+          const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone', {
+            p_user_id: profileUserId 
+          });
+          
+          if (rpcError) {
+            console.warn('[GameChanger Sync] Error calling get_user_timezone RPC:', rpcError.message);
+            console.log('[GameChanger Sync] Using default timezone UTC');
+          } else if (timezoneResult) {
+            console.log(`[GameChanger Sync] RPC returned timezone: ${timezoneResult}`);
+            userTimezone = timezoneResult;
+          } else {
+            console.log('[GameChanger Sync] No timezone returned from RPC, using UTC');
+          }
+        } else {
+          console.log('[GameChanger Sync] No user_id found for profile, using UTC');
+        }
+        console.log(`[GameChanger Sync] Final userTimezone set to: ${userTimezone}`);
+      } catch (error) {
+        console.warn('[GameChanger Sync] Exception getting user timezone, using UTC:', error);
+      }
+
+      // Transform events for the specific profile
+      const events = vevents.filter(vevent => {
         
         // Use RPC function to get timezone, which handles the user_id lookup internally
         const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone_by_profile', {
@@ -499,7 +540,6 @@ Deno.serve(async (req) => {
     }
 
   } catch (error) {
-    const clonedReq = req.clone(); // Clone request before consuming body for error logging
     console.error('Error in sync-gamechanger-calendar:', { // Log the error object
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
@@ -507,12 +547,10 @@ Deno.serve(async (req) => {
 
     // Update team sync status to error
     try {
-      // Get teamId from the original request body parsing at the top
-      // Re-parse the cloned request body
-      const requestBody = await clonedReq.json();
-      const { teamId } = requestBody;
+      // Get teamId from the body variable that was already parsed at the top
+      const { teamId: currentTeamId } = body;
       
-      if (teamId) {
+      if (currentTeamId) {
         const supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -529,7 +567,7 @@ Deno.serve(async (req) => {
             sync_status: 'error',
             last_synced: new Date().toISOString()
           })
-          .eq('id', teamId);
+          .eq('id', currentTeamId);
       }
     } catch (updateError) {
       console.error('Error updating team sync status to error:', updateError);
