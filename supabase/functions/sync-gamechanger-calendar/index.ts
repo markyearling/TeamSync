@@ -518,7 +518,6 @@ Deno.serve(async (req) => {
     }
 
   } catch (error) {
-    const clonedReq = req.clone(); // Clone request before consuming body for error logging
     console.error('Error in sync-gamechanger-calendar:', { // Log the error object
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
@@ -526,12 +525,10 @@ Deno.serve(async (req) => {
 
     // Update team sync status to error
     try {
-      // Get teamId from the original request body parsing at the top
-      // Re-parse the cloned request body
-      const requestBody = await clonedReq.json();
-      const { teamId } = requestBody;
+      // Get teamId from the body variable that was already parsed at the top
+      const { teamId: currentTeamId } = body;
       
-      if (teamId) {
+      if (currentTeamId) {
         const supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -548,7 +545,7 @@ Deno.serve(async (req) => {
             sync_status: 'error',
             last_synced: new Date().toISOString()
           })
-          .eq('id', teamId);
+          .eq('id', currentTeamId);
       }
     } catch (updateError) {
       console.error('Error updating team sync status to error:', updateError);
