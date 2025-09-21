@@ -326,6 +326,8 @@ Deno.serve(async (req) => {
           if (description) {
             description = `${summary}\n\n${description}`;
           } else {
+            console.log('Attempting to fetch timezone for user_id:', profileData.user_id);
+            console.log('Profile data for timezone fetch:', profileData);
             description = summary;
           }
         }
