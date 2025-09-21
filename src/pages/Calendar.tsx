@@ -176,37 +176,41 @@ const Calendar: React.FC = () => {
     }
   }, [fetchOwnEvents, fetchFriendsEvents]);
 
+  // Define fetchAllData at component level
+  const fetchAllData = useCallback(async () => {
+    try {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
+      // Fetch own events
+      await fetchOwnEvents();
+
+      // Fetch friends events
+      await fetchFriendsEvents();
+
+    } catch (error) {
+      console.error('❌ CALENDAR: Error in main fetch:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchOwnEvents, fetchFriendsEvents]);
+
   // Main effect - only runs when dependencies actually change
   useEffect(() => {
     let isMounted = true;
 
-    const fetchAllData = useCallback(async () => {
-      try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
-        if (!user || !isMounted) return;
+    const runFetchAllData = async () => {
+      if (!isMounted) return;
+      await fetchAllData();
+    };
 
-        // Fetch own events
-        await fetchOwnEvents();
-
-        // Fetch friends events
-        await fetchFriendsEvents();
-
-      } catch (error) {
-        console.error('❌ CALENDAR: Error in main fetch:', error);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }, [fetchOwnEvents, fetchFriendsEvents]);
-
-    fetchAllData();
+    runFetchAllData();
 
     return () => {
       isMounted = false;
     };
-  }, [fetchAllData]); // Re-run when fetchAllData changes
+  }, [fetchAllData]);
 
   // Initialize selected profiles when profiles change
   useEffect(() => {
