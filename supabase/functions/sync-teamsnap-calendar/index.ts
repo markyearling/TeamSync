@@ -18,6 +18,7 @@ interface TeamSnapSyncRequest {
 const TEAMSNAP_TOKEN_URL = 'https://auth.teamsnap.com/oauth/token';
 const TEAMSNAP_API_URL = 'https://api.teamsnap.com/v3';
 
+export default async function handler(req: Request): Promise<Response> {
   console.log('=== TeamSnap Sync Function Started ===');
   console.log('Request method:', req.method);
 
@@ -325,4 +326,4 @@ const TEAMSNAP_API_URL = 'https://api.teamsnap.com/v3';
       }
     );
   }
-});
+}
