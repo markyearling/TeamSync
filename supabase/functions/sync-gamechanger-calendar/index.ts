@@ -222,20 +222,28 @@ Deno.serve(async (req) => {
       // Get user's timezone from settings
       let userTimezone = 'UTC';
       try {
-        // Get user_id and timezone in a single query using a join
-        const { data: userSettings, error: settingsError } = await supabaseClient
-          .from('user_settings')
-          .select(`
-            timezone,
-            profiles!inner(id)
-          `)
-          .eq('profiles.id', profileId)
+        // First get the user_id from profiles
+        const { data: profileData, error: profileError } = await supabaseClient
+          .from('profiles')
+          .select('user_id')
+          .eq('id', profileId)
           .single();
           
-        if (settingsError) {
-          console.warn('Could not fetch user timezone settings:', settingsError);
-        } else if (userSettings?.timezone) {
-          userTimezone = userSettings.timezone;
+        if (profileError || !profileData?.user_id) {
+          console.warn('Could not fetch profile user_id:', profileError);
+        } else {
+          // Then get the timezone from user_settings using the user_id
+          const { data: userSettings, error: settingsError } = await supabaseClient
+            .from('user_settings')
+            .select('timezone')
+            .eq('user_id', profileData.user_id)
+            .single();
+            
+          if (settingsError) {
+            console.warn('Could not fetch user timezone settings:', settingsError);
+          } else if (userSettings?.timezone) {
+            userTimezone = userSettings.timezone;
+          }
         }
         
         console.log(`Using user timezone: ${userTimezone}`);

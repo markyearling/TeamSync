@@ -77,14 +77,11 @@ Deno.serve(async (req) => {
     // Get user's timezone from settings
     let userTimezone = 'UTC';
     try {
-      // Get user_id and timezone in a single query using a join
+      // Get the timezone from user_settings using the userId
       const { data: userSettings, error: settingsError } = await supabaseClient
         .from('user_settings')
-        .select(`
-          timezone,
-          profiles!inner(id)
-        `)
-        .eq('profiles.id', profileId)
+        .select('timezone')
+        .eq('user_id', userId)
         .single();
         
       if (settingsError) {
