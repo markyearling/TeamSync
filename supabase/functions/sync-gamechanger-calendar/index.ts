@@ -453,7 +453,7 @@ Deno.serve(async (req) => {
       console.log('Deduplicated events:', deduplicatedEvents.length, 'from original:', events.length);
 
       // Delete existing events for this profile and team to avoid duplicates
-      console.log('Deleting existing events for team:', teamId);
+      console.log('Deleting existing events for profile:', profileId, 'and team:', teamId);
       const { error: deleteError } = await supabaseClient
         .from('events')
         .delete()
@@ -462,21 +462,25 @@ Deno.serve(async (req) => {
 
       if (deleteError) {
         console.error('Error deleting existing events:', deleteError);
-        // Continue with insert anyway
+        throw new Error(`Failed to delete existing events: ${deleteError.message}`);
       }
 
       // Insert new events
-      console.log('Inserting new events into database');
-      const { data: eventsData, error: eventsError } = await supabaseClient
-        .from('events')
-        .insert(deduplicatedEvents);
+      if (deduplicatedEvents.length > 0) {
+        console.log('Inserting new events into database');
+        const { data: eventsData, error: eventsError } = await supabaseClient
+          .from('events')
+          .insert(deduplicatedEvents);
 
-      if (eventsError) {
-        console.error('Error inserting events:', eventsError);
-        throw eventsError;
+        if (eventsError) {
+          console.error('Error inserting events:', eventsError);
+          throw eventsError;
+        }
+
+        console.log('Successfully inserted events:', eventsData);
+      } else {
+        console.log('No events to insert');
       }
-
-      console.log('Successfully inserted events:', eventsData);
 
       return new Response(
         JSON.stringify({ 

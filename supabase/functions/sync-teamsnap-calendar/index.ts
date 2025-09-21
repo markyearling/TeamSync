@@ -219,12 +219,11 @@ Deno.serve(async (req) => {
       .from('events')
       .delete()
       .eq('platform_team_id', teamId)
-      .eq('profile_id', profileId)
       .eq('platform', 'TeamSnap');
 
     if (deleteError) {
       console.error('Error deleting existing events:', deleteError);
-      // Continue with insert anyway
+      throw new Error(`Failed to delete existing events: ${deleteError.message}`);
     }
 
     // Insert new events
@@ -238,6 +237,8 @@ Deno.serve(async (req) => {
         console.error('Error inserting events:', eventsError);
         throw eventsError;
       }
+    } else {
+      console.log('No events to insert');
     }
 
     console.log(`Successfully synced ${eventsToInsert.length} TeamSnap events for profile ${profileId}`);
