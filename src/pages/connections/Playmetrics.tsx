@@ -500,8 +500,7 @@ const Playmetrics: React.FC = () => {
         
         // Immediately sync events for the newly mapped profiles
         await handleRefresh(showMappingModal);
-          console.error(`[Playmetrics] Error response from function for profile ${profile.id}:`, errorData);
-          throw new Error(errorData.error || `Failed to sync calendar for profile ${profile.id}`);
+      }
 
       setShowMappingModal(null);
       setSelectedProfiles([]);
