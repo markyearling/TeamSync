@@ -234,33 +234,36 @@ Deno.serve(async (req: Request) => {
         
         if (profileFetchError) {
           console.warn(`[GameChanger Sync] Error fetching user_id for profile ${profileId}:`, profileFetchError.message);
-          // Fallback to UTC if profile not found or error
+          console.log('[GameChanger Sync] Using default timezone UTC due to profile fetch error');
         } else if (profileData) {
           profileUserId = profileData.user_id;
           console.log(`[GameChanger Sync] Found user_id ${profileUserId} for profile ${profileId}`);
+        } else {
+          console.log('[GameChanger Sync] No profile data returned, using UTC');
         }
 
-        if (profileUserId) { // Only call RPC if profileUserId is valid
+        if (profileUserId && typeof profileUserId === 'string' && profileUserId.trim() !== '') {
           console.log(`[GameChanger Sync] Calling RPC 'get_user_timezone' with p_user_id: ${profileUserId}`); // Added logging
-          const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone', {
-            p_user_id: profileUserId 
-          });
+          try {
+            const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone', {
+              p_user_id: profileUserId 
+            });
           
-          if (rpcError) {
-            console.warn(`[GameChanger Sync] Error calling get_user_timezone RPC for user ${profileUserId}:`, rpcError.message);
-            console.log('[GameChanger Sync] Using default timezone UTC');
-          } else if (timezoneResult) { // Added logging
-            console.log(`[GameChanger Sync] RPC returned timezone: ${timezoneResult}`);
-            userTimezone = timezoneResult;
-          } else { // Added logging
-            // This case means the RPC returned null/undefined, which should be handled by the RPC itself
-            // but we'll log it here for clarity.
-            console.log(`[GameChanger Sync] RPC returned no timezone for user ${profileUserId}, using UTC`);
+            if (rpcError) {
+              console.warn(`[GameChanger Sync] Error calling get_user_timezone RPC for user ${profileUserId}:`, rpcError.message);
+              console.log('[GameChanger Sync] Using default timezone UTC due to RPC error');
+            } else if (timezoneResult && typeof timezoneResult === 'string') {
+              console.log(`[GameChanger Sync] RPC returned timezone: ${timezoneResult}`);
+              userTimezone = timezoneResult;
+            } else {
+              console.log(`[GameChanger Sync] RPC returned invalid timezone result: ${timezoneResult}, using UTC`);
+            }
+          } catch (rpcException) {
+            console.warn(`[GameChanger Sync] Exception calling get_user_timezone RPC for user ${profileUserId}:`, rpcException);
+            console.log('[GameChanger Sync] Using default timezone UTC due to RPC exception');
           }
         } else {
           console.log('[GameChanger Sync] profileUserId is null, skipping RPC call and using UTC');
-        } else {
-          console.log('[GameChanger Sync] No user_id found for profile, using UTC');
         }
         console.log(`[GameChanger Sync] Final userTimezone set to: ${userTimezone}`);
       } catch (error) {
