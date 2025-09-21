@@ -74,6 +74,30 @@ Deno.serve(async (req) => {
 
     let accessToken = userSettings.teamsnap_access_token;
 
+    // Get user's timezone from settings
+    let userTimezone = 'UTC';
+    try {
+      // Get user_id and timezone in a single query using a join
+      const { data: userSettings, error: settingsError } = await supabaseClient
+        .from('user_settings')
+        .select(`
+          timezone,
+          profiles!inner(id)
+        `)
+        .eq('profiles.id', profileId)
+        .single();
+        
+      if (settingsError) {
+        console.warn('Could not fetch user timezone settings:', settingsError);
+      } else if (userSettings?.timezone) {
+        userTimezone = userSettings.timezone;
+      }
+      
+      console.log(`Using user timezone: ${userTimezone}`);
+    } catch (error) {
+      console.warn('Error getting user timezone, using UTC:', error);
+    }
+
     // Helper function to make TeamSnap API requests
     const makeTeamSnapRequest = async (endpoint: string, token: string): Promise<any> => {
       const url = endpoint.startsWith('http') ? endpoint : `${TEAMSNAP_API_URL}${endpoint}`;
