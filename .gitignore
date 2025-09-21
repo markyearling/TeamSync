@@ -23,3 +23,226 @@ dist-ssr
 *.sln
 *.sw?
 .env
+ios/App/App/capacitor.config.json
+ios/App/App/config.xml
+ios/App/App/public/_redirects
+ios/App/App/public/cordova_plugins.js
+ios/App/App/public/cordova.js
+ios/App/App/public/famsink-new-logo.png
+ios/App/App/public/favicon.png
+ios/App/App/public/googlemaps.jpeg
+ios/App/App/public/index.html
+ios/App/App/public/ios-app-qr.png
+ios/App/App/public/Simulator Screenshot - iPhone 16 Pro - 2025-08-30 at 10.39.22.png
+ios/App/App/public/.vite/manifest.json
+ios/App/App/public/assets/index.CserX20e.js
+ios/App/App/public/assets/index.yrKkjfob.css
+ios/App/App/public/assets/supabase.BuyhyDmF.js
+ios/App/App/public/assets/vendor.BQy9rv2-.js
+ios/App/App/public/assets/web.B10_jw0e.js
+ios/App/App/public/assets/web.CPPluNEO.js
+ios/App/App/public/assets/web.DDc9WAS0.js
+ios/App/App.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/xcschememanagement.plist
+ios/App/App.xcworkspace/xcuserdata/tkmax60.xcuserdatad/UserInterfaceState.xcuserstate
+ios/App/Pods/Manifest.lock
+ios/App/Pods/CapacitorCordova/LICENSE
+ios/App/Pods/CapacitorCordova/README.md
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/CapacitorCordova.modulemap
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/PrivacyInfo.xcprivacy
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/AppDelegate.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/AppDelegate.m
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDV.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVAvailability.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVCommandDelegate.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVCommandDelegateImpl.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVCommandDelegateImpl.m
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVConfigParser.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVConfigParser.m
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVInvokedUrlCommand.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVInvokedUrlCommand.m
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVPlugin.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVPlugin.m
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVPlugin+Resources.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVPlugin+Resources.m
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVPluginManager.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVPluginManager.m
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVPluginResult.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVPluginResult.m
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVScreenOrientationDelegate.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVURLProtocol.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVURLProtocol.m
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVViewController.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVViewController.m
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVWebViewProcessPoolFactory.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/CDVWebViewProcessPoolFactory.m
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/NSDictionary+CordovaPreferences.h
+ios/App/Pods/CapacitorCordova/ios/CapacitorCordova/CapacitorCordova/Classes/Public/NSDictionary+CordovaPreferences.m
+ios/App/Pods/IONFilesystemLib/LICENSE
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/Info.plist
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64/dSYMs/IONFilesystemLib.framework.dSYM/Contents/Info.plist
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64/dSYMs/IONFilesystemLib.framework.dSYM/Contents/Resources/DWARF/IONFilesystemLib
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64/dSYMs/IONFilesystemLib.framework.dSYM/Contents/Resources/Relocations/aarch64/IONFilesystemLib.yml
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64/IONFilesystemLib.framework/Info.plist
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64/IONFilesystemLib.framework/IONFilesystemLib
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64/IONFilesystemLib.framework/Headers/IONFilesystemLib-Swift.h
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64/IONFilesystemLib.framework/Modules/module.modulemap
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64/IONFilesystemLib.framework/Modules/IONFilesystemLib.swiftmodule/arm64-apple-ios.abi.json
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64/IONFilesystemLib.framework/Modules/IONFilesystemLib.swiftmodule/arm64-apple-ios.private.swiftinterface
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64/IONFilesystemLib.framework/Modules/IONFilesystemLib.swiftmodule/arm64-apple-ios.swiftdoc
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64/IONFilesystemLib.framework/Modules/IONFilesystemLib.swiftmodule/arm64-apple-ios.swiftinterface
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/dSYMs/IONFilesystemLib.framework.dSYM/Contents/Info.plist
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/dSYMs/IONFilesystemLib.framework.dSYM/Contents/Resources/DWARF/IONFilesystemLib
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/dSYMs/IONFilesystemLib.framework.dSYM/Contents/Resources/Relocations/aarch64/IONFilesystemLib.yml
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/dSYMs/IONFilesystemLib.framework.dSYM/Contents/Resources/Relocations/x86_64/IONFilesystemLib.yml
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/Info.plist
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/IONFilesystemLib
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/_CodeSignature/CodeResources
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/Headers/IONFilesystemLib-Swift.h
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/Modules/module.modulemap
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/Modules/IONFilesystemLib.swiftmodule/arm64-apple-ios-simulator.abi.json
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/Modules/IONFilesystemLib.swiftmodule/arm64-apple-ios-simulator.private.swiftinterface
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/Modules/IONFilesystemLib.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/Modules/IONFilesystemLib.swiftmodule/arm64-apple-ios-simulator.swiftinterface
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/Modules/IONFilesystemLib.swiftmodule/x86_64-apple-ios-simulator.abi.json
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/Modules/IONFilesystemLib.swiftmodule/x86_64-apple-ios-simulator.private.swiftinterface
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/Modules/IONFilesystemLib.swiftmodule/x86_64-apple-ios-simulator.swiftdoc
+ios/App/Pods/IONFilesystemLib/IONFilesystemLib.xcframework/ios-arm64_x86_64-simulator/IONFilesystemLib.framework/Modules/IONFilesystemLib.swiftmodule/x86_64-apple-ios-simulator.swiftinterface
+ios/App/Pods/Local Podspecs/Capacitor.podspec.json
+ios/App/Pods/Local Podspecs/CapacitorApp.podspec.json
+ios/App/Pods/Local Podspecs/CapacitorCamera.podspec.json
+ios/App/Pods/Local Podspecs/CapacitorFilesystem.podspec.json
+ios/App/Pods/Local Podspecs/CapacitorHaptics.podspec.json
+ios/App/Pods/Local Podspecs/CapacitorKeyboard.podspec.json
+ios/App/Pods/Local Podspecs/CapacitorLocalNotifications.podspec.json
+ios/App/Pods/Local Podspecs/CapacitorPushNotifications.podspec.json
+ios/App/Pods/Local Podspecs/CapacitorSplashScreen.podspec.json
+ios/App/Pods/Local Podspecs/CapacitorStatusBar.podspec.json
+ios/App/Pods/Local Podspecs/CapacitorToast.podspec.json
+ios/App/Pods/Pods.xcodeproj/project.pbxproj
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/Capacitor.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/CapacitorApp.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/CapacitorCamera.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/CapacitorCordova.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/CapacitorFilesystem.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/CapacitorHaptics.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/CapacitorKeyboard.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/CapacitorLocalNotifications.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/CapacitorPushNotifications.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/CapacitorSplashScreen.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/CapacitorStatusBar.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/CapacitorToast.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/IONFilesystemLib.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/Pods-App.xcscheme
+ios/App/Pods/Pods.xcodeproj/xcuserdata/tkmax60.xcuserdatad/xcschemes/xcschememanagement.plist
+ios/App/Pods/Target Support Files/Capacitor/Capacitor-dummy.m
+ios/App/Pods/Target Support Files/Capacitor/Capacitor-Info.plist
+ios/App/Pods/Target Support Files/Capacitor/Capacitor-prefix.pch
+ios/App/Pods/Target Support Files/Capacitor/Capacitor.debug.xcconfig
+ios/App/Pods/Target Support Files/Capacitor/Capacitor.modulemap
+ios/App/Pods/Target Support Files/Capacitor/Capacitor.release.xcconfig
+ios/App/Pods/Target Support Files/CapacitorApp/CapacitorApp-dummy.m
+ios/App/Pods/Target Support Files/CapacitorApp/CapacitorApp-Info.plist
+ios/App/Pods/Target Support Files/CapacitorApp/CapacitorApp-prefix.pch
+ios/App/Pods/Target Support Files/CapacitorApp/CapacitorApp-umbrella.h
+ios/App/Pods/Target Support Files/CapacitorApp/CapacitorApp.debug.xcconfig
+ios/App/Pods/Target Support Files/CapacitorApp/CapacitorApp.modulemap
+ios/App/Pods/Target Support Files/CapacitorApp/CapacitorApp.release.xcconfig
+ios/App/Pods/Target Support Files/CapacitorCamera/CapacitorCamera-dummy.m
+ios/App/Pods/Target Support Files/CapacitorCamera/CapacitorCamera-Info.plist
+ios/App/Pods/Target Support Files/CapacitorCamera/CapacitorCamera-prefix.pch
+ios/App/Pods/Target Support Files/CapacitorCamera/CapacitorCamera-umbrella.h
+ios/App/Pods/Target Support Files/CapacitorCamera/CapacitorCamera.debug.xcconfig
+ios/App/Pods/Target Support Files/CapacitorCamera/CapacitorCamera.modulemap
+ios/App/Pods/Target Support Files/CapacitorCamera/CapacitorCamera.release.xcconfig
+ios/App/Pods/Target Support Files/CapacitorCordova/CapacitorCordova-dummy.m
+ios/App/Pods/Target Support Files/CapacitorCordova/CapacitorCordova-Info.plist
+ios/App/Pods/Target Support Files/CapacitorCordova/CapacitorCordova-prefix.pch
+ios/App/Pods/Target Support Files/CapacitorCordova/CapacitorCordova.debug.xcconfig
+ios/App/Pods/Target Support Files/CapacitorCordova/CapacitorCordova.modulemap
+ios/App/Pods/Target Support Files/CapacitorCordova/CapacitorCordova.release.xcconfig
+ios/App/Pods/Target Support Files/CapacitorFilesystem/CapacitorFilesystem-dummy.m
+ios/App/Pods/Target Support Files/CapacitorFilesystem/CapacitorFilesystem-Info.plist
+ios/App/Pods/Target Support Files/CapacitorFilesystem/CapacitorFilesystem-prefix.pch
+ios/App/Pods/Target Support Files/CapacitorFilesystem/CapacitorFilesystem-umbrella.h
+ios/App/Pods/Target Support Files/CapacitorFilesystem/CapacitorFilesystem.debug.xcconfig
+ios/App/Pods/Target Support Files/CapacitorFilesystem/CapacitorFilesystem.modulemap
+ios/App/Pods/Target Support Files/CapacitorFilesystem/CapacitorFilesystem.release.xcconfig
+ios/App/Pods/Target Support Files/CapacitorHaptics/CapacitorHaptics-dummy.m
+ios/App/Pods/Target Support Files/CapacitorHaptics/CapacitorHaptics-Info.plist
+ios/App/Pods/Target Support Files/CapacitorHaptics/CapacitorHaptics-prefix.pch
+ios/App/Pods/Target Support Files/CapacitorHaptics/CapacitorHaptics-umbrella.h
+ios/App/Pods/Target Support Files/CapacitorHaptics/CapacitorHaptics.debug.xcconfig
+ios/App/Pods/Target Support Files/CapacitorHaptics/CapacitorHaptics.modulemap
+ios/App/Pods/Target Support Files/CapacitorHaptics/CapacitorHaptics.release.xcconfig
+ios/App/Pods/Target Support Files/CapacitorKeyboard/CapacitorKeyboard-dummy.m
+ios/App/Pods/Target Support Files/CapacitorKeyboard/CapacitorKeyboard-Info.plist
+ios/App/Pods/Target Support Files/CapacitorKeyboard/CapacitorKeyboard-prefix.pch
+ios/App/Pods/Target Support Files/CapacitorKeyboard/CapacitorKeyboard-umbrella.h
+ios/App/Pods/Target Support Files/CapacitorKeyboard/CapacitorKeyboard.debug.xcconfig
+ios/App/Pods/Target Support Files/CapacitorKeyboard/CapacitorKeyboard.modulemap
+ios/App/Pods/Target Support Files/CapacitorKeyboard/CapacitorKeyboard.release.xcconfig
+ios/App/Pods/Target Support Files/CapacitorLocalNotifications/CapacitorLocalNotifications-dummy.m
+ios/App/Pods/Target Support Files/CapacitorLocalNotifications/CapacitorLocalNotifications-Info.plist
+ios/App/Pods/Target Support Files/CapacitorLocalNotifications/CapacitorLocalNotifications-prefix.pch
+ios/App/Pods/Target Support Files/CapacitorLocalNotifications/CapacitorLocalNotifications-umbrella.h
+ios/App/Pods/Target Support Files/CapacitorLocalNotifications/CapacitorLocalNotifications.debug.xcconfig
+ios/App/Pods/Target Support Files/CapacitorLocalNotifications/CapacitorLocalNotifications.modulemap
+ios/App/Pods/Target Support Files/CapacitorLocalNotifications/CapacitorLocalNotifications.release.xcconfig
+ios/App/Pods/Target Support Files/CapacitorPushNotifications/CapacitorPushNotifications-dummy.m
+ios/App/Pods/Target Support Files/CapacitorPushNotifications/CapacitorPushNotifications-Info.plist
+ios/App/Pods/Target Support Files/CapacitorPushNotifications/CapacitorPushNotifications-prefix.pch
+ios/App/Pods/Target Support Files/CapacitorPushNotifications/CapacitorPushNotifications-umbrella.h
+ios/App/Pods/Target Support Files/CapacitorPushNotifications/CapacitorPushNotifications.debug.xcconfig
+ios/App/Pods/Target Support Files/CapacitorPushNotifications/CapacitorPushNotifications.modulemap
+ios/App/Pods/Target Support Files/CapacitorPushNotifications/CapacitorPushNotifications.release.xcconfig
+ios/App/Pods/Target Support Files/CapacitorSplashScreen/CapacitorSplashScreen-dummy.m
+ios/App/Pods/Target Support Files/CapacitorSplashScreen/CapacitorSplashScreen-Info.plist
+ios/App/Pods/Target Support Files/CapacitorSplashScreen/CapacitorSplashScreen-prefix.pch
+ios/App/Pods/Target Support Files/CapacitorSplashScreen/CapacitorSplashScreen-umbrella.h
+ios/App/Pods/Target Support Files/CapacitorSplashScreen/CapacitorSplashScreen.debug.xcconfig
+ios/App/Pods/Target Support Files/CapacitorSplashScreen/CapacitorSplashScreen.modulemap
+ios/App/Pods/Target Support Files/CapacitorSplashScreen/CapacitorSplashScreen.release.xcconfig
+ios/App/Pods/Target Support Files/CapacitorStatusBar/CapacitorStatusBar-dummy.m
+ios/App/Pods/Target Support Files/CapacitorStatusBar/CapacitorStatusBar-Info.plist
+ios/App/Pods/Target Support Files/CapacitorStatusBar/CapacitorStatusBar-prefix.pch
+ios/App/Pods/Target Support Files/CapacitorStatusBar/CapacitorStatusBar-umbrella.h
+ios/App/Pods/Target Support Files/CapacitorStatusBar/CapacitorStatusBar.debug.xcconfig
+ios/App/Pods/Target Support Files/CapacitorStatusBar/CapacitorStatusBar.modulemap
+ios/App/Pods/Target Support Files/CapacitorStatusBar/CapacitorStatusBar.release.xcconfig
+ios/App/Pods/Target Support Files/CapacitorToast/CapacitorToast-dummy.m
+ios/App/Pods/Target Support Files/CapacitorToast/CapacitorToast-Info.plist
+ios/App/Pods/Target Support Files/CapacitorToast/CapacitorToast-prefix.pch
+ios/App/Pods/Target Support Files/CapacitorToast/CapacitorToast-umbrella.h
+ios/App/Pods/Target Support Files/CapacitorToast/CapacitorToast.debug.xcconfig
+ios/App/Pods/Target Support Files/CapacitorToast/CapacitorToast.modulemap
+ios/App/Pods/Target Support Files/CapacitorToast/CapacitorToast.release.xcconfig
+ios/App/Pods/Target Support Files/IONFilesystemLib/IONFilesystemLib-xcframeworks.sh
+ios/App/Pods/Target Support Files/IONFilesystemLib/IONFilesystemLib.debug.xcconfig
+ios/App/Pods/Target Support Files/IONFilesystemLib/IONFilesystemLib.release.xcconfig
+ios/App/Pods/Target Support Files/Pods-App/Pods-App-acknowledgements.markdown
+ios/App/Pods/Target Support Files/Pods-App/Pods-App-acknowledgements.plist
+ios/App/Pods/Target Support Files/Pods-App/Pods-App-dummy.m
+ios/App/Pods/Target Support Files/Pods-App/Pods-App-frameworks.sh
+ios/App/Pods/Target Support Files/Pods-App/Pods-App-Info.plist
+ios/App/Pods/Target Support Files/Pods-App/Pods-App-resources.sh
+ios/App/Pods/Target Support Files/Pods-App/Pods-App-umbrella.h
+ios/App/Pods/Target Support Files/Pods-App/Pods-App.debug.xcconfig
+ios/App/Pods/Target Support Files/Pods-App/Pods-App.modulemap
+ios/App/Pods/Target Support Files/Pods-App/Pods-App.release.xcconfig
+ios/capacitor-cordova-ios-plugins/CordovaPlugins.podspec
+ios/capacitor-cordova-ios-plugins/CordovaPluginsResources.podspec
+ios/capacitor-cordova-ios-plugins/CordovaPluginsStatic.podspec
+ios/capacitor-cordova-ios-plugins/resources/.gitkeep
+ios/capacitor-cordova-ios-plugins/sources/.gitkeep
+package-lock.json
+Podfile.backup
+ios/.gitignore
+ios/App/Podfile.lock
+ios/App/App/App.entitlements
+ios/App/App/AppDelegate.swift
+ios/App/App/Base.lproj/LaunchScreen.storyboard
+ios/App/App/Base.lproj/Main.storyboard
+ios/App/App.xcodeproj/project.pbxproj
+ios/App/App.xcworkspace/contents.xcworkspacedata
+ios/App/App.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
