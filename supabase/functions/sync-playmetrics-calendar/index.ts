@@ -412,11 +412,10 @@ Deno.serve(async (req) => {
       console.log('Deduplicated events:', deduplicatedEvents.length, 'from original:', events.length);
 
       // Delete existing events for this profile and team to avoid duplicates
-      console.log('Deleting existing events for profile:', profileId, 'and team:', teamId);
+      console.log('Deleting existing events for team:', teamId);
       const { error: deleteError } = await supabaseClient
         .from('events')
         .delete()
-        .eq('profile_id', profileId)
         .eq('platform_team_id', teamId)
         .eq('platform', 'Playmetrics');
 
