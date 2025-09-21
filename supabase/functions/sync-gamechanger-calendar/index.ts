@@ -518,13 +518,13 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error in sync-gamechanger-calendar:', { // Log the error object
       error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
+      teamId: body?.teamId || 'N/A' // Safely access teamId if 'body' was parsed
     });
 
-    // Update team sync status to error
     try {
-      // Get teamId from the body variable that was already parsed at the top
-      const { teamId: currentTeamId } = body;
+      // Access teamId directly from the 'body' variable if it was successfully parsed
+      const currentTeamId = body?.teamId;
       
       if (currentTeamId) {
         const supabaseClient = createClient(

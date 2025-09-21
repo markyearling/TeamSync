@@ -474,20 +474,17 @@ Deno.serve(async (req) => {
     }
 
   } catch (error) {
-    const clonedReq = req.clone(); // Clone request before consuming body for error logging
     console.error('Error in sync-playmetrics-calendar:', { // Log the error object
       error: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined
+      stack: error instanceof Error ? error.stack : undefined,
+      teamId: body?.teamId || 'N/A' // Safely access teamId if 'body' was parsed
     });
 
-    // Update team sync status to error
     try {
-      // Get teamId from the original request body parsing at the top
-      // Re-parse the cloned request body
-      const requestBody = await clonedReq.json();
-      const { teamId } = requestBody;
+      // Access teamId directly from the 'body' variable if it was successfully parsed
+      const currentTeamId = body?.teamId;
       
-      if (teamId) {
+      if (currentTeamId) {
         const supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -504,7 +501,7 @@ Deno.serve(async (req) => {
             sync_status: 'error',
             last_synced: new Date().toISOString()
           })
-          .eq('id', teamId);
+          .eq('id', currentTeamId);
       }
     } catch (updateError) {
       console.error('Error updating team sync status to error:', updateError);

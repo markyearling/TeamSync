@@ -281,6 +281,34 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Error in sync-teamsnap-calendar:', error);
+    
+    // Update team sync status to error
+    try {
+      // Access teamId from the 'teamId' variable which is in scope
+      const currentTeamId = teamId;
+      
+      if (currentTeamId) {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+          {
+            auth: {
+              persistSession: false,
+            }
+          }
+        );
+        
+        await supabaseClient
+          .from('platform_teams')
+          .update({
+            sync_status: 'error',
+            last_synced: new Date().toISOString()
+          })
+          .eq('id', currentTeamId);
+      }
+    } catch (updateError) {
+      console.error('Error updating team sync status to error:', updateError);
+    }
 
     return new Response(
       JSON.stringify({
