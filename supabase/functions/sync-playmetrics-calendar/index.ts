@@ -416,8 +416,7 @@ Deno.serve(async (req) => {
       const { error: deleteError } = await supabaseClient
         .from('events')
         .delete()
-        .eq('platform_team_id', teamId)
-        .eq('platform', 'Playmetrics');
+        .eq('platform_team_id', teamId);
 
       if (deleteError) {
         console.error('Error deleting existing events:', deleteError);
