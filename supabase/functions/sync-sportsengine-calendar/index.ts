@@ -249,28 +249,6 @@ Deno.serve(async (req) => {
 
       // Transform events for the specific profile
       const events = vevents.filter(vevent => {
-        
-        // Use RPC function to get timezone, which handles the user_id lookup internally
-        const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone_by_profile', {
-          p_profile_id: profileId 
-        });
-        
-        if (rpcError) {
-          console.warn('Error calling get_user_timezone_by_profile RPC:', rpcError.message);
-          console.log('Using default timezone UTC');
-        } else if (timezoneResult) {
-          console.log(`[SportsEngine Sync] RPC returned timezone: ${timezoneResult}`);
-          userTimezone = timezoneResult;
-        } else {
-          console.log('No timezone returned from RPC, using UTC');
-        }
-        console.log(`[SportsEngine Sync] Final userTimezone set to: ${userTimezone}`);
-      } catch (error) {
-        console.warn('Exception getting user timezone, using UTC:', error);
-      }
-
-      // Transform events for the specific profile
-      const events = vevents.filter(vevent => {
         // Pre-filter events with valid dates
         try {
           const event = new ICAL.Event(vevent);
@@ -530,6 +508,7 @@ Deno.serve(async (req) => {
     }
 
   } catch (error) {
+    const clonedReq = req.clone(); // Clone request before consuming body for error logging
     console.error('Error in sync-sportsengine-calendar:', { // Log the error object
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
@@ -537,10 +516,12 @@ Deno.serve(async (req) => {
 
     // Update team sync status to error
     try {
-      // Get teamId from the body variable that was already parsed at the top
-      const { teamId: currentTeamId } = body;
+      // Get teamId from the original request body parsing at the top
+      // Re-parse the cloned request body
+      const requestBody = await clonedReq.json();
+      const { teamId } = requestBody;
       
-      if (currentTeamId) {
+      if (teamId) {
         const supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',
           Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -557,7 +538,7 @@ Deno.serve(async (req) => {
             sync_status: 'error',
             last_synced: new Date().toISOString()
           })
-          .eq('id', currentTeamId);
+          .eq('id', teamId);
       }
     } catch (updateError) {
       console.error('Error updating team sync status to error:', updateError);
