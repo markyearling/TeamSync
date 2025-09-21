@@ -402,14 +402,13 @@ const Playmetrics: React.FC = () => {
         });
         console.log(`[Playmetrics] Fetch response status for profile ${profile.id}: ${response.status}`);
         
+        // Read the response body once and store it
+        const responseData = await response.json();
 
         if (!response.ok) {
-          const errorData = await response.json();
-          console.error(`[Playmetrics] Error response from function for profile ${profile.id}:`, errorData);
+          console.error(`[Playmetrics] Error response from function for profile ${profile.id}:`, responseData);
         }
 
-        const syncResult = await response.json();
-        totalEvents += syncResult.eventCount || 0;
       }
 
       setSuccess(`Calendar refreshed successfully! Synced ${totalEvents} events for ${mappedProfiles.length} profile(s).`);
