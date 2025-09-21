@@ -340,6 +340,7 @@ const Playmetrics: React.FC = () => {
       setSuccess(null);
       setRefreshingTeam(teamId);
       console.log(`[Playmetrics] Attempting to refresh team: ${teamId}`);
+      console.log(`[Playmetrics] Attempting to refresh team: ${teamId}`);
       
       // Fetch the latest team data with profile mappings directly from the database
       const { data: freshTeamData, error: freshTeamError } = await supabase
@@ -387,6 +388,7 @@ const Playmetrics: React.FC = () => {
       for (const profile of mappedProfiles) {
         console.log(`[Playmetrics] Making fetch request for profile ${profile.id} to sync-playmetrics-calendar`);
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-playmetrics-calendar`, {
+          // Add more logging for the fetch request
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -399,10 +401,11 @@ const Playmetrics: React.FC = () => {
           })
         });
         console.log(`[Playmetrics] Fetch response status for profile ${profile.id}: ${response.status}`);
+        
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to sync calendar');
+          console.error(`[Playmetrics] Error response from function for profile ${profile.id}:`, errorData);
         }
 
         const syncResult = await response.json();

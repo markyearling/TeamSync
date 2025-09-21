@@ -203,7 +203,6 @@ Deno.serve(async (req) => {
       const sport = teamData?.sport || 'Unknown';
       const sportColor = teamData?.sport_color || getSportDetails(sport).color;
 
-      // Get user's timezone from settings
       let userTimezone = 'UTC';
       let profileUserId: string | null = null;
 
@@ -246,7 +245,6 @@ Deno.serve(async (req) => {
       } catch (error) {
         console.warn('[SportsEngine Sync] Exception getting user timezone, using UTC:', error);
       }
-
       // Transform events for the specific profile
       const events = vevents.filter(vevent => {
         // Pre-filter events with valid dates
