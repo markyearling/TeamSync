@@ -40,7 +40,7 @@ const corsHeaders = { // Define globally
 // This function is executed at the very top level.
 console.log("sync-sportsengine-calendar: Function file loaded.");
 
-Deno.serve(async (req) => {
+Deno.serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -49,9 +49,11 @@ Deno.serve(async (req) => {
     });
   }
 
+  let body: ICSRequestBody | null = null; // Declare body outside try block
+
   try {
     // Get request body
-    const body = await req.json();
+    body = await req.json(); // Assign to the outer-scoped variable
     console.log('Received request body:', body);
 
     const { icsUrl, teamId, profileId }: ICSRequestBody = body;

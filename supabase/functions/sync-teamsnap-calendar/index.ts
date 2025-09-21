@@ -1,12 +1,13 @@
 const corsHeaders = { // Define globally
+// This function is executed at the very top level.
+console.log("sync-teamsnap-calendar: Function file loaded.");
+
+const corsHeaders = { // Define globally
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-// This function is executed at the very top level.
-// This function is executed at the very top level.
-console.log("sync-teamsnap-calendar: Function file loaded.");
 
 interface TeamSnapSyncRequest {
   teamId: string;
@@ -19,12 +20,14 @@ const TEAMSNAP_TOKEN_URL = 'https://auth.teamsnap.com/oauth/token';
 const TEAMSNAP_API_URL = 'https://api.teamsnap.com/v3';
 
 export default async function handler(req: Request): Promise<Response> {
-  console.log('=== TeamSnap Sync Function Started ===');
-  console.log('Request method:', req.method);
+  // Declare body outside try block
+  let body: TeamSnapSyncRequest | null = null;
 
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight request');
+  // Initialize Supabase client
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    { auth: { persistSession: false } });
     return new Response(null, {
       status: 204,
       headers: corsHeaders,
@@ -32,20 +35,11 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   try {
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      {
-        auth: {
-          persistSession: false,
-        }
-      }
-    );
-
     console.log('Processing TeamSnap sync request...');
     
-    const { teamId, profileId, userId }: TeamSnapSyncRequest = await req.json();
+    // Assign to the outer-scoped variable
+    body = await req.json();
+    const { teamId, profileId, userId }: TeamSnapSyncRequest = body;
 
     if (!teamId || !profileId || !userId) {
       throw new Error('Missing required parameters: teamId, profileId, or userId');
