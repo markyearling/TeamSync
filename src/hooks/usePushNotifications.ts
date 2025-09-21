@@ -22,10 +22,12 @@ export const usePushNotifications = () => {
     }
 
     const initializePushNotifications = async () => {
+      console.log('[PushNotifications] Initializing push notifications...');
       try {
         // Request permission
         const permission = await PushNotifications.requestPermissions();
         
+        console.log('[PushNotifications] Permission status:', permission.receive);
         if (permission.receive === 'granted') {
           // Register for push notifications
           await PushNotifications.register();
@@ -37,8 +39,10 @@ export const usePushNotifications = () => {
           console.log('Push registration success, token: ' + token.value);
           setToken(token.value);
           
+          console.log('[PushNotifications] Attempting to save FCM token to Supabase...');
           // Save FCM token to Supabase user_settings
           saveFCMTokenToSupabase(token.value);
+          console.log('[PushNotifications] saveFCMTokenToSupabase called.');
         });
 
         // Listen for registration errors
@@ -92,6 +96,7 @@ export const usePushNotifications = () => {
   // Function to save FCM token to Supabase
   const saveFCMTokenToSupabase = async (fcmToken: string) => {
     try {
+      console.log('[saveFCMTokenToSupabase] Starting save process for token:', fcmToken ? fcmToken.substring(0, 10) + '...' : 'null');
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
@@ -104,6 +109,7 @@ export const usePushNotifications = () => {
         return;
       }
 
+      console.log('[saveFCMTokenToSupabase] Authenticated user ID:', user.id);
       console.log('Saving FCM token for user:', user.id);
       
       const { error } = await supabase
@@ -115,11 +121,13 @@ export const usePushNotifications = () => {
         }, { 
           onConflict: 'user_id' 
         });
-
+      
       if (error) {
         console.error('Error saving FCM token to Supabase:', error);
+        console.log('[saveFCMTokenToSupabase] Supabase upsert failed:', error.message);
       } else {
         console.log('FCM token saved to Supabase successfully');
+        console.log('[saveFCMTokenToSupabase] Supabase upsert successful.');
       }
     } catch (error) {
       console.error('Exception while saving FCM token:', error);
