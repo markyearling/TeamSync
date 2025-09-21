@@ -240,21 +240,25 @@ Deno.serve(async (req: Request) => {
           console.log(`[GameChanger Sync] Found user_id ${profileUserId} for profile ${profileId}`);
         }
 
-        if (profileUserId) {
+        if (profileUserId) { // Only call RPC if profileUserId is valid
           console.log(`[GameChanger Sync] Calling RPC 'get_user_timezone' with p_user_id: ${profileUserId}`); // Added logging
           const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone', {
             p_user_id: profileUserId 
           });
           
           if (rpcError) {
-            console.warn('[GameChanger Sync] Error calling get_user_timezone RPC:', rpcError.message);
+            console.warn(`[GameChanger Sync] Error calling get_user_timezone RPC for user ${profileUserId}:`, rpcError.message);
             console.log('[GameChanger Sync] Using default timezone UTC');
           } else if (timezoneResult) { // Added logging
             console.log(`[GameChanger Sync] RPC returned timezone: ${timezoneResult}`);
             userTimezone = timezoneResult;
           } else { // Added logging
-            console.log('[GameChanger Sync] No timezone returned from RPC, using UTC');
+            // This case means the RPC returned null/undefined, which should be handled by the RPC itself
+            // but we'll log it here for clarity.
+            console.log(`[GameChanger Sync] RPC returned no timezone for user ${profileUserId}, using UTC`);
           }
+        } else {
+          console.log('[GameChanger Sync] profileUserId is null, skipping RPC call and using UTC');
         } else {
           console.log('[GameChanger Sync] No user_id found for profile, using UTC');
         }
