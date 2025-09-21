@@ -222,27 +222,24 @@ Deno.serve(async (req) => {
       // Get user's timezone from settings
       let userTimezone = 'UTC';
       try {
-        // First get the user_id from profiles
+        // Get the user_id from profiles
         const { data: profileData, error: profileError } = await supabaseClient
           .from('profiles')
           .select('user_id')
           .eq('id', profileId)
           .single();
           
-        if (profileError || !profileData?.user_id) {
-          console.warn('Could not fetch profile user_id:', profileError);
+        if (profileError || !profileData?.user_id) { // Check for profileError and if user_id is null/undefined
+          console.warn('Could not fetch profile user_id:', profileError?.message || 'No user_id found for profile');
         } else {
-          // Then get the timezone from user_settings using the user_id
-          const { data: userSettings, error: settingsError } = await supabaseClient
-            .from('user_settings')
-            .select('timezone')
-            .eq('user_id', profileData.user_id)
-            .single();
-            
-          if (settingsError) {
-            console.warn('Could not fetch user timezone settings:', settingsError);
-          } else if (userSettings?.timezone) {
-            userTimezone = userSettings.timezone;
+          const profileUserId = profileData.user_id;
+          console.log(`Attempting to fetch timezone for profile user_id: ${profileUserId} using RPC`);
+          const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone', { p_user_id: profileUserId });
+          if (rpcError) {
+            console.error('Error calling get_user_timezone RPC:', rpcError);
+          } else if (timezoneResult) {
+            userTimezone = timezoneResult;
+            console.log(`Successfully fetched user timezone via RPC: ${userTimezone}`);
           }
         }
         

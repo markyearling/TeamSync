@@ -77,17 +77,16 @@ Deno.serve(async (req) => {
     // Get user's timezone from settings
     let userTimezone = 'UTC';
     try {
-      // Get the timezone from user_settings using the userId
-      const { data: userSettings, error: settingsError } = await supabaseClient
-        .from('user_settings')
-        .select('timezone')
-        .eq('user_id', userId)
-        .single();
-        
-      if (settingsError) {
-        console.warn('Could not fetch user timezone settings:', settingsError);
-      } else if (userSettings?.timezone) {
-        userTimezone = userSettings.timezone;
+      console.log(`Attempting to fetch timezone for user_id: ${userId} using RPC`);
+      const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone', {
+        p_user_id: userId
+      });
+
+      if (rpcError) {
+        console.error('Error calling get_user_timezone RPC:', rpcError);
+      } else if (timezoneResult) {
+        userTimezone = timezoneResult;
+        console.log(`Successfully fetched user timezone via RPC: ${userTimezone}`);
       }
       
       console.log(`Using user timezone: ${userTimezone}`);
