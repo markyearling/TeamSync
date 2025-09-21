@@ -2,14 +2,14 @@ import ICAL from 'npm:ical.js@1.5.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { DateTime } from 'npm:luxon@3.4.4';
 
-// This function is executed at the very top level.
-console.log("sync-playmetrics-calendar: Function file loaded.");
-
 const getSportDetails = (sportName: string) => {
   const sportColors: Record<string, string> = {
     'Soccer': '#10B981',
     'Baseball': '#F59E0B',
     'Basketball': '#EF4444',
+    'Baseball': '#F59E0B',
+    'Basketball': '#EF4444',
+    'Swimming': '#3B82F6',
     'Swimming': '#3B82F6',
     'Tennis': '#8B5CF6',
     'Volleyball': '#EC4899',
@@ -31,20 +31,16 @@ const getSportDetails = (sportName: string) => {
   };
 };
 
-const corsHeaders = {
+const corsHeaders = { // Define globally
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-Deno.serve(async (req) => {
-  // Define CORS headers inside the handler
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
+// This function is executed at the very top level.
+console.log("sync-playmetrics-calendar: Function file loaded.");
 
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {

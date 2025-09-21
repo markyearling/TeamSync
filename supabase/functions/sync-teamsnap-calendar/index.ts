@@ -1,9 +1,10 @@
-const corsHeaders = {
+const corsHeaders = { // Define globally
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
+// This function is executed at the very top level.
 // This function is executed at the very top level.
 console.log("sync-teamsnap-calendar: Function file loaded.");
 
@@ -17,13 +18,6 @@ interface TeamSnapSyncRequest {
 const TEAMSNAP_TOKEN_URL = 'https://auth.teamsnap.com/oauth/token';
 const TEAMSNAP_API_URL = 'https://api.teamsnap.com/v3';
 
-Deno.serve(async (req) => {
-  // Define CORS headers inside the handler
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
   console.log('=== TeamSnap Sync Function Started ===');
   console.log('Request method:', req.method);
 
