@@ -2,7 +2,9 @@ import ICAL from 'npm:ical.js@1.5.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { DateTime } from 'npm:luxon@3.4.4';
 
-// Import getSportDetails function (inline implementation since we can't import from utils)
+// This function is executed at the very top level.
+console.log("sync-gamechanger-calendar: Function file loaded.");
+
 const getSportDetails = (sportName: string) => {
   const sportColors: Record<string, string> = {
     'Soccer': '#10B981',
@@ -35,13 +37,14 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-interface ICSRequestBody {
-  icsUrl: string;
-  teamId: string;
-  profileId: string | null;
-}
-
 Deno.serve(async (req) => {
+  // Define CORS headers inside the handler
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, {
