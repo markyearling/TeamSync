@@ -206,28 +206,25 @@ Deno.serve(async (req) => {
       // Get user's timezone from settings
       let userTimezone = 'UTC';
       try {
-        // First get the user_id from the profile
-        const { data: profileData, error: profileError } = await supabaseClient
-          .from('profiles')
-          .select('user_id')
-          .eq('id', profileId)
-          .single();
-          
-        if (profileError) throw profileError;
-        
-        // Then get the timezone from user_settings
+        // Get user_id and timezone in a single query using a join
         const { data: userSettings, error: settingsError } = await supabaseClient
           .from('user_settings')
-          .select('timezone')
-          .eq('user_id', profileData.user_id)
+          .select(`
+            timezone,
+            profiles!inner(id)
+          `)
+          .eq('profiles.id', profileId)
           .single();
           
-        if (settingsError) throw settingsError;
+        if (settingsError) {
+          console.warn('Could not fetch user timezone settings:', settingsError);
+        } else if (userSettings?.timezone) {
+          userTimezone = userSettings.timezone;
+        }
         
-        userTimezone = userSettings?.timezone || 'UTC';
         console.log(`Using user timezone: ${userTimezone}`);
       } catch (error) {
-        console.error('Error getting user timezone, using UTC:', error);
+        console.warn('Error getting user timezone, using UTC:', error);
       }
 
       // Transform events for the specific profile
