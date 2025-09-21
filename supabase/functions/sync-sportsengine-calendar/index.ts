@@ -206,30 +206,24 @@ Deno.serve(async (req) => {
       // Get user's timezone from settings
       let userTimezone = 'UTC';
       try {
-        // Get the user_id from profiles
-        const { data: profileData, error: profileError } = await supabaseClient
-          .from('profiles')
-          .select('user_id')
-          .eq('id', profileId)
-          .single();
-          
-        if (profileError || !profileData?.user_id) { // Check for profileError and if user_id is null/undefined
-          console.warn('Could not fetch profile user_id:', profileError?.message || 'No user_id found for profile');
-        } else {
-          const profileUserId = profileData.user_id;
-          console.log(`Attempting to fetch timezone for profile user_id: ${profileUserId} using RPC`);
-          const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone', { p_user_id: profileUserId });
-          if (rpcError) {
-            console.error('Error calling get_user_timezone RPC:', rpcError);
-          } else if (timezoneResult) {
-            userTimezone = timezoneResult;
-            console.log(`Successfully fetched user timezone via RPC: ${userTimezone}`);
-          }
-        }
+        console.log(`Fetching timezone for profile: ${profileId}`);
         
-        console.log(`Using user timezone: ${userTimezone}`);
+        // Use RPC function to get timezone, which handles the user_id lookup internally
+        const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone_by_profile', { 
+          p_profile_id: profileId 
+        });
+        
+        if (rpcError) {
+          console.warn('Error calling get_user_timezone_by_profile RPC:', rpcError.message);
+          console.log('Using default timezone UTC');
+        } else if (timezoneResult) {
+          userTimezone = timezoneResult;
+          console.log(`Successfully fetched user timezone: ${userTimezone}`);
+        } else {
+          console.log('No timezone returned from RPC, using UTC');
+        }
       } catch (error) {
-        console.warn('Error getting user timezone, using UTC:', error);
+        console.warn('Exception getting user timezone, using UTC:', error);
       }
 
       // Transform events for the specific profile
