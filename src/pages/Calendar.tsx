@@ -39,15 +39,6 @@ const Calendar: React.FC = () => {
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  const refreshCalendarEvents = useCallback(async () => {
-    try {
-      await fetchOwnEvents();
-      await fetchFriendsEvents();
-    } catch (error) {
-      console.error('Error refreshing calendar events:', error);
-    }
-  }, [fetchOwnEvents, fetchFriendsEvents]);
-
   // Centralized Google Maps loading
   const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
@@ -176,11 +167,20 @@ const Calendar: React.FC = () => {
     }
   }, [showFriendsEvents, friendsProfiles]);
 
+  const refreshCalendarEvents = useCallback(async () => {
+    try {
+      await fetchOwnEvents();
+      await fetchFriendsEvents();
+    } catch (error) {
+      console.error('Error refreshing calendar events:', error);
+    }
+  }, [fetchOwnEvents, fetchFriendsEvents]);
+
   // Main effect - only runs when dependencies actually change
   useEffect(() => {
     let isMounted = true;
 
-    const fetchAllData = async () => {
+    const fetchAllData = useCallback(async () => {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
@@ -199,14 +199,14 @@ const Calendar: React.FC = () => {
           setLoading(false);
         }
       }
-    };
+    }, [fetchOwnEvents, fetchFriendsEvents]);
 
     fetchAllData();
 
     return () => {
       isMounted = false;
     };
-  }, [fetchOwnEvents, fetchFriendsEvents, friendsProfiles, showFriendsEvents]); // Re-run when friendsProfiles or showFriendsEvents changes
+  }, [fetchAllData]); // Re-run when fetchAllData changes
 
   // Initialize selected profiles when profiles change
   useEffect(() => {
