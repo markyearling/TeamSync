@@ -16,6 +16,7 @@ import DayView from '../components/calendar/DayView';
 import AgendaView from '../components/calendar/AgendaView';
 import { Event } from '../types';
 import { useLoadScript, Libraries } from '@react-google-maps/api';
+import EventModal from '../components/events/EventModal';
 import { DateTime } from 'luxon';
 import { getSportDetails } from '../utils/sports';
 
