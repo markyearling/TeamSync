@@ -20,7 +20,7 @@ const TEAMSNAP_TOKEN_URL = 'https://auth.teamsnap.com/oauth/token';
 const TEAMSNAP_API_URL = 'https://api.teamsnap.com/v3';
 
 export default async function handler(req: Request): Promise<Response> {
-  // Declare body outside try block
+  let body: TeamSnapSyncRequest | null = null; // Declare body outside try block
   let body: TeamSnapSyncRequest | null = null;
 
   // Initialize Supabase client
@@ -35,7 +35,7 @@ export default async function handler(req: Request): Promise<Response> {
   }
 
   try {
-    console.log('Processing TeamSnap sync request...');
+    console.log('Processing TeamSnap sync request...'); // Added logging
     
     // Assign to the outer-scoped variable
     body = await req.json();
@@ -45,7 +45,7 @@ export default async function handler(req: Request): Promise<Response> {
       throw new Error('Missing required parameters: teamId, profileId, or userId');
     }
 
-    console.log(`Syncing TeamSnap team ${teamId} for profile ${profileId} (user ${userId})`);
+    console.log(`Syncing TeamSnap team ${teamId} for profile ${profileId} (user ${userId})`); // Added logging
 
     // Get the platform team record
     const { data: platformTeam, error: teamError } = await supabaseClient
@@ -73,7 +73,7 @@ export default async function handler(req: Request): Promise<Response> {
     let accessToken = userSettings.teamsnap_access_token;
 
     let userTimezone = 'UTC';
-    try {
+    try { // Added logging
       console.log(`[TeamSnap Sync] Attempting to fetch timezone for user: ${userId}`);
       
       // Use RPC function to get timezone directly by user_id
@@ -83,10 +83,10 @@ export default async function handler(req: Request): Promise<Response> {
       });
       
       if (rpcError) {
-        console.warn('[TeamSnap Sync] Error calling get_user_timezone RPC:', rpcError.message);
-        console.log('[TeamSnap Sync] Using default timezone UTC');
-      } else if (timezoneResult) {
-        console.log(`[TeamSnap Sync] RPC returned timezone: ${timezoneResult}`);
+        console.warn('[TeamSnap Sync] Error calling get_user_timezone RPC:', rpcError.message); // Added logging
+        console.log('[TeamSnap Sync] Using default timezone UTC'); // Added logging
+      } else if (timezoneResult) { // Added logging
+        console.log(`[TeamSnap Sync] RPC returned timezone: ${timezoneResult}`); // Added logging
         userTimezone = timezoneResult;
       } else {
         console.log('[TeamSnap Sync] No timezone returned from RPC, using UTC');
@@ -99,7 +99,7 @@ export default async function handler(req: Request): Promise<Response> {
     // Helper function to make TeamSnap API requests
     const makeTeamSnapRequest = async (endpoint: string, token: string): Promise<any> => {
       const url = endpoint.startsWith('http') ? endpoint : `${TEAMSNAP_API_URL}${endpoint}`;
-      console.log('Making TeamSnap API request to:', url);
+      console.log('Making TeamSnap API request to:', url); // Added logging
 
       const response = await fetch(url, {
         headers: {
@@ -135,6 +135,7 @@ export default async function handler(req: Request): Promise<Response> {
       });
 
       if (!response.ok) {
+        console.error('Failed to refresh TeamSnap access token:', await response.text()); // Added logging
         throw new Error('Failed to refresh TeamSnap access token');
       }
 
@@ -152,7 +153,7 @@ export default async function handler(req: Request): Promise<Response> {
       return tokenData.access_token;
     };
 
-    // Try to fetch team events, refresh token if needed
+    // Try to fetch team events, refresh token if needed // Added logging
     let teamEvents;
     try {
       teamEvents = await makeTeamSnapRequest(`/events/search?team_id=${platformTeam.team_id}`, accessToken);
@@ -191,7 +192,7 @@ export default async function handler(req: Request): Promise<Response> {
       events = teamEvents.data;
     }
 
-    console.log(`Found ${events.length} events from TeamSnap API`);
+    console.log(`Found ${events.length} events from TeamSnap API`); // Added logging
 
     // Transform TeamSnap events for database storage
     const eventsToInsert = events.filter(event => event.start_date).map(event => {
@@ -233,7 +234,7 @@ export default async function handler(req: Request): Promise<Response> {
       };
     });
 
-    console.log(`Transformed ${eventsToInsert.length} valid events for database insertion`);
+    console.log(`Transformed ${eventsToInsert.length} valid events for database insertion`); // Added logging
 
     // Delete existing events for this profile and team to avoid duplicates
     console.log('Deleting existing TeamSnap events for this profile and team...');
@@ -243,6 +244,7 @@ export default async function handler(req: Request): Promise<Response> {
       .eq('platform_team_id', teamId)
       .eq('platform', 'TeamSnap');
 
+    console.log('Delete existing events error:', deleteError); // Added logging
     if (deleteError) {
       console.error('Error deleting existing events:', deleteError);
       throw new Error(`Failed to delete existing events: ${deleteError.message}`);
@@ -250,16 +252,17 @@ export default async function handler(req: Request): Promise<Response> {
 
     // Insert new events
     if (eventsToInsert.length > 0) {
-      console.log('Inserting new TeamSnap events...');
+      console.log('Inserting new TeamSnap events...'); // Added logging
       const { error: eventsError } = await supabaseClient
         .from('events')
         .insert(eventsToInsert);
 
+      console.log('Insert events error:', eventsError); // Added logging
       if (eventsError) {
         console.error('Error inserting events:', eventsError);
         throw eventsError;
       }
-    } else {
+    } else { // Added logging
       console.log('No events to insert');
     }
 

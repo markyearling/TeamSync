@@ -50,7 +50,7 @@ Deno.serve(async (req: Request) => {
   }
 
   let body: ICSRequestBody | null = null; // Declare body outside try block
-
+  
   try {
     // Get request body
     body = await req.json(); // Assign to the outer-scoped variable
@@ -231,7 +231,7 @@ Deno.serve(async (req: Request) => {
           .select('user_id')
           .eq('id', profileId)
           .single();
-
+        
         if (profileFetchError) {
           console.warn(`[GameChanger Sync] Error fetching user_id for profile ${profileId}:`, profileFetchError.message);
           // Fallback to UTC if profile not found or error
@@ -241,7 +241,7 @@ Deno.serve(async (req: Request) => {
         }
 
         if (profileUserId) {
-          console.log(`[GameChanger Sync] Calling RPC 'get_user_timezone' with p_user_id: ${profileUserId}`);
+          console.log(`[GameChanger Sync] Calling RPC 'get_user_timezone' with p_user_id: ${profileUserId}`); // Added logging
           const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone', {
             p_user_id: profileUserId 
           });
@@ -249,10 +249,10 @@ Deno.serve(async (req: Request) => {
           if (rpcError) {
             console.warn('[GameChanger Sync] Error calling get_user_timezone RPC:', rpcError.message);
             console.log('[GameChanger Sync] Using default timezone UTC');
-          } else if (timezoneResult) {
+          } else if (timezoneResult) { // Added logging
             console.log(`[GameChanger Sync] RPC returned timezone: ${timezoneResult}`);
             userTimezone = timezoneResult;
-          } else {
+          } else { // Added logging
             console.log('[GameChanger Sync] No timezone returned from RPC, using UTC');
           }
         } else {
