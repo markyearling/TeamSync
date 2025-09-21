@@ -242,28 +242,6 @@ Deno.serve(async (req) => {
 
       // Transform events for the specific profile
       const events = vevents.filter(vevent => {
-        
-        // Use RPC function to get timezone, which handles the user_id lookup internally
-        const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone_by_profile', {
-          p_profile_id: profileId 
-        });
-        
-        if (rpcError) {
-          console.warn('Error calling get_user_timezone_by_profile RPC:', rpcError.message);
-          console.log('Using default timezone UTC');
-        } else if (timezoneResult) {
-          console.log(`[Playmetrics Sync] RPC returned timezone: ${timezoneResult}`);
-          userTimezone = timezoneResult;
-        } else {
-          console.log('No timezone returned from RPC, using UTC');
-        }
-        console.log(`[Playmetrics Sync] Final userTimezone set to: ${userTimezone}`);
-      } catch (error) {
-        console.warn('Exception getting user timezone, using UTC:', error);
-      }
-
-      // Transform events for the specific profile
-      const events = vevents.filter(vevent => {
         // Pre-filter events with valid dates
         try {
           const event = new ICAL.Event(vevent);
