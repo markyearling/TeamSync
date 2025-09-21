@@ -206,10 +206,11 @@ Deno.serve(async (req) => {
       // Get user's timezone from settings
       let userTimezone = 'UTC';
       try {
-        console.log(`Fetching timezone for profile: ${profileId}`);
+        console.log(`[SportsEngine Sync] Attempting to fetch timezone for profile: ${profileId}`);
+        console.log(`[SportsEngine Sync] Calling RPC 'get_user_timezone_by_profile' with p_profile_id: ${profileId}`);
         
         // Use RPC function to get timezone, which handles the user_id lookup internally
-        const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone_by_profile', { 
+        const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone_by_profile', {
           p_profile_id: profileId 
         });
         
@@ -217,11 +218,12 @@ Deno.serve(async (req) => {
           console.warn('Error calling get_user_timezone_by_profile RPC:', rpcError.message);
           console.log('Using default timezone UTC');
         } else if (timezoneResult) {
+          console.log(`[SportsEngine Sync] RPC returned timezone: ${timezoneResult}`);
           userTimezone = timezoneResult;
-          console.log(`Successfully fetched user timezone: ${userTimezone}`);
         } else {
           console.log('No timezone returned from RPC, using UTC');
         }
+        console.log(`[SportsEngine Sync] Final userTimezone set to: ${userTimezone}`);
       } catch (error) {
         console.warn('Exception getting user timezone, using UTC:', error);
       }
@@ -487,7 +489,8 @@ Deno.serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('Error in sync-sportsengine-calendar:', {
+    const clonedReq = req.clone(); // Clone request before consuming body for error logging
+    console.error('Error in sync-sportsengine-calendar:', { // Log the error object
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined
     });
@@ -495,8 +498,8 @@ Deno.serve(async (req) => {
     // Update team sync status to error
     try {
       // Get teamId from the original request body parsing at the top
-      // Don't re-parse the body as it's already consumed
-      const requestBody = await req.clone().json();
+      // Re-parse the cloned request body
+      const requestBody = await clonedReq.json();
       const { teamId } = requestBody;
       
       if (teamId) {
