@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, MessageCircle, User, Smile } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCapacitor } from '../../hooks/useCapacitor';
+import { Keyboard } from '@capacitor/keyboard';
 
 interface Friend {
   id: string;
@@ -48,6 +49,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserInfo, setCurrentUserInfo] = useState<any>(null);
   const [showEmoticons, setShowEmoticons] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -100,6 +102,26 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       inputRef.current?.focus();
     }, 100);
 
+    // Set up keyboard listeners for native apps
+    let keyboardWillShowListener: any = null;
+    let keyboardWillHideListener: any = null;
+
+    if (isNative) {
+      console.log('Setting up keyboard listeners for native app');
+      
+      keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', (info) => {
+        console.log('Keyboard will show with height:', info.keyboardHeight);
+        setKeyboardHeight(info.keyboardHeight);
+        
+        // Scroll to bottom when keyboard appears to keep input visible
+        setTimeout(() => forceScrollToBottom(), 100);
+      });
+
+      keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+        console.log('Keyboard will hide');
+        setKeyboardHeight(0);
+      });
+    }
     // Close emoticon picker when clicking outside
     const handleClickOutside = (event: MouseEvent) => {
       if (emoticonRef.current && !emoticonRef.current.contains(event.target as Node)) {
@@ -115,6 +137,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      
+      // Clean up keyboard listeners
+      if (keyboardWillShowListener) {
+        keyboardWillShowListener.remove();
+      }
+      if (keyboardWillHideListener) {
+        keyboardWillHideListener.remove();
+      }
+      
       // Clean up subscription
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
@@ -523,6 +554,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       <div 
         ref={modalRef}
         className={modalContentClasses}
+        style={isNative ? {
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : 'env(safe-area-inset-bottom)',
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)'
+        } : {}}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
