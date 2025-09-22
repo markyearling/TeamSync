@@ -39,13 +39,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   };
 
   // Helper function to format date
-  const formatDate = (dateString: string) => {
-    return DateTime.fromISO(dateString, { zone: userTimezone }).toLocaleString(DateTime.DATE_FULL);
+  const formatDate = (date: Date) => {
+    return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString(DateTime.DATE_FULL);
   };
 
   // Helper function to format time
-  const formatTime = (dateString: string) => {
-    return DateTime.fromISO(dateString, { zone: userTimezone }).toLocaleString(DateTime.TIME_SIMPLE);
+  const formatTime = (date: Date) => {
+    return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString(DateTime.TIME_SIMPLE);
   };
 
   // Check if user can edit this event
