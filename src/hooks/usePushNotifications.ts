@@ -147,8 +147,6 @@ export const usePushNotifications = () => {
 
     return () => {
       console.log('[PushNotifications] Cleaning up listeners');
-      // Reset initialization flag on cleanup
-      isInitializedRef.current = false;
       // Clean up specific listeners
       registrationListener.remove();
       registrationErrorListener.remove();
