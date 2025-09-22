@@ -407,6 +407,9 @@ const Playmetrics: React.FC = () => {
 
         if (!response.ok) {
           console.error(`[Playmetrics] Error response from function for profile ${profile.id}:`, responseData);
+        } else if (responseData.success) {
+        const eventCount = syncResult.eventCount || 0;
+        setSuccess(`Team calendar added successfully! Found ${eventCount} events. You can now map it to your children's profiles.`);
         }
 
       }
