@@ -31,7 +31,63 @@ export const usePushNotifications = () => {
     }
 
     console.log('usePushNotifications: Native platform detected, proceeding with initialization');
-    console.log('usePushNotifications: About to define initializePushNotifications function');
+    
+    // Set up all event listeners FIRST, before any registration attempts
+    console.log('[PushNotifications] Setting up event listeners BEFORE registration...');
+    
+    // Listen for registration SUCCESS
+    const registrationListener = PushNotifications.addListener('registration', (token: Token) => {
+      console.log('[PushNotifications] *** REGISTRATION SUCCESS ***');
+      console.log('[PushNotifications] Push registration success, token: ' + token.value);
+      console.log('[PushNotifications] Token length:', token.value.length);
+      console.log('[PushNotifications] Token preview:', token.value.substring(0, 20) + '...');
+      setToken(token.value);
+      
+      console.log('[PushNotifications] Attempting to save FCM token to Supabase...');
+      // Save FCM token to Supabase user_settings
+      saveFCMTokenToSupabase(token.value);
+      console.log('[PushNotifications] saveFCMTokenToSupabase called.');
+    });
+
+    // Listen for registration ERRORS
+    const registrationErrorListener = PushNotifications.addListener('registrationError', (error: any) => {
+      console.error('[PushNotifications] *** REGISTRATION ERROR ***');
+      console.error('[PushNotifications] Error on registration: ' + JSON.stringify(error));
+      console.error('[PushNotifications] Registration error details:', error);
+    });
+
+    // Listen for push notifications received
+    const pushReceivedListener = PushNotifications.addListener(
+      'pushNotificationReceived',
+      (notification: PushNotificationSchema) => {
+        console.log('[PushNotifications] Push notification received: ', notification);
+        // Handle notification when app is in foreground
+      },
+    );
+
+    // Listen for push notification actions
+    const pushActionListener = PushNotifications.addListener(
+      'pushNotificationActionPerformed',
+      (notification: ActionPerformed) => {
+        console.log('[PushNotifications] Push notification action performed', notification);
+        // Handle notification tap
+        const data = notification.notification.data;
+        
+        // Navigate based on notification type
+        if (data?.type === 'message') {
+          // Navigate to chat
+          window.location.href = '/friends';
+        } else if (data?.type === 'friend_request') {
+          // Navigate to friends
+          window.location.href = '/friends';
+        } else if (data?.type === 'schedule_change') {
+          // Navigate to calendar
+          window.location.href = '/calendar';
+        }
+      },
+    );
+
+    console.log('[PushNotifications] All event listeners set up, now proceeding with initialization...');
 
     const initializePushNotifications = async () => {
       console.log('[PushNotifications] Initializing push notifications...');
@@ -51,8 +107,10 @@ export const usePushNotifications = () => {
           // Register for push notifications
           console.log('[PushNotifications] Permission granted, registering for push notifications...');
           console.log('[PushNotifications] Calling PushNotifications.register()...');
+          console.log('[PushNotifications] NOTE: Event listeners are already set up and waiting for registration event...');
           await PushNotifications.register();
           console.log('[PushNotifications] PushNotifications.register() completed');
+          console.log('[PushNotifications] Now waiting for registration event callback...');
           setIsRegistered(true);
         } else {
           console.log('[PushNotifications] Permission not granted:', permission.receive);
@@ -60,61 +118,8 @@ export const usePushNotifications = () => {
           console.log('[PushNotifications] User needs to grant permission in device settings');
         }
 
-        console.log('[PushNotifications] Setting up event listeners...');
-        // Listen for registration
-        PushNotifications.addListener('registration', (token: Token) => {
-          console.log('[PushNotifications] *** REGISTRATION SUCCESS ***');
-          console.log('[PushNotifications] Push registration success, token: ' + token.value);
-          console.log('[PushNotifications] Token length:', token.value.length);
-          console.log('[PushNotifications] Token preview:', token.value.substring(0, 20) + '...');
-          setToken(token.value);
-          
-          console.log('[PushNotifications] Attempting to save FCM token to Supabase...');
-          // Save FCM token to Supabase user_settings
-          saveFCMTokenToSupabase(token.value);
-          console.log('[PushNotifications] saveFCMTokenToSupabase called.');
-        });
-
-        // Listen for registration errors
-        PushNotifications.addListener('registrationError', (error: any) => {
-          console.error('[PushNotifications] *** REGISTRATION ERROR ***');
-          console.error('[PushNotifications] Error on registration: ' + JSON.stringify(error));
-          console.error('[PushNotifications] Registration error details:', error);
-        });
-
-        console.log('[PushNotifications] All event listeners set up');
         console.log('[PushNotifications] Initialization complete');
 
-        // Listen for push notifications received
-        PushNotifications.addListener(
-          'pushNotificationReceived',
-          (notification: PushNotificationSchema) => {
-            console.log('Push notification received: ', notification);
-            // Handle notification when app is in foreground
-          },
-        );
-
-        // Listen for push notification actions
-        PushNotifications.addListener(
-          'pushNotificationActionPerformed',
-          (notification: ActionPerformed) => {
-            console.log('Push notification action performed', notification);
-            // Handle notification tap
-            const data = notification.notification.data;
-            
-            // Navigate based on notification type
-            if (data?.type === 'message') {
-              // Navigate to chat
-              window.location.href = '/friends';
-            } else if (data?.type === 'friend_request') {
-              // Navigate to friends
-              window.location.href = '/friends';
-            } else if (data?.type === 'schedule_change') {
-              // Navigate to calendar
-              window.location.href = '/calendar';
-            }
-          },
-        );
 
       } catch (error) {
         console.error('[PushNotifications] *** INITIALIZATION ERROR ***');
@@ -132,9 +137,13 @@ export const usePushNotifications = () => {
 
     return () => {
       console.log('[PushNotifications] Cleaning up listeners');
-      PushNotifications.removeAllListeners();
+      // Clean up specific listeners
+      registrationListener.remove();
+      registrationErrorListener.remove();
+      pushReceivedListener.remove();
+      pushActionListener.remove();
     };
-  }, []);
+  }, []); // Empty dependency array ensures this runs only once
 
   // Function to save FCM token to Supabase
   const saveFCMTokenToSupabase = async (fcmToken: string) => {
