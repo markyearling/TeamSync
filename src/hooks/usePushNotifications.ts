@@ -13,6 +13,7 @@ import {
 import { supabase } from '../lib/supabase';
 
 export const usePushNotifications = () => {
+  const isInitializedRef = useRef(false);
   console.log('=== usePushNotifications hook called ===');
   console.log('Capacitor.isNativePlatform() at hook start:', Capacitor.isNativePlatform());
   console.log('Current platform at hook start:', Capacitor.getPlatform());
@@ -24,6 +25,15 @@ export const usePushNotifications = () => {
     console.log('=== usePushNotifications useEffect starting ===');
     console.log('Capacitor.isNativePlatform() in useEffect:', Capacitor.isNativePlatform());
     console.log('Platform in useEffect:', Capacitor.getPlatform());
+    
+    // Prevent multiple initializations
+    if (isInitializedRef.current) {
+      console.log('[PushNotifications] Already initialized, skipping duplicate initialization');
+      return;
+    }
+    
+    console.log('[PushNotifications] First initialization, proceeding...');
+    isInitializedRef.current = true;
     
     if (!Capacitor.isNativePlatform()) {
       console.log('usePushNotifications: Not a native platform, exiting early');
@@ -137,6 +147,8 @@ export const usePushNotifications = () => {
 
     return () => {
       console.log('[PushNotifications] Cleaning up listeners');
+      // Reset initialization flag on cleanup
+      isInitializedRef.current = false;
       // Clean up specific listeners
       registrationListener.remove();
       registrationErrorListener.remove();
