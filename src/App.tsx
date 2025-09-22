@@ -34,6 +34,7 @@ import { ProfilesProvider } from './context/ProfilesContext';
 import { useAuth } from './hooks/useAuth';
 import { useCapacitor } from './hooks/useCapacitor';
 import { useScheduledNotifications } from './hooks/useScheduledNotifications';
+import { usePushNotifications } from './hooks/usePushNotifications';
 import { supabase, testConnection } from './lib/supabase';
 
 const LoadingSpinner = () => (
@@ -126,9 +127,18 @@ const AppContent = () => {
   const [error, setError] = useState<string | null>(null);
   const { isNative } = useCapacitor();
   const { isInitialized: notificationsInitialized } = useScheduledNotifications();
+  const { token: fcmToken, isRegistered: fcmRegistered } = usePushNotifications();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+
+  // Log FCM token status for debugging
+  useEffect(() => {
+    console.log('=== FCM Token Status ===');
+    console.log('FCM Token:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'Not available');
+    console.log('FCM Registered:', fcmRegistered);
+    console.log('Is Native:', isNative);
+  }, [fcmToken, fcmRegistered, isNative]);
 
   useEffect(() => {
     const initializeConnection = async () => {

@@ -13,20 +13,34 @@ import {
 import { supabase } from '../lib/supabase';
 
 export const usePushNotifications = () => {
+  console.log('=== usePushNotifications hook called ===');
+  console.log('Capacitor.isNativePlatform() at hook start:', Capacitor.isNativePlatform());
+  console.log('Current platform at hook start:', Capacitor.getPlatform());
+  
   const [token, setToken] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
 
   useEffect(() => {
+    console.log('=== usePushNotifications useEffect starting ===');
+    console.log('Capacitor.isNativePlatform() in useEffect:', Capacitor.isNativePlatform());
+    console.log('Platform in useEffect:', Capacitor.getPlatform());
+    
     if (!Capacitor.isNativePlatform()) {
+      console.log('usePushNotifications: Not a native platform, exiting early');
       return;
     }
+
+    console.log('usePushNotifications: Native platform detected, proceeding with initialization');
+    console.log('usePushNotifications: About to define initializePushNotifications function');
 
     const initializePushNotifications = async () => {
       console.log('[PushNotifications] Initializing push notifications...');
       try {
         console.log('[PushNotifications] Platform check:', Capacitor.getPlatform());
         console.log('[PushNotifications] Is native platform:', Capacitor.isNativePlatform());
+        console.log('[PushNotifications] PushNotifications module available:', !!PushNotifications);
         
+        console.log('[PushNotifications] About to request permissions...');
         // Request permission
         const permission = await PushNotifications.requestPermissions();
         
@@ -36,15 +50,21 @@ export const usePushNotifications = () => {
         if (permission.receive === 'granted') {
           // Register for push notifications
           console.log('[PushNotifications] Permission granted, registering for push notifications...');
+          console.log('[PushNotifications] Calling PushNotifications.register()...');
           await PushNotifications.register();
+          console.log('[PushNotifications] PushNotifications.register() completed');
           setIsRegistered(true);
         } else {
           console.log('[PushNotifications] Permission not granted:', permission.receive);
+          console.log('[PushNotifications] Cannot proceed without permission');
+          console.log('[PushNotifications] User needs to grant permission in device settings');
         }
 
+        console.log('[PushNotifications] Setting up event listeners...');
         // Listen for registration
         PushNotifications.addListener('registration', (token: Token) => {
-          console.log('Push registration success, token: ' + token.value);
+          console.log('[PushNotifications] *** REGISTRATION SUCCESS ***');
+          console.log('[PushNotifications] Push registration success, token: ' + token.value);
           console.log('[PushNotifications] Token length:', token.value.length);
           console.log('[PushNotifications] Token preview:', token.value.substring(0, 20) + '...');
           setToken(token.value);
@@ -57,9 +77,13 @@ export const usePushNotifications = () => {
 
         // Listen for registration errors
         PushNotifications.addListener('registrationError', (error: any) => {
-          console.error('Error on registration: ' + JSON.stringify(error));
+          console.error('[PushNotifications] *** REGISTRATION ERROR ***');
+          console.error('[PushNotifications] Error on registration: ' + JSON.stringify(error));
           console.error('[PushNotifications] Registration error details:', error);
         });
+
+        console.log('[PushNotifications] All event listeners set up');
+        console.log('[PushNotifications] Initialization complete');
 
         // Listen for push notifications received
         PushNotifications.addListener(
@@ -93,13 +117,21 @@ export const usePushNotifications = () => {
         );
 
       } catch (error) {
-        console.error('Error initializing push notifications:', error);
+        console.error('[PushNotifications] *** INITIALIZATION ERROR ***');
+        console.error('[PushNotifications] Error initializing push notifications:', error);
+        console.error('[PushNotifications] Error type:', typeof error);
+        console.error('[PushNotifications] Error name:', error instanceof Error ? error.name : 'Unknown');
+        console.error('[PushNotifications] Error message:', error instanceof Error ? error.message : 'Unknown');
+        console.error('[PushNotifications] Error stack:', error instanceof Error ? error.stack : 'No stack');
       }
     };
 
+    console.log('[PushNotifications] About to call initializePushNotifications()');
     initializePushNotifications();
+    console.log('[PushNotifications] initializePushNotifications() called');
 
     return () => {
+      console.log('[PushNotifications] Cleaning up listeners');
       PushNotifications.removeAllListeners();
     };
   }, []);
@@ -107,6 +139,7 @@ export const usePushNotifications = () => {
   // Function to save FCM token to Supabase
   const saveFCMTokenToSupabase = async (fcmToken: string) => {
     try {
+      console.log('[saveFCMTokenToSupabase] *** STARTING TOKEN SAVE PROCESS ***');
       console.log('[saveFCMTokenToSupabase] Starting save process for token:', fcmToken ? fcmToken.substring(0, 10) + '...' : 'null');
       
       if (!fcmToken || fcmToken.trim() === '') {
@@ -114,6 +147,7 @@ export const usePushNotifications = () => {
         return;
       }
       
+      console.log('[saveFCMTokenToSupabase] Getting current user from Supabase auth...');
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
@@ -130,9 +164,10 @@ export const usePushNotifications = () => {
 
       console.log('[saveFCMTokenToSupabase] Authenticated user ID:', user.id);
       console.log('[saveFCMTokenToSupabase] User email:', user.email);
-      console.log('Saving FCM token for user:', user.id);
+      console.log('[saveFCMTokenToSupabase] Saving FCM token for user:', user.id);
       
       // First, check if user_settings record exists
+      console.log('[saveFCMTokenToSupabase] Checking if user_settings record exists...');
       const { data: existingSettings, error: checkError } = await supabase
         .from('user_settings')
         .select('user_id, fcm_token')
@@ -148,6 +183,7 @@ export const usePushNotifications = () => {
         });
       }
       
+      console.log('[saveFCMTokenToSupabase] Attempting upsert to user_settings table...');
       const { error } = await supabase
         .from('user_settings')
         .upsert({
@@ -159,7 +195,8 @@ export const usePushNotifications = () => {
         });
       
       if (error) {
-        console.error('Error saving FCM token to Supabase:', error);
+        console.error('[saveFCMTokenToSupabase] *** UPSERT ERROR ***');
+        console.error('[saveFCMTokenToSupabase] Error saving FCM token to Supabase:', error);
         console.log('[saveFCMTokenToSupabase] Supabase upsert failed:', error.message);
         console.error('[saveFCMTokenToSupabase] Full error details:', {
           message: error.message,
@@ -168,10 +205,12 @@ export const usePushNotifications = () => {
           code: error.code
         });
       } else {
-        console.log('FCM token saved to Supabase successfully');
+        console.log('[saveFCMTokenToSupabase] *** UPSERT SUCCESS ***');
+        console.log('[saveFCMTokenToSupabase] FCM token saved to Supabase successfully');
         console.log('[saveFCMTokenToSupabase] Supabase upsert successful.');
         
         // Verify the token was saved by fetching it back
+        console.log('[saveFCMTokenToSupabase] Verifying token was saved...');
         const { data: verifyData, error: verifyError } = await supabase
           .from('user_settings')
           .select('fcm_token')
@@ -188,7 +227,8 @@ export const usePushNotifications = () => {
         }
       }
     } catch (error) {
-      console.error('Exception while saving FCM token:', error);
+      console.error('[saveFCMTokenToSupabase] *** EXCEPTION ***');
+      console.error('[saveFCMTokenToSupabase] Exception while saving FCM token:', error);
       console.error('[saveFCMTokenToSupabase] Exception details:', {
         name: error instanceof Error ? error.name : 'Unknown',
         message: error instanceof Error ? error.message : 'Unknown error',
