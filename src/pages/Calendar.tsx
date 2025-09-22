@@ -283,9 +283,15 @@ const Calendar: React.FC = () => {
 
   const renderView = () => {
     // Combine and filter events based on selected filters
-    const allEvents = [...events, ...friendsEvents];
+    const combinedEvents = showFriendsEvents ? [...events, ...friendsEvents] : events;
     
-    const filteredEvents = allEvents.filter(event => {
+    const filteredEvents = combinedEvents.filter(event => {
+      // Filter by selected profiles
+      if (!selectedProfiles.includes(event.child.id)) {
+        return false;
+      }
+      
+      // Filter by selected platforms
       if (selectedPlatforms.length > 0 && !selectedPlatforms.includes(event.platform)) {
         return false;
       }
