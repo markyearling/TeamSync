@@ -56,6 +56,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const { isNative } = useCapacitor();
 
+  // Load only the most recent messages initially for faster loading
+  const INITIAL_MESSAGE_LOAD_LIMIT = 50;
+
   // Popular emoticons organized by category
   const emoticons = {
     'Smileys': ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '🙃', '😉', '😊', '😇', '🥰', '😍', '🤩', '😘', '😗', '😚', '😙'],
@@ -334,17 +337,22 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
   const loadMessages = async (conversationId: string) => {
     try {
+      // Load only the most recent messages for faster initial loading
       const { data: messagesData, error } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .limit(INITIAL_MESSAGE_LOAD_LIMIT);
 
       if (error) throw error;
 
+      // Reverse the array to display messages in chronological order (oldest first)
+      const reversedMessages = (messagesData || []).reverse();
+
       // Get sender info for each message
       const messagesWithSenders = await Promise.all(
-        (messagesData || []).map(async (message) => {
+        reversedMessages.map(async (message) => {
           const { data: senderSettings } = await supabase
             .from('user_settings')
             .select('full_name, profile_photo_url')
