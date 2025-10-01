@@ -19,28 +19,47 @@ async function importPrivateKey(privateKeyPem: string): Promise<CryptoKey> {
   const pemHeader = '-----BEGIN PRIVATE KEY-----';
   const pemFooter = '-----END PRIVATE KEY-----';
   
+  console.log('--- Debugging importPrivateKey ---');
+  console.log('Step 1: Original privateKeyPem (first 100 chars):', privateKeyPem.substring(0, Math.min(privateKeyPem.length, 100)));
+  console.log('Step 1: Original privateKeyPem length:', privateKeyPem.length);
+
   let pemContents = privateKeyPem
     .replace(pemHeader, '')
     .replace(pemFooter, '');
   
-  // Remove all whitespace characters (including actual newlines)
-  // and then aggressively remove any characters that are NOT valid base64 characters.
-  // This ensures only valid base64 characters remain.
-  pemContents = pemContents.replace(/\s/g, '').replace(/[^A-Za-z0-9+/=]/g, ''); 
+  console.log('Step 2: pemContents after header/footer removal (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
+  console.log('Step 2: pemContents length:', pemContents.length);
 
-  // Add extensive logging here to inspect the string before atob
-  console.log('--- Debugging importPrivateKey ---');
-  console.log('Original privateKeyPem (first 100 chars):', privateKeyPem.substring(0, Math.min(privateKeyPem.length, 100)));
-  console.log('pemContents after header/footer removal (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
-  console.log('pemContents after whitespace and invalid char removal (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
-  console.log('pemContents length:', pemContents.length);
+  // Only remove ALL whitespace characters (including actual newlines, spaces, tabs, etc.)
+  // Do NOT aggressively remove non-base64 characters, as this might remove valid padding '='.
+  pemContents = pemContents.replace(/\s/g, ''); 
+
+  console.log('Step 3: pemContents after whitespace removal (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
+  console.log('Step 3: pemContents length before atob:', pemContents.length);
   
+  // Ensure proper base64 padding. This is crucial for correct decoding.
+  while (pemContents.length % 4 !== 0) {
+    pemContents += '=';
+  }
+  console.log('Step 3.1: pemContents after ensuring padding (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
+  console.log('Step 3.1: pemContents length after ensuring padding:', pemContents.length);
+
   // Log the exact string being passed to atob
-  console.log('String passed to atob (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
-  console.log('String passed to atob length:', pemContents.length);
+  console.log('Step 4: String passed to atob (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
+  console.log('Step 4: String passed to atob length:', pemContents.length);
   
-  const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-  
+  let binaryDer;
+  try {
+    binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+  } catch (e) {
+    console.error('Error during atob decoding:', e);
+    console.error('Problematic pemContents (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
+    console.error('Problematic pemContents length:', pemContents.length);
+    throw e; // Re-throw to propagate the original error
+  }
+
+  console.log('Step 5: Successfully base64 decoded. Binary data length:', binaryDer.length);
+
   return await crypto.subtle.importKey(
     'pkcs8',
     binaryDer,
