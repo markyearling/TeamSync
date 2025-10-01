@@ -131,6 +131,13 @@ Deno.serve(async (req) => {
       throw new Error('Missing required fields: fcmToken, title, or body');
     }
 
+    // Detailed logging for debugging
+    console.log(`[FCM Sender] Received fcmToken: ${fcmToken.substring(0, 20)}...`);
+    console.log(`[FCM Sender] FCM Token length: ${fcmToken.length}`);
+    console.log(`[FCM Sender] Notification Title: ${title}`);
+    console.log(`[FCM Sender] Notification Body: ${body}`);
+    console.log(`[FCM Sender] Notification Data:`, JSON.stringify(data));
+
     // Get Firebase Service Account JSON from environment
     const serviceAccountJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON');
 
@@ -186,12 +193,11 @@ Deno.serve(async (req) => {
     };
 
     console.log('Sending FCM notification...');
-    console.log('FCM Token (first 10 chars):', fcmToken.substring(0, 10) + '...');
-    console.log('Notification title:', title);
-    console.log('Notification body:', body);
-    console.log('Custom data:', data);
+    console.log('[FCM Sender] FCM Payload being sent:', JSON.stringify(fcmPayload, null, 2));
 
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${serviceAccount.project_id}/messages:send`;
+    console.log('[FCM Sender] FCM API URL:', fcmUrl);
+    
     const response = await fetch(fcmUrl, {
       method: 'POST',
       headers: {

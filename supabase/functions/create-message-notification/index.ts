@@ -119,6 +119,12 @@ Deno.serve(async (req) => {
     const recipientFcmToken = recipientSettings?.fcm_token;
     console.log('Recipient FCM token status:', recipientFcmToken ? 'Present' : 'Not found');
 
+    // Detailed logging for debugging
+    if (recipientFcmToken) {
+      console.log(`[Message Notif] Recipient FCM token (first 20 chars): ${recipientFcmToken.substring(0, 20)}...`);
+      console.log(`[Message Notif] FCM Token length: ${recipientFcmToken.length}`);
+    }
+
     // Create notification for the recipient
     console.log('Creating database notification for recipient:', recipientId);
     const { data: notification, error: notificationError } = await supabaseClient
@@ -168,12 +174,29 @@ Deno.serve(async (req) => {
           })
         });
 
+        // Detailed logging for FCM response
+        console.log('[Message Notif] FCM Push Notification Response Status:', fcmResponse.status);
+        const fcmResponseBody = await fcmResponse.text(); // Read response body once
+        console.log('[Message Notif] FCM Push Notification Response Body:', fcmResponseBody);
+
         if (!fcmResponse.ok) {
-          const fcmError = await fcmResponse.json();
+          // Use the already read fcmResponseBody
+          let fcmError;
+          try {
+            fcmError = JSON.parse(fcmResponseBody);
+          } catch (parseError) {
+            fcmError = { error: 'Could not parse FCM error response', body: fcmResponseBody };
+          }
           console.error('Failed to send push notification:', fcmError);
           // Don't throw here - database notification was successful
         } else {
-          const fcmResult = await fcmResponse.json();
+          // Use the already read fcmResponseBody
+          let fcmResult;
+          try {
+            fcmResult = JSON.parse(fcmResponseBody);
+          } catch (parseError) {
+            fcmResult = { message: 'FCM response could not be parsed', body: fcmResponseBody };
+          }
           console.log('Push notification sent successfully:', fcmResult);
         }
       } catch (fcmError) {

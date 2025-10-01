@@ -82,6 +82,10 @@ Deno.serve(async (req) => {
 
         const recipientFcmToken = userSettings.fcm_token;
 
+        // Detailed logging for debugging
+        console.log(`[Scheduled Notif] Recipient FCM token (first 20 chars): ${recipientFcmToken.substring(0, 20)}...`);
+        console.log(`[Scheduled Notif] FCM Token length: ${recipientFcmToken.length}`);
+
         // Send FCM push notification
         console.log(`Sending FCM notification for scheduled reminder to user ${notification.user_id}...`);
         const fcmResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-fcm-notification`, {
@@ -103,8 +107,19 @@ Deno.serve(async (req) => {
           })
         });
 
+        // Detailed logging for FCM response
+        console.log('[Scheduled Notif] FCM Push Notification Response Status:', fcmResponse.status);
+        const fcmResponseBody = await fcmResponse.text(); // Read response body once
+        console.log('[Scheduled Notif] FCM Push Notification Response Body:', fcmResponseBody);
+
         if (!fcmResponse.ok) {
-          const fcmError = await fcmResponse.json();
+          // Use the already read fcmResponseBody
+          let fcmError;
+          try {
+            fcmError = JSON.parse(fcmResponseBody);
+          } catch (parseError) {
+            fcmError = { error: 'Could not parse FCM error response', body: fcmResponseBody };
+          }
           console.error('Failed to send FCM notification:', fcmError);
           throw new Error(`FCM send failed: ${fcmResponse.status} ${fcmResponse.statusText}`);
         }
