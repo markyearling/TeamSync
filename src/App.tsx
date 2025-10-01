@@ -125,20 +125,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AppContent = () => {
   const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isNative } = useCapacitor();
   const { isInitialized: notificationsInitialized } = useScheduledNotifications();
-  const { token: fcmToken, isRegistered: fcmRegistered } = usePushNotifications();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
 
-  // Log FCM token status for debugging
-  useEffect(() => {
-    console.log('=== FCM Token Status ===');
-    console.log('FCM Token:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'Not available');
-    console.log('FCM Registered:', fcmRegistered);
-    console.log('Is Native:', isNative);
-  }, [fcmToken, fcmRegistered, isNative]);
 
   useEffect(() => {
     const initializeConnection = async () => {
@@ -358,6 +349,17 @@ const AppContent = () => {
 };
 
 export default function App() {
+  const { isNative } = useCapacitor();
+  const { token: fcmToken, isRegistered: fcmRegistered } = usePushNotifications();
+
+  // Log FCM token status for debugging
+  useEffect(() => {
+    console.log('=== FCM Token Status ===');
+    console.log('FCM Token:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'Not available');
+    console.log('FCM Registered:', fcmRegistered);
+    console.log('Is Native:', isNative);
+  }, [fcmToken, fcmRegistered, isNative]);
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen min-w-full bg-gray-50 dark:bg-gray-900">
