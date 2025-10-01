@@ -122,10 +122,15 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const AppContent = () => {
+interface AppContentProps {
+  fcmToken: string | null;
+  fcmRegistered: boolean;
+}
+
+const AppContent: React.FC<AppContentProps> = ({ fcmToken, fcmRegistered }) => {
   const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isInitialized: notificationsInitialized } = useScheduledNotifications();
+  const { isInitialized: notificationsInitialized } = useScheduledNotifications(fcmToken, fcmRegistered);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
@@ -369,7 +374,7 @@ export default function App() {
               <ProfilesProvider>
                 <MobileOptimizations>
                   <Suspense fallback={<LoadingSpinner />}>
-                    <AppContent />
+                    <AppContent fcmToken={fcmToken} fcmRegistered={fcmRegistered} />
                   </Suspense>
                 </MobileOptimizations>
               </ProfilesProvider>

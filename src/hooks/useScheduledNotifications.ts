@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '../lib/supabase';
-import { usePushNotifications } from './usePushNotifications';
 
 interface ScheduledNotification {
-  id: string;
+                    <AppContent fcmToken={fcmToken} fcmRegistered={fcmRegistered} />
   user_id: string;
   event_id: string;
   title: string;
@@ -16,10 +15,8 @@ interface ScheduledNotification {
   updated_at: string;
 }
 
-export const useScheduledNotifications = () => {
+export const useScheduledNotifications = (fcmToken: string | null, isRegistered: boolean) => {
   const [isInitialized, setIsInitialized] = useState(false);
-  // We still use usePushNotifications to ensure FCM token registration
-  const { token: fcmToken, isRegistered: fcmRegistered } = usePushNotifications();
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) {
