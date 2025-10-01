@@ -3,7 +3,6 @@ import { Capacitor } from '@capacitor/core';
 import { supabase } from '../lib/supabase';
 
 interface ScheduledNotification {
-                    <AppContent fcmToken={fcmToken} fcmRegistered={fcmRegistered} />
   user_id: string;
   event_id: string;
   title: string;
