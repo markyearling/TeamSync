@@ -83,8 +83,8 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
       // For Android, use this token directly
       if (platform === 'android') {
         console.log('[PushNotifications] Android FCM token received via registration event');
+        fcmTokenRef.current = token.value; // Update ref first
         setFcmToken(token.value);
-        fcmTokenRef.current = token.value;
         setIsRegistered(true);
         if (user && !authLoading) {
           saveFCMTokenToSupabase(token.value, user);
@@ -135,8 +135,8 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
     if (platform === 'ios') {
       firebaseMessagingTokenListener = FirebaseMessaging.addListener('tokenReceived', async ({ token }) => {
         console.log('[FirebaseMessaging] Token received event:', token);
+        fcmTokenRef.current = token; // Update ref first
         setFcmToken(token);
-        fcmTokenRef.current = token;
         if (user && !authLoading) {
           await saveFCMTokenToSupabase(token, user);
         }
@@ -253,22 +253,24 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
       hasUser: !!user,
       userId: user?.id || 'No user',
       authLoading,
+      fcmTokenRefCurrent: fcmTokenRef.current, // Log the ref directly for clarity
       hasFcmTokenInRef: !!fcmTokenRef.current,
       fcmTokenRefPreview: fcmTokenRef.current ? fcmTokenRef.current.substring(0, 10) + '...' : 'None'
     });
 
     // Only save token when we have a user, auth is not loading, and we have an FCM token in the ref
-    if (user && !authLoading && fcmTokenRef.current) {
+     if (user && !authLoading && fcmTokenRef.current) { // Use fcmTokenRef.current
       console.log('[PushNotifications] Conditions met for saving FCM token, proceeding...');
-      saveFCMTokenToSupabase(fcmTokenRef.current, user);
+      saveFCMTokenToSupabase(fcmTokenRef.current, user); // Pass fcmTokenRef.current
     } else {
       console.log('[PushNotifications] Conditions not met for saving FCM token:', {
         hasUser: !!user,
         authNotLoading: !authLoading,
+        fcmTokenRefCurrent: fcmTokenRef.current,
         hasFcmTokenInRef: !!fcmTokenRef.current
       });
     }
-  }, [user, authLoading]);
+  }, [user, authLoading]); // Remove fcmToken from dependencies
 
   // Function to save FCM token to Supabase
   const saveFCMTokenToSupabase = async (tokenToSave: string, authenticatedUser: User) => {
