@@ -12,7 +12,12 @@ import {
 } from '@capacitor/local-notifications';
 import { supabase } from '../lib/supabase';
 
-    __PUSH_NOTIFICATIONS_INITIALIZED__: boolean;
+export const usePushNotifications = () => {
+  // Global flag to prevent multiple initializations
+  if (!(globalThis as any).__PUSH_NOTIFICATIONS_INITIALIZED__) {
+    (globalThis as any).__PUSH_NOTIFICATIONS_INITIALIZED__ = false;
+  }
+
   const isInitializedRef = useRef(false);
   console.log('=== usePushNotifications hook called ===');
   console.log('Capacitor.isNativePlatform() at hook start:', Capacitor.isNativePlatform());
