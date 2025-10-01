@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { User } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 import { 
   PushNotifications, 
   PushNotificationSchema, 
@@ -13,25 +14,34 @@ import {
 }
 from '@capacitor/local-notifications';
 import { supabase } from '../lib/supabase';
-
+// Declare global window property for initialization flag
+declare global {
+  interface Window {
+    __PUSH_NOTIFICATIONS_INITIALIZED__?: boolean;
 export const usePushNotifications = (user: User | null, authLoading: boolean) => {
-  console.log('=== usePushNotifications hook called ===');
-  console.log('Capacitor.isNativePlatform() at hook start:', Capacitor.isNativePlatform());
-  console.log('Current platform at hook start:', Capacitor.getPlatform());
+}
+  console.log('User provided to hook:', user ? 'Present' : 'Not present');
+  console.log('Auth loading state:', authLoading);
   console.log('User provided to hook:', user ? 'Present' : 'Not present');
   console.log('Auth loading state:', authLoading);
   
-  const [token, setToken] = useState<string | null>(null);
+  const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
+  const fcmTokenRef = useRef<string | null>(null);
   const [pendingToken, setPendingToken] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('=== usePushNotifications useEffect starting ===');
+    console.log('=== usePushNotifications useEffect (initialization) starting ===');
     console.log('Capacitor.isNativePlatform() in useEffect:', Capacitor.isNativePlatform());
     console.log('Platform in useEffect:', Capacitor.getPlatform());
     
     // Initialize the global flag if it doesn't exist
     if (window.__PUSH_NOTIFICATIONS_INITIALIZED__ === undefined) {
+      window.__PUSH_NOTIFICATIONS_INITIALIZED__ = false;
+    }
+    
+    // Prevent multiple initializations using global window flag
+    if (window.__PUSH_NOTIFICATIONS_INITIALIZED__) {
       window.__PUSH_NOTIFICATIONS_INITIALIZED__ = false;
     }
     
@@ -60,12 +70,9 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
       console.log('[PushNotifications] Push registration success, token: ' + token.value);
       console.log('[PushNotifications] Token length:', token.value.length);
       console.log('[PushNotifications] Token preview:', token.value.substring(0, 20) + '...');
-      setToken(token.value);
-      setPendingToken(token.value);
-      
-      console.log('[PushNotifications] Token received, will save when user is authenticated');
-    });
-
+      setFcmToken(token.value);
+      fcmTokenRef.current = token.value;
+      console.log('[PushNotifications] fcmToken state and ref set to:', token.value.substring(0, 20) + '...');
     // Listen for registration ERRORS
     const registrationErrorListener = PushNotifications.addListener('registrationError', (error: any) => {
       console.error('[PushNotifications] *** REGISTRATION ERROR ***');
@@ -164,6 +171,54 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
 
   // Separate effect to handle saving FCM token when user becomes available
   useEffect(() => {
+    console.log('[PushNotifications] Auth state effect triggered (for saving token):', {
+      hasUser: !!user,
+      userId: user?.id || 'No user',
+      authLoading,
+      hasFcmTokenInRef: !!fcmTokenRef.current,
+      fcmTokenRefPreview: fcmTokenRef.current ? fcmTokenRef.current.substring(0, 10) + '...' : 'None'
+    });
+
+    // Only save token when we have a user, auth is not loading, and we have an FCM token in the ref
+    if (user && !authLoading && fcmTokenRef.current) {
+      console.log('[PushNotifications] Conditions met for saving FCM token, proceeding...');
+      saveFCMTokenToSupabase(fcmTokenRef.current, user);
+    } else {
+      console.log('[PushNotifications] Conditions not met for saving FCM token:', {
+        hasUser: !!user,
+        authNotLoading: !authLoading,
+        hasFcmTokenInRef: !!fcmTokenRef.current
+      });
+    }
+  }, [user, authLoading]);
+
+  // Function to save FCM token to Supabase
+  const saveFCMTokenToSupabase = async (tokenToSave: string, authenticatedUser: User) => {
+  // Separate effect to handle saving FCM token when user becomes available
+  useEffect(() => {
+    console.log('[PushNotifications] Auth state effect triggered (for saving token):', {
+      hasUser: !!user,
+      userId: user?.id || 'No user',
+      authLoading,
+      hasFcmTokenInRef: !!fcmTokenRef.current,
+      fcmTokenRefPreview: fcmTokenRef.current ? fcmTokenRef.current.substring(0, 10) + '...' : 'None'
+    });
+
+    // Only save token when we have a user, auth is not loading, and we have an FCM token in the ref
+    if (user && !authLoading && fcmTokenRef.current) {
+      console.log('[PushNotifications] Conditions met for saving FCM token, proceeding...');
+      saveFCMTokenToSupabase(fcmTokenRef.current, user);
+    } else {
+      console.log('[PushNotifications] Conditions not met for saving FCM token:', {
+        hasUser: !!user,
+        authNotLoading: !authLoading,
+        hasFcmTokenInRef: !!fcmTokenRef.current
+      });
+    }
+  }, [user, authLoading]);
+
+  // Function to save FCM token to Supabase
+  const saveFCMTokenToSupabase = async (tokenToSave: string, authenticatedUser: User) => {
     console.log('[PushNotifications] Auth state effect triggered:', {
       hasUser: !!user,
       userId: user?.id || 'No user',
@@ -186,56 +241,34 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
     }
   }, [user, authLoading, pendingToken]);
   // Function to save FCM token to Supabase
-  const saveFCMTokenToSupabase = async (fcmToken: string, authenticatedUser: User) => {
-    try {
-      console.log('[saveFCMTokenToSupabase] *** STARTING TOKEN SAVE PROCESS ***');
-      console.log('[saveFCMTokenToSupabase] Starting save process for token:', fcmToken ? fcmToken.substring(0, 10) + '...' : 'null');
-      console.log('[saveFCMTokenToSupabase] User provided:', authenticatedUser.id);
-      
-      if (!fcmToken || fcmToken.trim() === '') {
-        console.error('[saveFCMTokenToSupabase] Invalid FCM token provided');
-        return;
-      }
-      
-
       console.log('[saveFCMTokenToSupabase] Authenticated user ID:', authenticatedUser.id);
       console.log('[saveFCMTokenToSupabase] User email:', authenticatedUser.email);
       console.log('[saveFCMTokenToSupabase] Saving FCM token for user:', authenticatedUser.id);
-      
-      // First, check if user_settings record exists
-      console.log('[saveFCMTokenToSupabase] Checking if user_settings record exists...');
-      const { data: existingSettings, error: checkError } = await supabase
-        .from('user_settings')
-        .select('user_id, fcm_token')
-        .eq('user_id', authenticatedUser.id)
-        .maybeSingle();
-      
-      if (checkError) {
-        console.error('[saveFCMTokenToSupabase] Error checking existing settings:', checkError);
-      } else {
-        console.log('[saveFCMTokenToSupabase] Existing settings check:', {
-          hasRecord: !!existingSettings,
-          currentToken: existingSettings?.fcm_token ? 'Present' : 'None'
-        });
       }
       
       console.log('[saveFCMTokenToSupabase] Attempting upsert to user_settings table...');
       const { error } = await supabase
         .from('user_settings')
         .upsert({
-          user_id: authenticatedUser.id,
+        .eq('user_id', authenticatedUser.id)
           fcm_token: fcmToken,
           updated_at: new Date().toISOString()
         }, { 
           onConflict: 'user_id' 
         });
       
-      if (error) {
+      // Only update if the token is different from what's already stored
+      if (existingSettings?.fcm_token === tokenToSave) {
+        console.log('[saveFCMTokenToSupabase] FCM token already matches database, skipping update.');
+        return;
+      }
+          user_id: authenticatedUser.id,
+          fcm_token: tokenToSave,
         console.error('[saveFCMTokenToSupabase] *** UPSERT ERROR ***');
         console.error('[saveFCMTokenToSupabase] Error saving FCM token to Supabase:', error);
         console.log('[saveFCMTokenToSupabase] Supabase upsert failed:', error.message);
-        console.error('[saveFCMTokenToSupabase] Full error details:', {
-          message: error.message,
+          user_id: authenticatedUser.id,
+        .eq('user_id', authenticatedUser.id)
           details: error.details,
           hint: error.hint,
           code: error.code
@@ -256,13 +289,19 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
         if (verifyError) {
           console.error('[saveFCMTokenToSupabase] Error verifying saved token:', verifyError);
         } else {
-          console.log('[saveFCMTokenToSupabase] Token verification:', {
+          .eq('user_id', authenticatedUser.id)
             tokenSaved: !!verifyData?.fcm_token,
-            tokenMatches: verifyData?.fcm_token === fcmToken
+            tokenMatches: verifyData?.fcm_token === tokenToSave
           });
         }
       }
     } catch (error) {
+      // Only update if the token is different from what's already stored
+            tokenMatches: verifyData?.fcm_token === tokenToSave
+        console.log('[saveFCMTokenToSupabase] FCM token already matches database, skipping update.');
+        return;
+      }
+      
       console.error('[saveFCMTokenToSupabase] *** EXCEPTION ***');
       console.error('[saveFCMTokenToSupabase] Exception while saving FCM token:', error);
       console.error('[saveFCMTokenToSupabase] Exception details:', {
@@ -304,7 +343,7 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
   };
 
   return {
-    token,
+    token: fcmToken,
     isRegistered,
     scheduleLocalNotification,
     cancelLocalNotification
