@@ -246,5 +246,3 @@ ios/App/App/Base.lproj/Main.storyboard
 ios/App/App.xcodeproj/project.pbxproj
 ios/App/App.xcworkspace/contents.xcworkspacedata
 ios/App/App.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
-ios/App/App/Assets.xcassets/App.entitlements
-ios/App/App/Info.plist
