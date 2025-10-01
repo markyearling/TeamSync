@@ -19,10 +19,25 @@ async function importPrivateKey(privateKeyPem: string): Promise<CryptoKey> {
   const pemHeader = '-----BEGIN PRIVATE KEY-----';
   const pemFooter = '-----END PRIVATE KEY-----';
   
-  const pemContents = privateKeyPem
+  let pemContents = privateKeyPem
     .replace(pemHeader, '')
-    .replace(pemFooter, '')
-    .replace(/\s/g, '');
+    .replace(pemFooter, '');
+  
+  // Remove all whitespace characters (including actual newlines)
+  // and then aggressively remove any characters that are NOT valid base64 characters.
+  // This ensures only valid base64 characters remain.
+  pemContents = pemContents.replace(/\s/g, '').replace(/[^A-Za-z0-9+/=]/g, ''); 
+
+  // Add extensive logging here to inspect the string before atob
+  console.log('--- Debugging importPrivateKey ---');
+  console.log('Original privateKeyPem (first 100 chars):', privateKeyPem.substring(0, Math.min(privateKeyPem.length, 100)));
+  console.log('pemContents after header/footer removal (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
+  console.log('pemContents after whitespace and invalid char removal (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
+  console.log('pemContents length:', pemContents.length);
+  
+  // Log the exact string being passed to atob
+  console.log('String passed to atob (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
+  console.log('String passed to atob length:', pemContents.length);
   
   const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
   
