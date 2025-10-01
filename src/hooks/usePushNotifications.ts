@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
-import { useCallback } from 'react';
+//import { useEffect, useState } from 'react';
+//import { useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { User } from '@supabase/supabase-js';
 import { 
