@@ -9,11 +9,7 @@ import {
 import { 
   LocalNotifications,
   LocalNotificationSchema
-} from '@capacitor/local-notifications';
-import { supabase } from '../lib/supabase';
-
 export const usePushNotifications = () => {
-  const isInitializedRef = useRef(false);
   console.log('=== usePushNotifications hook called ===');
   console.log('Capacitor.isNativePlatform() at hook start:', Capacitor.isNativePlatform());
   console.log('Current platform at hook start:', Capacitor.getPlatform());
@@ -26,14 +22,19 @@ export const usePushNotifications = () => {
     console.log('Capacitor.isNativePlatform() in useEffect:', Capacitor.isNativePlatform());
     console.log('Platform in useEffect:', Capacitor.getPlatform());
     
-    // Prevent multiple initializations
-    if (isInitializedRef.current) {
+    // Initialize the global flag if it doesn't exist
+    if (window.__PUSH_NOTIFICATIONS_INITIALIZED__ === undefined) {
+      window.__PUSH_NOTIFICATIONS_INITIALIZED__ = false;
+    }
+    
+    // Prevent multiple initializations using global window flag
+    if (window.__PUSH_NOTIFICATIONS_INITIALIZED__) {
       console.log('[PushNotifications] Already initialized, skipping duplicate initialization');
       return;
     }
     
     console.log('[PushNotifications] First initialization, proceeding...');
-    isInitializedRef.current = true;
+    window.__PUSH_NOTIFICATIONS_INITIALIZED__ = true;
     
     if (!Capacitor.isNativePlatform()) {
       console.log('usePushNotifications: Not a native platform, exiting early');
