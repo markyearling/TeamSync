@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { User } from '@supabase/supabase-js';
 import { 
   PushNotifications, 
   PushNotificationSchema, 
@@ -11,14 +12,18 @@ import {
   LocalNotificationSchema
 }
 from '@capacitor/local-notifications';
+import { supabase } from '../lib/supabase';
 
-export const usePushNotifications = () => {
+export const usePushNotifications = (user: User | null, authLoading: boolean) => {
   console.log('=== usePushNotifications hook called ===');
   console.log('Capacitor.isNativePlatform() at hook start:', Capacitor.isNativePlatform());
   console.log('Current platform at hook start:', Capacitor.getPlatform());
+  console.log('User provided to hook:', user ? 'Present' : 'Not present');
+  console.log('Auth loading state:', authLoading);
   
   const [token, setToken] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
 
   useEffect(() => {
     console.log('=== usePushNotifications useEffect starting ===');
@@ -56,11 +61,9 @@ export const usePushNotifications = () => {
       console.log('[PushNotifications] Token length:', token.value.length);
       console.log('[PushNotifications] Token preview:', token.value.substring(0, 20) + '...');
       setToken(token.value);
+      setPendingToken(token.value);
       
-      console.log('[PushNotifications] Attempting to save FCM token to Supabase...');
-      // Save FCM token to Supabase user_settings
-      saveFCMTokenToSupabase(token.value);
-      console.log('[PushNotifications] saveFCMTokenToSupabase called.');
+      console.log('[PushNotifications] Token received, will save when user is authenticated');
     });
 
     // Listen for registration ERRORS
@@ -159,42 +162,52 @@ export const usePushNotifications = () => {
     };
   }, []); // Empty dependency array ensures this runs only once
 
+  // Separate effect to handle saving FCM token when user becomes available
+  useEffect(() => {
+    console.log('[PushNotifications] Auth state effect triggered:', {
+      hasUser: !!user,
+      userId: user?.id || 'No user',
+      authLoading,
+      hasPendingToken: !!pendingToken,
+      pendingTokenPreview: pendingToken ? pendingToken.substring(0, 10) + '...' : 'None'
+    });
+
+    // Only save token when we have a user, auth is not loading, and we have a pending token
+    if (user && !authLoading && pendingToken) {
+      console.log('[PushNotifications] Conditions met for saving FCM token, proceeding...');
+      saveFCMTokenToSupabase(pendingToken, user);
+      setPendingToken(null); // Clear pending token after saving
+    } else {
+      console.log('[PushNotifications] Conditions not met for saving FCM token:', {
+        hasUser: !!user,
+        authNotLoading: !authLoading,
+        hasPendingToken: !!pendingToken
+      });
+    }
+  }, [user, authLoading, pendingToken]);
   // Function to save FCM token to Supabase
-  const saveFCMTokenToSupabase = async (fcmToken: string) => {
+  const saveFCMTokenToSupabase = async (fcmToken: string, authenticatedUser: User) => {
     try {
       console.log('[saveFCMTokenToSupabase] *** STARTING TOKEN SAVE PROCESS ***');
       console.log('[saveFCMTokenToSupabase] Starting save process for token:', fcmToken ? fcmToken.substring(0, 10) + '...' : 'null');
+      console.log('[saveFCMTokenToSupabase] User provided:', authenticatedUser.id);
       
       if (!fcmToken || fcmToken.trim() === '') {
         console.error('[saveFCMTokenToSupabase] Invalid FCM token provided');
         return;
       }
       
-      console.log('[saveFCMTokenToSupabase] Getting current user from Supabase auth...');
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        console.error('Error getting user for FCM token save:', userError);
-        console.error('[saveFCMTokenToSupabase] User error details:', userError.message);
-        return;
-      }
-      
-      if (!user) {
-        console.log('No authenticated user found, skipping FCM token save');
-        console.log('[saveFCMTokenToSupabase] Auth state check - no user found');
-        return;
-      }
 
-      console.log('[saveFCMTokenToSupabase] Authenticated user ID:', user.id);
-      console.log('[saveFCMTokenToSupabase] User email:', user.email);
-      console.log('[saveFCMTokenToSupabase] Saving FCM token for user:', user.id);
+      console.log('[saveFCMTokenToSupabase] Authenticated user ID:', authenticatedUser.id);
+      console.log('[saveFCMTokenToSupabase] User email:', authenticatedUser.email);
+      console.log('[saveFCMTokenToSupabase] Saving FCM token for user:', authenticatedUser.id);
       
       // First, check if user_settings record exists
       console.log('[saveFCMTokenToSupabase] Checking if user_settings record exists...');
       const { data: existingSettings, error: checkError } = await supabase
         .from('user_settings')
         .select('user_id, fcm_token')
-        .eq('user_id', user.id)
+        .eq('user_id', authenticatedUser.id)
         .maybeSingle();
       
       if (checkError) {
@@ -210,7 +223,7 @@ export const usePushNotifications = () => {
       const { error } = await supabase
         .from('user_settings')
         .upsert({
-          user_id: user.id,
+          user_id: authenticatedUser.id,
           fcm_token: fcmToken,
           updated_at: new Date().toISOString()
         }, { 
@@ -237,7 +250,7 @@ export const usePushNotifications = () => {
         const { data: verifyData, error: verifyError } = await supabase
           .from('user_settings')
           .select('fcm_token')
-          .eq('user_id', user.id)
+          .eq('user_id', authenticatedUser.id)
           .single();
         
         if (verifyError) {

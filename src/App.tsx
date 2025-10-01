@@ -130,10 +130,10 @@ interface AppContentProps {
 const AppContent: React.FC<AppContentProps> = ({ fcmToken, fcmRegistered }) => {
   const [initialized, setInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isInitialized: notificationsInitialized } = useScheduledNotifications(fcmToken, fcmRegistered);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { isInitialized: notificationsInitialized } = useScheduledNotifications(fcmToken, fcmRegistered);
 
 
   useEffect(() => {
@@ -355,7 +355,8 @@ const AppContent: React.FC<AppContentProps> = ({ fcmToken, fcmRegistered }) => {
 
 export default function App() {
   const { isNative } = useCapacitor();
-  const { token: fcmToken, isRegistered: fcmRegistered } = usePushNotifications();
+  const { user, loading } = useAuth();
+  const { token: fcmToken, isRegistered: fcmRegistered } = usePushNotifications(user, loading);
 
   // Log FCM token status for debugging
   useEffect(() => {
@@ -363,6 +364,8 @@ export default function App() {
     console.log('FCM Token:', fcmToken ? fcmToken.substring(0, 20) + '...' : 'Not available');
     console.log('FCM Registered:', fcmRegistered);
     console.log('Is Native:', isNative);
+    console.log('User:', user ? 'Present' : 'Not present');
+    console.log('Auth Loading:', loading);
   }, [fcmToken, fcmRegistered, isNative]);
 
   return (
