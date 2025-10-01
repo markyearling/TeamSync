@@ -9,6 +9,7 @@ import {
 import { 
   LocalNotifications,
   LocalNotificationSchema
+}
 export const usePushNotifications = () => {
   console.log('=== usePushNotifications hook called ===');
   console.log('Capacitor.isNativePlatform() at hook start:', Capacitor.isNativePlatform());
