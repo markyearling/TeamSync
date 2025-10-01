@@ -15,19 +15,13 @@ import {
 import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 import { supabase } from '../lib/supabase';
 
-// Declare global window property for initialization flag
-declare global {
-  interface Window {
-    __PUSH_NOTIFICATIONS_INITIALIZED__?: boolean;
-  }
-}
-
 export const usePushNotifications = (user: User | null, authLoading: boolean) => {
   console.log('User provided to hook:', user ? 'Present' : 'Not present');
   console.log('Auth loading state:', authLoading);
   
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
+  const isInitializedRef = useRef(false);
 
   // Function to save FCM token to Supabase
   const saveFCMTokenToSupabase = useCallback(async (tokenToSave: string, authenticatedUser: User) => {
@@ -115,19 +109,14 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
     console.log('Capacitor.isNativePlatform() in useEffect:', Capacitor.isNativePlatform());
     console.log('Platform in useEffect:', Capacitor.getPlatform());
     
-    // Initialize the global flag if it doesn't exist
-    if (window.__PUSH_NOTIFICATIONS_INITIALIZED__ === undefined) {
-      window.__PUSH_NOTIFICATIONS_INITIALIZED__ = false;
-    }
-    
-    // Prevent multiple initializations using global window flag
-    if (window.__PUSH_NOTIFICATIONS_INITIALIZED__) {
+    // Prevent multiple initializations using useRef
+    if (isInitializedRef.current) {
       console.log('[PushNotifications] Already initialized, skipping duplicate initialization');
       return;
     }
     
     console.log('[PushNotifications] First initialization, proceeding...');
-    window.__PUSH_NOTIFICATIONS_INITIALIZED__ = true;
+    isInitializedRef.current = true;
     
     if (!Capacitor.isNativePlatform()) {
       console.log('usePushNotifications: Not a native platform, exiting early');
@@ -286,6 +275,13 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
             } else {
               console.log('[PushNotifications] Token set, will be saved when auth state changes.');
             }
+            // Add immediate save if user is already authenticated
+            if (user && !authLoading) {
+              console.log('[PushNotifications] User already authenticated during init, saving FCM token immediately.');
+              saveFCMTokenToSupabase(tokenValue, user);
+            } else {
+              console.log('[PushNotifications] Token set, will be saved when auth state changes.');
+            }
           } else {
             console.error('[PushNotifications] Failed to retrieve FCM token for platform:', platform);
           }
@@ -321,9 +317,8 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
       if (firebaseMessagingTokenListener) {
         firebaseMessagingTokenListener.remove();
       }
-      window.__PUSH_NOTIFICATIONS_INITIALIZED__ = false; // Reset flag on unmount
     };
-  }, [user, authLoading, saveFCMTokenToSupabase]); // Add dependencies for the useEffect
+  }, [user, authLoading, saveFCMTokenToSupabase]); // Add dependencies
 
   // Separate effect to handle saving FCM token when user becomes available
   useEffect(() => {
