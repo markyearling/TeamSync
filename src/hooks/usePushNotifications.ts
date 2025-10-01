@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { User } from '@supabase/supabase-js';
-import { User } from '@supabase/supabase-js';
 import { 
   PushNotifications, 
   PushNotificationSchema, 
@@ -11,25 +10,24 @@ import {
 import { 
   LocalNotifications,
   LocalNotificationSchema
-}
-from '@capacitor/local-notifications';
+} from '@capacitor/local-notifications';
+import { FirebaseMessaging } from '@capacitor-firebase/messaging';
 import { supabase } from '../lib/supabase';
+
 // Declare global window property for initialization flag
 declare global {
   interface Window {
     __PUSH_NOTIFICATIONS_INITIALIZED__?: boolean;
   }
 }
+
 export const usePushNotifications = (user: User | null, authLoading: boolean) => {
-  console.log('User provided to hook:', user ? 'Present' : 'Not present');
-  console.log('Auth loading state:', authLoading);
   console.log('User provided to hook:', user ? 'Present' : 'Not present');
   console.log('Auth loading state:', authLoading);
   
   const [fcmToken, setFcmToken] = useState<string | null>(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const fcmTokenRef = useRef<string | null>(null);
-  const [pendingToken, setPendingToken] = useState<string | null>(null);
 
   useEffect(() => {
     console.log('=== usePushNotifications useEffect (initialization) starting ===');
@@ -38,11 +36,6 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
     
     // Initialize the global flag if it doesn't exist
     if (window.__PUSH_NOTIFICATIONS_INITIALIZED__ === undefined) {
-      window.__PUSH_NOTIFICATIONS_INITIALIZED__ = false;
-    }
-    
-    // Prevent multiple initializations using global window flag
-    if (window.__PUSH_NOTIFICATIONS_INITIALIZED__) {
       window.__PUSH_NOTIFICATIONS_INITIALIZED__ = false;
     }
     
@@ -65,6 +58,8 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
     // Set up all event listeners FIRST, before any registration attempts
     console.log('[PushNotifications] Setting up event listeners BEFORE registration...');
     
+    const platform = Capacitor.getPlatform();
+    
     // Listen for registration SUCCESS
     const registrationListener = PushNotifications.addListener('registration', (token: Token) => {
       console.log('[PushNotifications] *** REGISTRATION SUCCESS ***');
@@ -74,13 +69,29 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
       if (token.value.length === 64 && /^[0-9a-fA-F]+$/.test(token.value)) {
         console.log('[PushNotifications] WARNING: Token format (64 hex characters) strongly suggests an APNs device token. FCM registration tokens are usually longer and alphanumeric.');
         console.log('[PushNotifications] This often indicates that Firebase Messaging is not correctly initialized in your native iOS project (AppDelegate.swift).');
+        
+        // For iOS, we'll use FirebaseMessaging.getToken() instead of this APNs token
+        if (platform === 'ios') {
+          console.log('[PushNotifications] iOS detected - will use FirebaseMessaging.getToken() for FCM token');
+          return;
+        }
       } else {
         console.log('[PushNotifications] Token format appears typical for an FCM registration token.');
       }
       console.log('[PushNotifications] Token preview:', token.value.substring(0, 20) + '...');
-      // Note: We now use getToken() method instead of relying on this event
-      console.log('[PushNotifications] Registration event received, but using getToken() method for actual token retrieval');
+      
+      // For Android, use this token directly
+      if (platform === 'android') {
+        console.log('[PushNotifications] Android FCM token received via registration event');
+        setFcmToken(token.value);
+        fcmTokenRef.current = token.value;
+        setIsRegistered(true);
+        if (user && !authLoading) {
+          saveFCMTokenToSupabase(token.value, user);
+        }
+      }
     });
+    
     // Listen for registration ERRORS
     const registrationErrorListener = PushNotifications.addListener('registrationError', (error: any) => {
       console.error('[PushNotifications] *** REGISTRATION ERROR ***');
@@ -119,6 +130,19 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
       },
     );
 
+    // Add listener for FirebaseMessaging token changes (iOS specific)
+    let firebaseMessagingTokenListener: any = null;
+    if (platform === 'ios') {
+      firebaseMessagingTokenListener = FirebaseMessaging.addListener('tokenReceived', async ({ token }) => {
+        console.log('[FirebaseMessaging] Token received event:', token);
+        setFcmToken(token);
+        fcmTokenRef.current = token;
+        if (user && !authLoading) {
+          await saveFCMTokenToSupabase(token, user);
+        }
+      });
+    }
+
     console.log('[PushNotifications] All event listeners set up, now proceeding with initialization...');
 
     const initializePushNotifications = async () => {
@@ -142,30 +166,49 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
           await PushNotifications.register();
           console.log('[PushNotifications] PushNotifications.register() completed. Now getting FCM token...');
           
-          // Explicitly get the FCM token after registration
-          const tokenResult = await PushNotifications.getToken();
-          if (tokenResult && tokenResult.value) {
-            console.log('[PushNotifications] Successfully retrieved FCM token via getToken(): ' + tokenResult.value);
-            console.log('[PushNotifications] Token length: ' + tokenResult.value.length);
+          // Get FCM token based on platform
+          let tokenValue: string | null = null;
+          
+          if (platform === 'ios') {
+            console.log('[PushNotifications] iOS platform detected, getting FCM token via FirebaseMessaging.getToken()...');
+            try {
+              const { token } = await FirebaseMessaging.getToken();
+              tokenValue = token;
+              console.log('[PushNotifications] Successfully retrieved FCM token via FirebaseMessaging.getToken(): ' + (token ? token.substring(0, 20) + '...' : 'null'));
+            } catch (firebaseError) {
+              console.error('[PushNotifications] Error getting FCM token via FirebaseMessaging:', firebaseError);
+            }
+          } else if (platform === 'android') {
+            console.log('[PushNotifications] Android platform detected, getting FCM token via PushNotifications.getToken()...');
+            try {
+              const { value } = await PushNotifications.getToken();
+              tokenValue = value;
+              console.log('[PushNotifications] Successfully retrieved FCM token via PushNotifications.getToken(): ' + (value ? value.substring(0, 20) + '...' : 'null'));
+            } catch (androidError) {
+              console.error('[PushNotifications] Error getting FCM token via PushNotifications:', androidError);
+            }
+          }
+          
+          if (tokenValue) {
+            console.log('[PushNotifications] Token length: ' + tokenValue.length);
             // Based on length, we can infer if it's likely an APNs token (64 hex chars) or FCM token (~152 alphanumeric chars)
-            if (tokenResult.value.length === 64 && /^[0-9a-fA-F]+$/.test(tokenResult.value)) {
+            if (tokenValue.length === 64 && /^[0-9a-fA-F]+$/.test(tokenValue)) {
               console.log('[PushNotifications] WARNING: Token format (64 hex characters) strongly suggests an APNs device token. FCM registration tokens are usually longer and alphanumeric.');
-              console.log('[PushNotifications] This often indicates that Firebase Messaging is not correctly initialized in your native iOS project (AppDelegate.swift).');
             } else {
               console.log('[PushNotifications] Token format appears typical for an FCM registration token.');
             }
-            setFcmToken(tokenResult.value);
-            fcmTokenRef.current = tokenResult.value;
+            setFcmToken(tokenValue);
+            fcmTokenRef.current = tokenValue;
             setIsRegistered(true);
             // If user is already authenticated, save the token immediately
             if (user && !authLoading) {
-              console.log('[PushNotifications] User already authenticated, saving FCM token from getToken()...');
-              saveFCMTokenToSupabase(tokenResult.value, user);
+              console.log('[PushNotifications] User already authenticated, saving FCM token...');
+              saveFCMTokenToSupabase(tokenValue, user);
             } else {
               console.log('[PushNotifications] User not yet authenticated or auth loading, token will be saved when auth state changes.');
             }
           } else {
-            console.error('[PushNotifications] Failed to retrieve FCM token via getToken().');
+            console.error('[PushNotifications] Failed to retrieve FCM token for platform:', platform);
           }
         } else {
           console.log('[PushNotifications] Permission not granted:', permission.receive);
@@ -197,6 +240,10 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
       registrationErrorListener.remove();
       pushReceivedListener.remove();
       pushActionListener.remove();
+      if (firebaseMessagingTokenListener) {
+        firebaseMessagingTokenListener.remove();
+      }
+      window.__PUSH_NOTIFICATIONS_INITIALIZED__ = false; // Reset flag on unmount
     };
   }, []); // Empty dependency array ensures this runs only once
 
