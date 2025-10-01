@@ -423,7 +423,7 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
      if (user && !authLoading && fcmToken) {
       console.log('[PushNotifications] Conditions met for saving FCM token, proceeding...');
       saveFCMTokenToSupabase(fcmToken, user);
-    } else {
+         } else {
       console.log('[PushNotifications] Conditions not met for saving FCM token:', {
         hasUser: !!user,
         authNotLoading: !authLoading,
@@ -432,3 +432,4 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
       });
     }
   }, [user, authLoading, fcmToken, saveFCMTokenToSupabase]);
+}
