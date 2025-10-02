@@ -15,7 +15,6 @@ interface FCMNotificationRequest {
 
 // Helper function to convert PEM private key to CryptoKey
 async function importPrivateKey(privateKeyPem: string): Promise<CryptoKey> {
-  // Remove PEM headers and footers, and decode base64
   const pemHeader = '-----BEGIN PRIVATE KEY-----';
   const pemFooter = '-----END PRIVATE KEY-----';
   
@@ -30,14 +29,15 @@ async function importPrivateKey(privateKeyPem: string): Promise<CryptoKey> {
   console.log('Step 2: pemContents after header/footer removal (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
   console.log('Step 2: pemContents length:', pemContents.length);
 
-  // Only remove ALL whitespace characters (including actual newlines, spaces, tabs, etc.)
-  // Do NOT aggressively remove non-base64 characters, as this might remove valid padding '='.
+  // Remove ALL whitespace characters (including newlines, spaces, tabs, etc.)
+  // This assumes the input `privateKeyPem` contains actual newline characters (`\n`)
+  // after JSON.parse has processed the `\\n` from the environment variable.
   pemContents = pemContents.replace(/\s/g, ''); 
 
   console.log('Step 3: pemContents after whitespace removal (first 100 chars):', pemContents.substring(0, Math.min(pemContents.length, 100)));
   console.log('Step 3: pemContents length before atob:', pemContents.length);
   
-  // Ensure proper base64 padding. This is crucial for correct decoding.
+  // Ensure proper base64 padding.
   while (pemContents.length % 4 !== 0) {
     pemContents += '=';
   }
