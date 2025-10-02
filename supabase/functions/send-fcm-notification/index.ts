@@ -90,6 +90,11 @@ async function getOAuthAccessToken(serviceAccount: any): Promise<string> {
     exp: expires,
   };
 
+  console.log('--- getOAuthAccessToken Debugging ---');
+  console.log('Service Account Project ID:', serviceAccount.project_id);
+  console.log('Service Account Client Email:', serviceAccount.client_email);
+  console.log('JWT Payload being created:', JSON.stringify(payload, null, 2));
+
   console.log('Creating JWT with payload:', payload);
 
   // Import the private key from the service account
@@ -230,6 +235,7 @@ Deno.serve(async (req) => {
     console.log('[FCM Sender] FCM Payload being sent:', JSON.stringify(fcmPayload, null, 2));
 
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${serviceAccount.project_id}/messages:send`;
+    console.log('[FCM Sender] FCM API URL:', fcmUrl);
     console.log('[FCM Sender] FCM API URL:', fcmUrl);
     
     const response = await fetch(fcmUrl, {
