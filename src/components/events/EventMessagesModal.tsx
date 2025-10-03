@@ -45,8 +45,25 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const subscriptionRef = useRef<any>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const sendersCache = useRef<Map<string, any>>(new Map());
   const { isNative } = useCapacitor();
   const { takePhoto, selectFromGallery } = useCamera();
+
+  // Helper function to fetch sender info (with caching)
+  const getSenderInfo = async (senderId: string) => {
+    if (sendersCache.current.has(senderId)) {
+      return sendersCache.current.get(senderId);
+    }
+
+    const { data: senderSettings } = await supabase
+      .from('user_settings')
+      .select('full_name, profile_photo_url')
+      .eq('user_id', senderId)
+      .maybeSingle();
+
+    sendersCache.current.set(senderId, senderSettings);
+    return senderSettings;
+  };
 
   // Auto-scroll to bottom function
   const scrollToBottom = (behavior: 'smooth' | 'auto' = 'auto') => {
@@ -159,13 +176,9 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
         async (payload) => {
           console.log('New event message received via realtime:', payload);
           const newMessage = payload.new as EventMessage;
-          
-          // Get sender info
-          const { data: senderSettings } = await supabase
-            .from('user_settings')
-            .select('full_name, profile_photo_url')
-            .eq('user_id', newMessage.sender_id)
-            .maybeSingle();
+
+          // Get sender info using cached helper
+          const senderSettings = await getSenderInfo(newMessage.sender_id);
 
           const messageWithSender = {
             ...newMessage,
@@ -201,13 +214,9 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
         async (payload) => {
           console.log('Event message updated via realtime:', payload);
           const updatedMessage = payload.new as EventMessage;
-          
-          // Get sender info
-          const { data: senderSettings } = await supabase
-            .from('user_settings')
-            .select('full_name, profile_photo_url')
-            .eq('user_id', updatedMessage.sender_id)
-            .maybeSingle();
+
+          // Get sender info using cached helper
+          const senderSettings = await getSenderInfo(updatedMessage.sender_id);
 
           const messageWithSender = {
             ...updatedMessage,
@@ -273,21 +282,30 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
 
       if (error) throw error;
 
-      // Get sender info for each message
-      const messagesWithSenders = await Promise.all(
-        (messagesData || []).map(async (message) => {
-          const { data: senderSettings } = await supabase
-            .from('user_settings')
-            .select('full_name, profile_photo_url')
-            .eq('user_id', message.sender_id)
-            .maybeSingle();
+      if (!messagesData || messagesData.length === 0) {
+        setMessages([]);
+        return;
+      }
 
-          return {
-            ...message,
-            sender: senderSettings
-          };
-        })
+      // Get unique sender IDs
+      const senderIds = [...new Set(messagesData.map(m => m.sender_id))];
+
+      // Batch fetch sender info for all unique senders
+      const { data: sendersData } = await supabase
+        .from('user_settings')
+        .select('user_id, full_name, profile_photo_url')
+        .in('user_id', senderIds);
+
+      // Create a map for quick lookup
+      const sendersMap = new Map(
+        sendersData?.map(s => [s.user_id, s]) || []
       );
+
+      // Attach sender info to messages
+      const messagesWithSenders = messagesData.map(message => ({
+        ...message,
+        sender: sendersMap.get(message.sender_id)
+      }));
 
       setMessages(messagesWithSenders);
     } catch (error) {
@@ -351,28 +369,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
 
       console.log('Event message sent successfully:', insertedMessage);
 
-      // Send notification to users with access to this event
-      try {
-        const notificationResponse = await supabase.functions.invoke('create-event-message-notification', {
-          body: {
-            message_id: insertedMessage.id,
-            event_id: event.id.toString(),
-            sender_id: currentUserId,
-            content: messageContent,
-            image_url: imageUrl
-          }
-        });
-
-        if (notificationResponse.error) {
-          console.error('Error sending event message notifications:', notificationResponse.error);
-        } else {
-          console.log('Event message notifications sent:', notificationResponse.data);
-        }
-      } catch (notifError) {
-        console.error('Exception sending event message notifications:', notifError);
-      }
-
-      // Add message optimistically for immediate feedback
+      // Add message optimistically for immediate feedback (before notifications)
       const messageWithSender = {
         ...insertedMessage,
         image_url: imageUrl,
@@ -392,6 +389,29 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
 
         return newMessages;
       });
+
+      // Send notification asynchronously in the background (non-blocking)
+      (async () => {
+        try {
+          const notificationResponse = await supabase.functions.invoke('create-event-message-notification', {
+            body: {
+              message_id: insertedMessage.id,
+              event_id: event.id.toString(),
+              sender_id: currentUserId,
+              content: messageContent,
+              image_url: imageUrl
+            }
+          });
+
+          if (notificationResponse.error) {
+            console.error('Error sending event message notifications (background):', notificationResponse.error);
+          } else {
+            console.log('Event message notifications sent (background):', notificationResponse.data);
+          }
+        } catch (notifError) {
+          console.error('Exception sending event message notifications (background):', notifError);
+        }
+      })();
 
     } catch (error) {
       console.error('Error sending event message:', error);
