@@ -7,6 +7,7 @@ import { Filter, Calendar, Calendar as CalendarIcon, LayoutList, Plus, Share2, M
 import { useProfiles } from '../context/ProfilesContext';
 import { Child, Event } from '../types';
 import { supabase } from '../lib/supabase';
+import { useCapacitor } from '../hooks/useCapacitor';
 import TeamMapping from '../components/teams/TeamMapping';
 import MonthView from '../components/calendar/MonthView';
 import WeekView from '../components/calendar/WeekView';
@@ -25,6 +26,7 @@ const ChildProfile: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { getProfile, deleteProfile, updateProfile } = useProfiles();
+  const { isNative } = useCapacitor();
   const [child, setChild] = useState<Child | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -562,39 +564,82 @@ const ChildProfile: React.FC = () => {
             </div>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
-            <button
-              onClick={() => setShowAddEventModal(true)}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
-              title="Add event"
-              disabled={isFriendProfile && child.accessRole !== 'administrator'}
-            >
-              <Plus className="h-5 w-5" />
-              Add Event
-            </button>
-            <button
-              onClick={() => setShowTeamMapping(true)}
-              className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-              title="Map teams"
-              disabled={isFriendProfile && child.accessRole !== 'administrator'}
-            >
-              <Users className="h-5 w-5" />
-            </button>
-            <button
-              onClick={handleEdit}
-              className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-              title="Edit profile"
-              disabled={isFriendProfile && child.accessRole !== 'administrator'}
-            >
-              <Pencil className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              className="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-              title="Delete profile"
-              disabled={isFriendProfile && child.accessRole !== 'administrator'}
-            >
-              <Trash2 className="h-5 w-5" />
-            </button>
+            {isNative ? (
+              // Mobile native compact layout
+              <>
+                <button
+                  onClick={() => setShowAddEventModal(true)}
+                  className="flex items-center px-2 py-1.5 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-xs"
+                  title="Add event"
+                  disabled={isFriendProfile && child.accessRole !== 'administrator'}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Event
+                </button>
+                <button
+                  onClick={() => setShowTeamMapping(true)}
+                  className="flex items-center px-2 py-1.5 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 text-xs"
+                  title="Map teams"
+                  disabled={isFriendProfile && child.accessRole !== 'administrator'}
+                >
+                  <Users className="h-4 w-4 mr-1" />
+                  Teams
+                </button>
+                <button
+                  onClick={handleEdit}
+                  className="p-1.5 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Edit profile"
+                  disabled={isFriendProfile && child.accessRole !== 'administrator'}
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="p-1.5 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Delete profile"
+                  disabled={isFriendProfile && child.accessRole !== 'administrator'}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </>
+            ) : (
+              // Web desktop layout
+              <>
+                <button
+                  onClick={() => setShowAddEventModal(true)}
+                  className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
+                  title="Add event"
+                  disabled={isFriendProfile && child.accessRole !== 'administrator'}
+                >
+                  <Plus className="h-5 w-5" />
+                  Add Event
+                </button>
+                <button
+                  onClick={() => setShowTeamMapping(true)}
+                  className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Map teams"
+                  disabled={isFriendProfile && child.accessRole !== 'administrator'}
+                >
+                  <Users className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={handleEdit}
+                  className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Edit profile"
+                  disabled={isFriendProfile && child.accessRole !== 'administrator'}
+                >
+                  <Pencil className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={() => setShowDeleteModal(true)}
+                  className="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                  title="Delete profile"
+                  disabled={isFriendProfile && child.accessRole !== 'administrator'}
+                >
+                  <Trash2 className="h-5 w-5" />
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
