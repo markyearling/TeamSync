@@ -715,18 +715,19 @@ const Dashboard: React.FC = () => {
       >
       {/* Pull to refresh indicator */}
       {isPulling && pullDistance > 0 && (
-        <div 
-          className="absolute top-0 left-0 right-0 flex justify-center items-center z-10 pointer-events-none"
-          style={{ 
+        <div
+          className="absolute left-0 right-0 flex justify-center items-end z-10 pointer-events-none"
+          style={{
+            top: 'calc(64px + env(safe-area-inset-top, 0px))',
             height: `${pullDistance}px`,
             transition: isRefreshing ? 'height 0.2s ease-out' : 'none'
           }}
         >
-          <div className={`rounded-full p-3 bg-white dark:bg-gray-800 shadow-md ${isRefreshing ? 'animate-spin' : ''}`}>
-            <RefreshCw 
-              className="h-6 w-6 text-blue-600 dark:text-blue-400" 
-              style={{ 
-                transform: isRefreshing ? 'none' : `rotate(${pullDistance * 3}deg)` 
+          <div className={`rounded-full p-3 bg-white dark:bg-gray-800 shadow-lg ${isRefreshing ? 'animate-spin' : ''} mb-2`}>
+            <RefreshCw
+              className="h-6 w-6 text-blue-600 dark:text-blue-400"
+              style={{
+                transform: isRefreshing ? 'none' : `rotate(${pullDistance * 3}deg)`
               }}
             />
           </div>
