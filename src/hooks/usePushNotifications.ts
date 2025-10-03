@@ -156,10 +156,6 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
         console.log('[PushNotifications] Android FCM token received via registration event');
         setFcmToken(token.value);
         setIsRegistered(true);
-        // Add immediate save if user is already authenticated
-        if (user && !authLoading) {
-          saveFCMTokenToSupabase(token.value, user);
-        }
       }
     });
     
@@ -207,9 +203,6 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
       firebaseMessagingTokenListener = FirebaseMessaging.addListener('tokenReceived', async ({ token }) => {
         console.log('[FirebaseMessaging] Token received event:', token);
         setFcmToken(token);
-        if (user && !authLoading) {
-          await saveFCMTokenToSupabase(token, user);
-        }
       });
     }
 
@@ -269,20 +262,7 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
             }
             setFcmToken(tokenValue);
             setIsRegistered(true);
-            // Add immediate save if user is already authenticated
-            if (user && !authLoading) {
-              console.log('[PushNotifications] User already authenticated during init, saving FCM token immediately.');
-              saveFCMTokenToSupabase(tokenValue, user);
-            } else {
-              console.log('[PushNotifications] Token set, will be saved when auth state changes.');
-            }
-            // Add immediate save if user is already authenticated
-            if (user && !authLoading) {
-              console.log('[PushNotifications] User already authenticated during init, saving FCM token immediately.');
-              saveFCMTokenToSupabase(tokenValue, user);
-            } else {
-              console.log('[PushNotifications] Token set, will be saved when auth state changes.');
-            }
+            console.log('[PushNotifications] Token set in state, will be saved via separate effect when user is available.');
           } else {
             console.error('[PushNotifications] Failed to retrieve FCM token for platform:', platform);
           }
@@ -319,30 +299,31 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
         firebaseMessagingTokenListener.remove();
       }
     };
-  }, [user, authLoading, saveFCMTokenToSupabase]); // Add dependencies
+  }, []); // Empty dependency array - only initialize once
 
-  // Separate effect to handle saving FCM token when user becomes available
+  // Separate effect to handle saving FCM token when user becomes available or token changes
   useEffect(() => {
-    console.log('[PushNotifications] Auth state effect triggered (for saving token):', {
+    console.log('[PushNotifications] Auth/Token state effect triggered (for saving token):', {
       hasUser: !!user,
       userId: user?.id || 'No user',
       authLoading,
-      fcmTokenState: fcmToken,
-      hasFcmTokenState: !!fcmToken,
-      fcmTokenStatePreview: fcmToken ? fcmToken.substring(0, 10) + '...' : 'None'
+      hasFcmToken: !!fcmToken,
+      fcmTokenPreview: fcmToken ? fcmToken.substring(0, 20) + '...' : 'None'
     });
 
-    // Only save token when we have a user, auth is not loading, and we have an FCM token in the state
+    // Save token whenever:
+    // 1. We have an authenticated user
+    // 2. Auth is not loading
+    // 3. We have an FCM token
     if (user && !authLoading && fcmToken) {
-      console.log('[PushNotifications] Conditions met for saving FCM token, proceeding...');
+      console.log('[PushNotifications] All conditions met - saving FCM token to database');
       saveFCMTokenToSupabase(fcmToken, user);
     } else {
-      console.log('[PushNotifications] Conditions not met for saving FCM token:', {
-        hasUser: !!user,
-        authNotLoading: !authLoading,
-        fcmTokenState: fcmToken,
-        hasFcmTokenState: !!fcmToken
-      });
+      const reasons = [];
+      if (!user) reasons.push('no user');
+      if (authLoading) reasons.push('auth still loading');
+      if (!fcmToken) reasons.push('no FCM token yet');
+      console.log('[PushNotifications] Conditions not met for saving FCM token: ' + reasons.join(', '));
     }
   }, [user, authLoading, fcmToken, saveFCMTokenToSupabase]);
 

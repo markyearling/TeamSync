@@ -411,12 +411,10 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         id: profile.id,
         name: profile.name,
         date_of_birth: profile.date_of_birth,
-        user_id: profile.user_id, // Explicitly include user_id
+        user_id: profile.user_id,
         color: profile.color,
         photo_url: profile.photo_url,
         notes: profile.notes,
-        user_id: profile.user_id, // Explicitly include user_id
-        user_id: profile.user_id, // Explicitly include user_id
         sports: profile.profile_sports?.map(sport => ({
           name: sport.sport,
           color: sport.color

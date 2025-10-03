@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import AddEventModal from '../components/events/AddEventModal';
 import EventModal from '../components/events/EventModal';
-import { Filter, Calendar, CalendarIcon, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users, ChevronLeft, ChevronRight, Crown, Eye } from 'lucide-react';
+import { Filter, Calendar, Calendar as CalendarIcon, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users, ChevronLeft, ChevronRight, Crown, Eye } from 'lucide-react';
 import { useProfiles } from '../context/ProfilesContext';
 import { Child, Event } from '../types';
 import { supabase } from '../lib/supabase';
@@ -817,13 +817,12 @@ const ChildProfile: React.FC = () => {
       )}
 
       {selectedEvent && (
-        <EventModal 
-          event={selectedEvent} 
+        <EventModal
+          event={selectedEvent}
           onClose={() => setSelectedEvent(null)}
           mapsLoaded={mapsLoaded}
           mapsLoadError={mapsLoadError}
           userTimezone={userTimezone}
-          onEventUpdated={handleEventUpdated}
           onEventUpdated={handleEventUpdated}
         />
       )}
