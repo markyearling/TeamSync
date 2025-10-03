@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Calendar as CalendarIcon, Users, Clock, ArrowRight, RefreshCw } from 'lucide-react';
+import { Calendar as CalendarIcon, Users, Clock, ArrowRight, RefreshCw, UserPlus, Link as LinkIcon, MapPin } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useNavigate } from 'react-router-dom';
 import EventCard from '../components/events/EventCard';
@@ -703,6 +703,9 @@ const Dashboard: React.FC = () => {
     );
   }
 
+  // Check if user is new (no profiles and no platform connections)
+  const isNewUser = profiles.length === 0 && connectedPlatforms.length === 0 && friendsProfiles.length === 0;
+
   return (
     <div>
       <div className="space-y-6 overflow-y-auto"
@@ -730,6 +733,88 @@ const Dashboard: React.FC = () => {
         </div>
       )}
       
+      {/* Welcome Message for New Users */}
+      {isNewUser && (
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-600 dark:to-blue-700 rounded-lg shadow-lg overflow-hidden mb-6">
+          <div className="px-6 py-8 text-white">
+            <h2 className="text-2xl font-bold mb-2">Welcome to FamSink! 🎉</h2>
+            <p className="text-blue-100 mb-6">
+              Let's get you started by setting up your account. Follow these simple steps:
+            </p>
+
+            <div className="space-y-4">
+              {/* Step 1 */}
+              <div className="flex items-start space-x-4 bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center font-bold">
+                  1
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1 flex items-center">
+                    <UserPlus className="h-5 w-5 mr-2" />
+                    Create Child Profiles
+                  </h3>
+                  <p className="text-blue-100 text-sm mb-3">
+                    Add profiles for your children, yourself, or your family group. These profiles will organize all your activities.
+                  </p>
+                  <button
+                    onClick={() => navigate('/profiles')}
+                    className="inline-flex items-center px-4 py-2 bg-white text-blue-600 rounded-md hover:bg-blue-50 font-medium text-sm transition-colors"
+                  >
+                    Create Your First Profile
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="flex items-start space-x-4 bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center font-bold">
+                  2
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1 flex items-center">
+                    <LinkIcon className="h-5 w-5 mr-2" />
+                    Connect Sports Apps
+                  </h3>
+                  <p className="text-blue-100 text-sm mb-3">
+                    Link your TeamSnap, SportsEngine, GameChanger, or Playmetrics accounts to automatically sync schedules.
+                  </p>
+                  <button
+                    onClick={() => navigate('/connections')}
+                    className="inline-flex items-center px-4 py-2 bg-white/90 text-blue-600 rounded-md hover:bg-white font-medium text-sm transition-colors"
+                  >
+                    Connect Sports Apps
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="flex items-start space-x-4 bg-white/10 backdrop-blur-sm rounded-lg p-4">
+                <div className="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center font-bold">
+                  3
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg mb-1 flex items-center">
+                    <MapPin className="h-5 w-5 mr-2" />
+                    Map Teams to Profiles
+                  </h3>
+                  <p className="text-blue-100 text-sm">
+                    Once you've connected your sports apps, visit each child profile to link their teams. This ensures events appear in the right place!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-white/20">
+              <p className="text-blue-100 text-sm">
+                💡 <strong>Tip:</strong> You can also add friends to share schedules and coordinate activities together!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-row items-center justify-between flex-wrap sm:flex-nowrap space-y-2 sm:space-y-0">
         <h1 className="text-xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
         <div className="flex flex-col items-end">
