@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, ArrowLeft, Plus, Trash2, CheckCircle, XCircle, AlertTriangle, RefreshCw, UserPlus, FileEdit as Edit2, Save, X, Users } from 'lucide-react';
+import { Calendar, ArrowLeft, Plus, Trash2, CheckCircle, XCircle, AlertTriangle, RefreshCw, UserPlus, FileEdit as Edit2, Save, X, Users, Info } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
 
@@ -124,6 +124,7 @@ const SportsEngineConnection: React.FC = () => {
   const [showMappingModal, setShowMappingModal] = useState<string | null>(null);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
   const [refreshingTeam, setRefreshingTeam] = useState<string | null>(null);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   useEffect(() => {
     fetchTeams();
@@ -556,9 +557,33 @@ const SportsEngineConnection: React.FC = () => {
               <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Add Team Calendar</h2>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label htmlFor="ics-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Calendar URL
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="ics-url" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Calendar URL
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowInstructions(!showInstructions)}
+                      className="flex items-center text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                    >
+                      <Info className="h-4 w-4 mr-1" />
+                      How to get URL
+                    </button>
+                  </div>
+
+                  {showInstructions && (
+                    <div className="mt-3 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                      <h4 className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">How to get your SportsEngine Calendar URL:</h4>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-blue-800 dark:text-blue-300">
+                        <li>Navigate to your Team Page in SportsEngine</li>
+                        <li>Click on <strong>Schedule</strong></li>
+                        <li>Click on <strong>Subscribe</strong> at the bottom</li>
+                        <li>Click on <strong>Other Calendar</strong></li>
+                        <li>Paste the link into the text input below</li>
+                      </ol>
+                    </div>
+                  )}
+
                   <div className="mt-1">
                     <input
                       type="url"
