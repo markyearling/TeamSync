@@ -612,7 +612,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   };
 
   return (
-    <div 
+    <div
       className={containerClasses}
       style={isNative ? {
         paddingTop: 'env(safe-area-inset-top)',
@@ -621,15 +621,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         paddingRight: 'env(safe-area-inset-right)'
       } : {}}
     >
-      <div 
+      <div
         ref={modalRef}
         className={modalContentClasses}
-        style={isNative ? {
-          paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : 'env(safe-area-inset-bottom)',
-          paddingLeft: 'env(safe-area-inset-left)',
-          paddingRight: 'env(safe-area-inset-right)'
-        } : {}}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -771,7 +765,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         )}
 
         {/* Message Input */}
-        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div
+          className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0"
+          style={isNative && keyboardHeight > 0 ? {
+            marginBottom: `${keyboardHeight}px`
+          } : {}}
+        >
           <div className="flex space-x-3">
             <button
               onClick={() => setShowEmoticons(!showEmoticons)}
