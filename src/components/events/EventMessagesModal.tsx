@@ -351,6 +351,27 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
 
       console.log('Event message sent successfully:', insertedMessage);
 
+      // Send notification to users with access to this event
+      try {
+        const notificationResponse = await supabase.functions.invoke('create-event-message-notification', {
+          body: {
+            message_id: insertedMessage.id,
+            event_id: event.id.toString(),
+            sender_id: currentUserId,
+            content: messageContent,
+            image_url: imageUrl
+          }
+        });
+
+        if (notificationResponse.error) {
+          console.error('Error sending event message notifications:', notificationResponse.error);
+        } else {
+          console.log('Event message notifications sent:', notificationResponse.data);
+        }
+      } catch (notifError) {
+        console.error('Exception sending event message notifications:', notifError);
+      }
+
       // Add message optimistically for immediate feedback
       const messageWithSender = {
         ...insertedMessage,
