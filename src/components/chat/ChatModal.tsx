@@ -225,6 +225,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           // Mark message as read if it's not from current user and modal is open
           if (newMessage.sender_id !== currentUserId) {
             await markMessageAsRead(newMessage.id);
+            // Update last read timestamp since user is actively viewing messages
+            await updateLastReadTimestamp(conversation.id, currentUserId);
           }
         }
       )
@@ -408,7 +410,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
     setSending(true);
     const messageContent = newMessage.trim();
-    
+
     // Clear input immediately for better UX
     setNewMessage('');
     setShowEmoticons(false);
@@ -441,12 +443,47 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           return prev;
         }
         const newMessages = [...prev, messageWithSender];
-        
+
         // Auto-scroll to bottom when sending message
         setTimeout(() => forceScrollToBottom(), 50);
-        
+
         return newMessages;
       });
+
+      // Check if notification should be sent
+      const { data: shouldNotify } = await supabase
+        .rpc('should_send_message_notification', {
+          p_conversation_id: conversation.id,
+          p_sender_id: currentUserId
+        });
+
+      if (shouldNotify) {
+        console.log('Sending notification for first unread message');
+        // Send notification via edge function
+        try {
+          const { data: authData } = await supabase.auth.getSession();
+          const token = authData.session?.access_token;
+
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-message-notification`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              message_id: insertedMessage.id,
+              conversation_id: conversation.id,
+              sender_id: currentUserId,
+              content: messageContent
+            })
+          });
+        } catch (notifError) {
+          console.error('Error sending notification:', notifError);
+          // Don't throw - message was sent successfully
+        }
+      } else {
+        console.log('Skipping notification - recipient has unread messages');
+      }
 
     } catch (error) {
       console.error('Error sending message:', error);
@@ -483,25 +520,51 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         .eq('conversation_id', conversationId)
         .neq('sender_id', userId)
         .eq('read', false);
-        
+
       if (countError) {
         console.error('Error marking conversation as read:', countError);
       }
-      
+
       // Use the database function to ensure all messages are marked as read
       const { error: funcError } = await supabase.rpc(
         'mark_conversation_messages_read',
-        { 
+        {
           conversation_id_param: conversationId,
           user_id_param: userId
         }
       );
-      
+
       if (funcError) {
         console.error('Error calling mark_conversation_messages_read function:', funcError);
       }
+
+      // Update the conversation's last_read_at timestamp for this user
+      await updateLastReadTimestamp(conversationId, userId);
     } catch (error) {
       console.error('Error marking conversation as read:', error);
+    }
+  };
+
+  const updateLastReadTimestamp = async (conversationId: string, userId: string) => {
+    try {
+      if (!conversation) return;
+
+      // Determine which participant field to update
+      const isParticipant1 = conversation.participant_1_id === userId;
+      const fieldToUpdate = isParticipant1 ? 'participant_1_last_read_at' : 'participant_2_last_read_at';
+
+      const { error } = await supabase
+        .from('conversations')
+        .update({ [fieldToUpdate]: new Date().toISOString() })
+        .eq('id', conversationId);
+
+      if (error) {
+        console.error('Error updating last read timestamp:', error);
+      } else {
+        console.log('Updated last read timestamp for user');
+      }
+    } catch (error) {
+      console.error('Error updating last read timestamp:', error);
     }
   };
 
