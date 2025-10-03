@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Users, 
-  UserPlus, 
-  Check, 
-  X, 
-  Search, 
-  Mail, 
-  Shield, 
+import {
+  Users,
+  UserPlus,
+  Check,
+  X,
+  Search,
+  Mail,
+  Shield,
   Eye,
   Trash2,
   Clock,
@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
+import { useCapacitor } from '../../hooks/useCapacitor';
 import EditFriendRoleModal from './EditFriendRoleModal';
 
 interface User {
@@ -47,6 +48,7 @@ interface FriendRequest {
 
 const FriendsManager: React.FC = () => {
   const { fetchAllProfiles } = useProfiles();
+  const { isNative } = useCapacitor();
   const [friends, setFriends] = useState<Friend[]>([]);
   const [incomingRequests, setIncomingRequests] = useState<FriendRequest[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<FriendRequest[]>([]);
@@ -808,51 +810,57 @@ const FriendsManager: React.FC = () => {
         {friends.length > 0 ? (
           <div className="space-y-2">
             {friends.map(friend => (
-              <div key={friend.id} className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-md border border-gray-200 dark:border-gray-600">
-                <div className="flex items-center flex-1">
-                  <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-500 flex items-center justify-center mr-3">
+              <div key={friend.id} className={`flex items-center justify-between bg-white dark:bg-gray-700 rounded-md border border-gray-200 dark:border-gray-600 ${isNative ? 'p-2' : 'p-3'}`}>
+                <div className="flex items-center flex-1 min-w-0">
+                  <div className={`rounded-full bg-gray-300 dark:bg-gray-500 flex items-center justify-center flex-shrink-0 ${isNative ? 'w-8 h-8 mr-2' : 'w-8 h-8 mr-3'}`}>
                     {friend.friend.profile_photo_url ? (
-                      <img src={friend.friend.profile_photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                      <img src={friend.friend.profile_photo_url} alt="" className={`rounded-full object-cover ${isNative ? 'w-8 h-8' : 'w-8 h-8'}`} />
                     ) : (
-                      <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
+                      <span className={`font-medium text-gray-600 dark:text-gray-300 ${isNative ? 'text-xs' : 'text-sm'}`}>
                         {(friend.friend.full_name || 'U').charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  <div className="flex-1 min-w-0">
+                    <div className={`font-medium text-gray-900 dark:text-white truncate ${isNative ? 'text-sm' : 'text-sm'}`}>
                       {friend.friend.full_name || 'No name set'}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{friend.friend.email || `ID: ${friend.friend_id.slice(0, 8)}...`}</div>
-                    
+                    {!isNative && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400">{friend.friend.email || `ID: ${friend.friend_id.slice(0, 8)}...`}</div>
+                    )}
+
                     {/* Access Level Display */}
-                    <div className="mt-1 flex items-center">
-                      {getRoleIcon(friend.role)}
-                      <div className="ml-1 flex-1">
-                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                    <div className={`flex items-center ${isNative ? 'mt-0.5' : 'mt-1'}`}>
+                      <div className="flex-shrink-0">
+                        {getRoleIcon(friend.role)}
+                      </div>
+                      <div className="ml-1 flex-1 min-w-0">
+                        <span className={`text-gray-600 dark:text-gray-400 ${isNative ? 'text-xs' : 'text-xs'}`}>
                           {getRoleLabel(friend.role)}
                         </span>
-                        <div className="text-xs text-gray-500 dark:text-gray-500">
-                          {getAccessLevelDescription(friend.role)}
-                        </div>
+                        {!isNative && (
+                          <div className="text-xs text-gray-500 dark:text-gray-500">
+                            {getAccessLevelDescription(friend.role)}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1 flex-shrink-0">
                   <button
                     onClick={() => startEditingRole(friend.id, friend.role, friend.friend.full_name || 'Friend')}
-                    className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600"
+                    className={`text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 ${isNative ? 'p-1.5' : 'p-2'}`}
                     title="Edit access level"
                   >
-                    <Shield className="h-4 w-4" />
+                    <Shield className={isNative ? 'h-4 w-4' : 'h-4 w-4'} />
                   </button>
                   <button
                     onClick={() => removeFriend(friend.id)}
-                    className="p-2 text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600"
+                    className={`text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 ${isNative ? 'p-1.5' : 'p-2'}`}
                     title="Remove friend"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className={isNative ? 'h-4 w-4' : 'h-4 w-4'} />
                   </button>
                 </div>
               </div>
