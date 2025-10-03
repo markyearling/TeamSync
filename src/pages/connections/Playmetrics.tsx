@@ -1,21 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  BarChart, 
-  ArrowLeft, 
-  Plus, 
-  Calendar, 
-  Trash2, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle,
-  RefreshCw,
-  UserPlus,
-  Edit2,
-  Save,
-  X,
-  Users
-} from 'lucide-react';
+import { BarChart, ArrowLeft, Plus, Calendar, Trash2, CheckCircle, XCircle, AlertTriangle, RefreshCw, UserPlus, FileEdit as Edit2, Save, X, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
 
@@ -573,7 +558,7 @@ const Playmetrics: React.FC = () => {
                       value={icsUrl}
                       onChange={(e) => setIcsUrl(e.target.value)}
                       placeholder="https://api.playmetrics.com/calendar/1079/team/220548-46283CA0.ics or webcal://api.playmetrics.com/calendar/1079/team/220548"
-                      className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-green-500 focus:ring-green-500 dark:bg-gray-700 dark:text-white"
+                      className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-green-500 focus:ring-green-500 bg-gray-100 dark:bg-gray-700 dark:text-white"
                       required
                     />
                   </div>

@@ -1,20 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Calendar, 
-  ArrowLeft, 
-  Plus, 
-  Trash2, 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle,
-  RefreshCw,
-  UserPlus,
-  Edit2,
-  Save,
-  X,
-  Users
-} from 'lucide-react';
+import { Calendar, ArrowLeft, Plus, Trash2, CheckCircle, XCircle, AlertTriangle, RefreshCw, UserPlus, FileEdit as Edit2, Save, X, Users } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
 
@@ -580,7 +566,7 @@ const SportsEngineConnection: React.FC = () => {
                       value={icsUrl}
                       onChange={(e) => setIcsUrl(e.target.value)}
                       placeholder="https://api.sportsengine.com/v1/teams/12345/events.ics or webcal://api.sportsengine.com/v1/teams/12345/events"
-                      className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                      className="block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-gray-100 dark:bg-gray-700 dark:text-white"
                       required
                     />
                   </div>
