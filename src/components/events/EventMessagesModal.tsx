@@ -1,14 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, MessageCircle, User, Loader2 } from 'lucide-react';
+import { X, Send, MessageCircle, User, Loader2, Camera, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Event } from '../../types';
 import { useCapacitor } from '../../hooks/useCapacitor';
+import { useCamera } from '../../hooks/useCamera';
+import { Keyboard } from '@capacitor/keyboard';
+import { uploadEventMessageImage, uploadEventMessageImageFromFile, deleteEventMessageImage } from '../../utils/imageUpload';
 
 interface EventMessage {
   id: string;
   event_id: string;
   sender_id: string;
   content: string;
+  image_url?: string | null;
+  has_image?: boolean;
   created_at: string;
   updated_at: string;
   sender?: {
@@ -29,12 +34,19 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
   const [sending, setSending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserInfo, setCurrentUserInfo] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [showImageOptions, setShowImageOptions] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const subscriptionRef = useRef<any>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const { isNative } = useCapacitor();
+  const { takePhoto, selectFromGallery } = useCamera();
 
   // Auto-scroll to bottom function
   const scrollToBottom = (behavior: 'smooth' | 'auto' = 'auto') => {
@@ -58,6 +70,26 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
   const modalContentClasses = isNative
     ? "flex flex-col h-full w-full overflow-hidden"
     : "bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl h-full max-h-[90vh] overflow-hidden flex flex-col";
+
+  // Handle keyboard height adjustments for mobile
+  useEffect(() => {
+    if (!isNative) return;
+
+    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', (info) => {
+      console.log('Keyboard will show, height:', info.keyboardHeight);
+      setKeyboardHeight(info.keyboardHeight);
+    });
+
+    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+      console.log('Keyboard will hide');
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, [isNative]);
 
   useEffect(() => {
     initializeMessages();
@@ -264,32 +296,65 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !currentUserId || sending) return;
+    if ((!newMessage.trim() && !selectedImage) || !currentUserId || sending) return;
 
     setSending(true);
-    const messageContent = newMessage.trim();
-    
+    const messageContent = newMessage.trim() || ' ';
+    const imageToUpload = selectedImage;
+
     // Clear input immediately for better UX
     setNewMessage('');
+    setSelectedImage(null);
 
     try {
-      const { data: insertedMessage, error } = await supabase
+      let imageUrl: string | null = null;
+
+      // First insert the message to get the message ID
+      const { data: insertedMessage, error: insertError } = await supabase
         .from('event_messages')
         .insert({
           event_id: event.id,
           sender_id: currentUserId,
-          content: messageContent
+          content: messageContent,
+          has_image: !!imageToUpload,
+          image_url: null
         })
         .select()
         .single();
 
-      if (error) throw error;
+      if (insertError) throw insertError;
+
+      // Upload image if there is one
+      if (imageToUpload && insertedMessage) {
+        const uploadResult = await uploadEventMessageImage(
+          imageToUpload,
+          event.id.toString(),
+          insertedMessage.id
+        );
+
+        if (uploadResult.url) {
+          imageUrl = uploadResult.url;
+
+          // Update message with image URL
+          const { error: updateError } = await supabase
+            .from('event_messages')
+            .update({ image_url: imageUrl })
+            .eq('id', insertedMessage.id);
+
+          if (updateError) {
+            console.error('Error updating message with image URL:', updateError);
+          }
+        } else {
+          console.error('Error uploading image:', uploadResult.error);
+        }
+      }
 
       console.log('Event message sent successfully:', insertedMessage);
 
       // Add message optimistically for immediate feedback
       const messageWithSender = {
         ...insertedMessage,
+        image_url: imageUrl,
         sender: currentUserInfo
       };
 
@@ -300,10 +365,10 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
           return prev;
         }
         const newMessages = [...prev, messageWithSender];
-        
+
         // Auto-scroll to bottom when sending message
         setTimeout(() => forceScrollToBottom(), 50);
-        
+
         return newMessages;
       });
 
@@ -311,6 +376,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
       console.error('Error sending event message:', error);
       // Restore input on error
       setNewMessage(messageContent);
+      setSelectedImage(imageToUpload);
     } finally {
       setSending(false);
     }
@@ -323,31 +389,66 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
     }
   };
 
+  const handleImageSelect = async () => {
+    if (!isNative) {
+      fileInputRef.current?.click();
+      return;
+    }
+    setShowImageOptions(true);
+  };
+
+  const handleTakePhoto = async () => {
+    const photoDataUrl = await takePhoto();
+    if (photoDataUrl) {
+      setSelectedImage(photoDataUrl);
+    }
+    setShowImageOptions(false);
+  };
+
+  const handleSelectFromGallery = async () => {
+    const photoDataUrl = await selectFromGallery();
+    if (photoDataUrl) {
+      setSelectedImage(photoDataUrl);
+    }
+    setShowImageOptions(false);
+  };
+
+  const handleWebFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSelectedImage(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
     if (diffInHours < 24) {
-      return date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
+      return date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
         minute: '2-digit',
-        hour12: true 
+        hour12: true
       });
     } else if (diffInHours < 24 * 7) {
-      return date.toLocaleDateString('en-US', { 
+      return date.toLocaleDateString('en-US', {
         weekday: 'short',
-        hour: 'numeric', 
+        hour: 'numeric',
         minute: '2-digit',
-        hour12: true 
+        hour12: true
       });
     } else {
-      return date.toLocaleDateString('en-US', { 
+      return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
-        hour: 'numeric', 
+        hour: 'numeric',
         minute: '2-digit',
-        hour12: true 
+        hour12: true
       });
     }
   };
@@ -450,7 +551,20 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
                       }`}
                     >
-                      <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                      {message.image_url && (
+                        <div className="mb-2">
+                          <img
+                            src={message.image_url}
+                            alt="Shared image"
+                            className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setViewingImage(message.image_url!)}
+                            style={{ maxHeight: '300px', objectFit: 'contain' }}
+                          />
+                        </div>
+                      )}
+                      {message.content.trim() !== ' ' && (
+                        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                      )}
                     </div>
                     <div className={`mt-1 text-xs text-gray-500 dark:text-gray-400 ${
                       isCurrentUser ? 'text-right' : 'text-left'
@@ -472,8 +586,42 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
         </div>
 
         {/* Message Input */}
-        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className="flex space-x-3">
+        <div
+          className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0"
+          style={isNative && keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px` } : {}}
+        >
+          {/* Image Preview */}
+          {selectedImage && (
+            <div className="mb-3 relative inline-block">
+              <img
+                src={selectedImage}
+                alt="Selected"
+                className="max-h-32 rounded-lg"
+              />
+              <button
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          <div className="flex items-end space-x-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleWebFileSelect}
+            />
+            <button
+              onClick={handleImageSelect}
+              disabled={sending || uploadingImage}
+              className="flex-shrink-0 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Add image"
+            >
+              <Camera className="h-5 w-5" />
+            </button>
             <input
               ref={inputRef}
               type="text"
@@ -482,8 +630,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
               onKeyPress={handleKeyPress}
               onFocus={() => {
                 console.log('Event message input focused - keyboard should appear');
-                // Scroll to bottom when input is focused to ensure visibility
-                setTimeout(() => forceScrollToBottom(), 100);
+                setTimeout(() => forceScrollToBottom(), 300);
               }}
               placeholder="Type a message about this event..."
               className="flex-1 rounded-full border border-gray-300 dark:border-gray-600 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
@@ -491,8 +638,8 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
             />
             <button
               onClick={sendMessage}
-              disabled={!newMessage.trim() || sending}
-              className="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={(!newMessage.trim() && !selectedImage) || sending}
+              className="flex-shrink-0 bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {sending ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -503,6 +650,65 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
           </div>
         </div>
       </div>
+
+      {/* Image Viewing Lightbox */}
+      {viewingImage && (
+        <div
+          className="fixed inset-0 z-[1000] bg-black bg-opacity-90 flex items-center justify-center p-4"
+          onClick={() => setViewingImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-full">
+            <button
+              onClick={() => setViewingImage(null)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300"
+            >
+              <X className="h-8 w-8" />
+            </button>
+            <img
+              src={viewingImage}
+              alt="Full size"
+              className="max-w-full max-h-[90vh] object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Image Options Modal */}
+      {showImageOptions && isNative && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-[1000]">
+          <div className="bg-white dark:bg-gray-800 rounded-t-lg w-full max-w-md p-6 space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center">
+              Add Image
+            </h3>
+
+            <div className="space-y-3">
+              <button
+                onClick={handleTakePhoto}
+                className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                <Camera className="h-5 w-5 mr-2" />
+                Take Photo
+              </button>
+
+              <button
+                onClick={handleSelectFromGallery}
+                className="w-full flex items-center justify-center px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              >
+                <ImageIcon className="h-5 w-5 mr-2" />
+                Choose from Gallery
+              </button>
+
+              <button
+                onClick={() => setShowImageOptions(false)}
+                className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
