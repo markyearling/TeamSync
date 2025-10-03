@@ -370,34 +370,40 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
   const loadMessages = async (conversationId: string) => {
     try {
-      // Load only the most recent messages for faster initial loading
+      // Load messages in chronological order
       const { data: messagesData, error } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: false })
+        .order('created_at', { ascending: true })
         .limit(INITIAL_MESSAGE_LOAD_LIMIT);
 
       if (error) throw error;
 
-      // Reverse the array to display messages in chronological order (oldest first)
-      const reversedMessages = (messagesData || []).reverse();
+      if (!messagesData || messagesData.length === 0) {
+        setMessages([]);
+        return;
+      }
 
-      // Get sender info for each message
-      const messagesWithSenders = await Promise.all(
-        reversedMessages.map(async (message) => {
-          const { data: senderSettings } = await supabase
-            .from('user_settings')
-            .select('full_name, profile_photo_url')
-            .eq('user_id', message.sender_id)
-            .maybeSingle();
+      // Get unique sender IDs
+      const senderIds = [...new Set(messagesData.map(m => m.sender_id))];
 
-          return {
-            ...message,
-            sender: senderSettings
-          };
-        })
+      // Batch fetch sender info for all unique senders
+      const { data: sendersData } = await supabase
+        .from('user_settings')
+        .select('user_id, full_name, profile_photo_url')
+        .in('user_id', senderIds);
+
+      // Create a map for quick lookup
+      const sendersMap = new Map(
+        sendersData?.map(s => [s.user_id, s]) || []
       );
+
+      // Attach sender info to messages
+      const messagesWithSenders = messagesData.map(message => ({
+        ...message,
+        sender: sendersMap.get(message.sender_id)
+      }));
 
       setMessages(messagesWithSenders);
     } catch (error) {
@@ -416,16 +422,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     setShowEmoticons(false);
 
     try {
-      // Check if notification should be sent BEFORE inserting the message
-      const { data: shouldNotify } = await supabase
-        .rpc('should_send_message_notification', {
-          p_conversation_id: conversation.id,
-          p_sender_id: currentUserId
-        });
-
-      console.log('Should send notification:', shouldNotify);
-
-      // Now insert the message
+      // Insert the message immediately without waiting for notification logic
       const { data: insertedMessage, error } = await supabase
         .from('messages')
         .insert({
@@ -460,37 +457,39 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         return newMessages;
       });
 
-      // Send notification if needed
-      if (shouldNotify) {
-        console.log('Sending notification for first unread message');
-        // Send notification via edge function
+      // Handle notification asynchronously in the background (non-blocking)
+      (async () => {
         try {
-          const { data: authData } = await supabase.auth.getSession();
-          const token = authData.session?.access_token;
+          // Check if notification should be sent
+          const { data: shouldNotify } = await supabase
+            .rpc('should_send_message_notification', {
+              p_conversation_id: conversation.id,
+              p_sender_id: currentUserId
+            });
 
-          const notifResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-message-notification`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-              message_id: insertedMessage.id,
-              conversation_id: conversation.id,
-              sender_id: currentUserId,
-              content: messageContent
-            })
-          });
+          if (shouldNotify) {
+            console.log('Sending notification for first unread message');
+            const { data: authData } = await supabase.auth.getSession();
+            const token = authData.session?.access_token;
 
-          const notifResult = await notifResponse.json();
-          console.log('Notification response:', notifResult);
+            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-message-notification`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                message_id: insertedMessage.id,
+                conversation_id: conversation.id,
+                sender_id: currentUserId,
+                content: messageContent
+              })
+            });
+          }
         } catch (notifError) {
-          console.error('Error sending notification:', notifError);
-          // Don't throw - message was sent successfully
+          console.error('Error sending notification (background):', notifError);
         }
-      } else {
-        console.log('Skipping notification - recipient has unread messages');
-      }
+      })();
 
     } catch (error) {
       console.error('Error sending message:', error);
