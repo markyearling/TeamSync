@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, Edit, MessageCircle } from 'lucide-react';
+import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, FileEdit as Edit, MessageCircle } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import { GoogleMap } from '@react-google-maps/api';
@@ -17,9 +17,10 @@ interface EventModalProps {
   mapsLoadError: Error | undefined;
   userTimezone?: string;
   onEventUpdated?: () => void;
+  shouldOpenMessages?: boolean;
 }
 
-const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, mapsLoadError, userTimezone = 'UTC', onEventUpdated }) => {
+const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, mapsLoadError, userTimezone = 'UTC', onEventUpdated, shouldOpenMessages = false }) => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showMessagesModal, setShowMessagesModal] = useState(false);
@@ -37,6 +38,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     }
     onClose(); // Close the modal after updating
   };
+
+  // Open messages modal if shouldOpenMessages is true
+  useEffect(() => {
+    if (shouldOpenMessages) {
+      setShowMessagesModal(true);
+    }
+  }, [shouldOpenMessages]);
 
   // Helper function to format date
   const formatDate = (date: Date) => {

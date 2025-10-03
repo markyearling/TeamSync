@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  ChevronLeft, 
+import {
+  ChevronLeft,
   ChevronRight,
   Filter,
   Calendar as CalendarIcon,
@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useProfiles } from '../context/ProfilesContext';
 import { supabase } from '../lib/supabase';
+import { useLocation } from 'react-router-dom';
 import CalendarHeader from '../components/calendar/CalendarHeader';
 import MonthView from '../components/calendar/MonthView';
 import WeekView from '../components/calendar/WeekView';
@@ -27,6 +28,7 @@ type ViewType = 'month' | 'week' | 'day' | 'agenda';
 
 const Calendar: React.FC = () => {
   const { profiles, friendsProfiles } = useProfiles();
+  const location = useLocation();
   const [events, setEvents] = useState<Event[]>([]);
   const [friendsEvents, setFriendsEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +41,7 @@ const Calendar: React.FC = () => {
   const [showFriendsEvents, setShowFriendsEvents] = useState(true);
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [shouldOpenMessages, setShouldOpenMessages] = useState(false);
 
   // Centralized Google Maps loading
   const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
@@ -212,6 +215,23 @@ const Calendar: React.FC = () => {
       isMounted = false;
     };
   }, [fetchAllData]);
+
+  // Handle navigation from notifications
+  useEffect(() => {
+    const state = location.state as { openEventId?: string; openMessages?: boolean } | null;
+    if (state?.openEventId && !loading) {
+      // Find the event in all events
+      const allEvents = [...events, ...friendsEvents];
+      const eventToOpen = allEvents.find(e => e.id === state.openEventId);
+
+      if (eventToOpen) {
+        setSelectedEvent(eventToOpen);
+        setShouldOpenMessages(state.openMessages || false);
+        // Clear the state
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, events, friendsEvents, loading]);
 
   // Initialize selected profiles when profiles change
   useEffect(() => {
@@ -565,13 +585,17 @@ const Calendar: React.FC = () => {
       </div>
 
       {selectedEvent && (
-        <EventModal 
-          event={selectedEvent} 
-          onClose={() => setSelectedEvent(null)}
+        <EventModal
+          event={selectedEvent}
+          onClose={() => {
+            setSelectedEvent(null);
+            setShouldOpenMessages(false);
+          }}
           mapsLoaded={mapsLoaded}
           mapsLoadError={mapsLoadError}
           userTimezone={userTimezone}
           onEventUpdated={refreshCalendarEvents}
+          shouldOpenMessages={shouldOpenMessages}
         />
       )}
     </div>

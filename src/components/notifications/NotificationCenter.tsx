@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Bell, X, Check, UserPlus, Calendar, MessageSquare, Clock, Trash2, BookMarked as MarkAsRead } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCapacitor } from '../../hooks/useCapacitor';
+import { useNavigate } from 'react-router-dom';
 
 interface Notification {
   id: string;
   user_id: string;
-  type: 'friend_request' | 'schedule_change' | 'new_event' | 'message';
+  type: 'friend_request' | 'schedule_change' | 'new_event' | 'message' | 'event_message';
   title: string;
   message: string;
   read: boolean;
@@ -26,6 +27,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
   const [error, setError] = useState<string | null>(null);
   const subscriptionRef = useRef<any>(null);
   const { isNative } = useCapacitor();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchNotifications();
@@ -55,7 +57,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
             (payload) => {
               console.log('Notification change received:', payload);
               
-              // Only handle non-message notifications
+              // Only handle non-direct-message notifications (1-on-1 chat)
               if (payload.new && payload.new.type !== 'message') {
                 if (payload.eventType === 'INSERT') {
                   // Add new notification to the top of the list
@@ -96,12 +98,12 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
       if (userError) throw userError;
       if (!user) return;
 
-      // Fetch notifications excluding message notifications
+      // Fetch notifications excluding direct message notifications (1-on-1 chat)
       const { data: notificationsData, error: notificationsError } = await supabase
         .from('notifications')
         .select('*')
         .eq('user_id', user.id)
-        .neq('type', 'message') // Exclude message notifications
+        .neq('type', 'message') // Exclude 1-on-1 message notifications
         .order('created_at', { ascending: false });
 
       if (notificationsError) throw notificationsError;
@@ -121,8 +123,15 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
       await markAsRead(notification.id);
     }
 
-    // Handle different notification types (excluding messages since they're not shown here)
-    // Message handling is removed since messages are not displayed in this component
+    // Handle different notification types
+    if (notification.type === 'event_message') {
+      // Navigate to calendar with the event ID
+      const eventId = notification.data?.event_id;
+      if (eventId) {
+        onClose();
+        navigate('/calendar', { state: { openEventId: eventId, openMessages: true } });
+      }
+    }
   };
 
   const handleFriendRequestAction = async (notification: Notification, action: 'accept' | 'decline') => {
@@ -201,7 +210,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
         .update({ read: true })
         .eq('user_id', user.id)
         .eq('read', false)
-        .neq('type', 'message'); // Only mark non-message notifications as read
+        .neq('type', 'message'); // Only mark non-direct-message notifications as read
 
       if (error) throw error;
 
@@ -237,7 +246,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
         .from('notifications')
         .delete()
         .eq('user_id', user.id)
-        .neq('type', 'message'); // Only clear non-message notifications
+        .neq('type', 'message'); // Only clear non-direct-message notifications
 
       if (error) throw error;
 
@@ -255,6 +264,8 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({ onClose, onOpen
         return <Calendar className="h-5 w-5 text-green-500" />;
       case 'schedule_change':
         return <Clock className="h-5 w-5 text-orange-500" />;
+      case 'event_message':
+        return <MessageSquare className="h-5 w-5 text-purple-500" />;
       default:
         return <Bell className="h-5 w-5 text-gray-500" />;
     }
