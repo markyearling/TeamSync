@@ -416,6 +416,16 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     setShowEmoticons(false);
 
     try {
+      // Check if notification should be sent BEFORE inserting the message
+      const { data: shouldNotify } = await supabase
+        .rpc('should_send_message_notification', {
+          p_conversation_id: conversation.id,
+          p_sender_id: currentUserId
+        });
+
+      console.log('Should send notification:', shouldNotify);
+
+      // Now insert the message
       const { data: insertedMessage, error } = await supabase
         .from('messages')
         .insert({
@@ -450,13 +460,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         return newMessages;
       });
 
-      // Check if notification should be sent
-      const { data: shouldNotify } = await supabase
-        .rpc('should_send_message_notification', {
-          p_conversation_id: conversation.id,
-          p_sender_id: currentUserId
-        });
-
+      // Send notification if needed
       if (shouldNotify) {
         console.log('Sending notification for first unread message');
         // Send notification via edge function
@@ -464,7 +468,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           const { data: authData } = await supabase.auth.getSession();
           const token = authData.session?.access_token;
 
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-message-notification`, {
+          const notifResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-message-notification`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -477,6 +481,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
               content: messageContent
             })
           });
+
+          const notifResult = await notifResponse.json();
+          console.log('Notification response:', notifResult);
         } catch (notifError) {
           console.error('Error sending notification:', notifError);
           // Don't throw - message was sent successfully
