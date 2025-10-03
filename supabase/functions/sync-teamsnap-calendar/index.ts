@@ -198,10 +198,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
     console.log(`Found ${events.length} events from TeamSnap API`); // Added logging
 
     // Transform TeamSnap events for database storage
-    const eventsToInsert = events.filter(event => event.start_date).map(event => {
+    const eventsToUpsert = events.filter(event => event.start_date && event.id).map(event => {
       // Format the title based on event type and is_game flag
       let title = 'TeamSnap Event';
-      
+
       if (event.type) {
         title = event.type.charAt(0).toUpperCase() + event.type.slice(1);
         if (event.is_game) {
@@ -222,6 +222,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
 
       return {
+        external_id: String(event.id), // TeamSnap event ID
         title: title,
         description: description,
         start_time: event.start_date,
@@ -237,45 +238,66 @@ Deno.serve(async (req: Request): Promise<Response> => {
       };
     });
 
-    console.log(`Transformed ${eventsToInsert.length} valid events for database insertion`); // Added logging
+    console.log(`Transformed ${eventsToUpsert.length} valid events for database upsert`);
 
-    // Delete existing events for this profile and team to avoid duplicates
-    console.log('Deleting existing TeamSnap events for this profile and team...');
-    const { error: deleteError } = await supabaseClient
-      .from('events')
-      .delete()
-      .eq('platform_team_id', teamId)
-      .eq('platform', 'TeamSnap');
+    // Get external IDs of events from API
+    const apiEventIds = eventsToUpsert.map(e => e.external_id);
 
-    console.log('Delete existing events error:', deleteError); // Added logging
-    if (deleteError) {
-      console.error('Error deleting existing events:', deleteError);
-      throw new Error(`Failed to delete existing events: ${deleteError.message}`);
-    }
-
-    // Insert new events
-    if (eventsToInsert.length > 0) {
-      console.log('Inserting new TeamSnap events...'); // Added logging
-      const { error: eventsError } = await supabaseClient
+    // Delete events that no longer exist in the API response
+    // This preserves events that still exist (and their messages) while removing stale ones
+    if (apiEventIds.length > 0) {
+      console.log('Deleting stale TeamSnap events not in API response...');
+      const { error: deleteError } = await supabaseClient
         .from('events')
-        .insert(eventsToInsert);
+        .delete()
+        .eq('platform_team_id', teamId)
+        .eq('platform', 'TeamSnap')
+        .not('external_id', 'in', `(${apiEventIds.join(',')})`);
 
-      console.log('Insert events error:', eventsError); // Added logging
-      if (eventsError) {
-        console.error('Error inserting events:', eventsError);
-        throw eventsError;
+      if (deleteError) {
+        console.warn('Error deleting stale events:', deleteError.message);
       }
-    } else { // Added logging
-      console.log('No events to insert');
+    } else {
+      // No events from API, delete all platform events for this team
+      console.log('No events from API, deleting all TeamSnap events for this team...');
+      await supabaseClient
+        .from('events')
+        .delete()
+        .eq('platform_team_id', teamId)
+        .eq('platform', 'TeamSnap');
     }
 
-    console.log(`Successfully synced ${eventsToInsert.length} TeamSnap events for profile ${profileId}`);
+    // Upsert events (insert new, update existing)
+    if (eventsToUpsert.length > 0) {
+      console.log('Upserting TeamSnap events...');
+
+      // Use raw SQL for proper upsert with external_id
+      for (const event of eventsToUpsert) {
+        const { error: upsertError } = await supabaseClient
+          .from('events')
+          .upsert(event, {
+            onConflict: 'platform,platform_team_id,external_id',
+            ignoreDuplicates: false
+          });
+
+        if (upsertError) {
+          console.error('Error upserting event:', event.external_id, upsertError);
+          throw upsertError;
+        }
+      }
+
+      console.log(`Successfully upserted ${eventsToUpsert.length} events`);
+    } else {
+      console.log('No events to upsert');
+    }
+
+    console.log(`Successfully synced ${eventsToUpsert.length} TeamSnap events for profile ${profileId}`);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'TeamSnap calendar synced successfully', 
-        eventCount: eventsToInsert.length
+      JSON.stringify({
+        success: true,
+        message: 'TeamSnap calendar synced successfully',
+        eventCount: eventsToUpsert.length
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
