@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Globe, Lock, Mail, Moon, Sun, User, Phone, Calendar as CalendarIcon, Plus, Trash2, Save, Clock, Eye, EyeOff, AlertCircle, CheckCircle, X } from 'lucide-react';
+import { Bell, Globe, Lock, Mail, Moon, Sun, User, Phone, Calendar as CalendarIcon, Plus, Trash2, Save, Clock, Eye, EyeOff, AlertCircle, CheckCircle, X, LogOut } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { saveSettings, supabase } from '../lib/supabase';
 import { useCapacitor } from '../hooks/useCapacitor';
@@ -711,12 +711,37 @@ const Settings: React.FC = () => {
               </div>
               <button
                 onClick={() => setShowDeleteConfirmation(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center"
+                className="px-3 py-2 sm:px-4 bg-red-600 text-white rounded-md hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center whitespace-nowrap text-sm"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Account
+                <Trash2 className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                <span className="truncate">Delete Account</span>
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sign Out Section */}
+      <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+        <div className="p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <LogOut className="h-5 w-5 text-gray-400 mr-3" />
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Sign Out</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Sign out of your account</p>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate('/auth/signin');
+              }}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 flex items-center"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </button>
           </div>
         </div>
       </div>

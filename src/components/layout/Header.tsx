@@ -912,30 +912,32 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 )}
               </div>
 
-              <div className="relative">
-                <button
-                  type="button"
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onClick={toggleUserMenu}
-                >
-                  <span className="sr-only">Open user menu</span>
-                  <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                    <User className="h-5 w-5" />
-                  </div>
-                </button>
+              {!isNative && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    className="flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onClick={toggleUserMenu}
+                  >
+                    <span className="sr-only">Open user menu</span>
+                    <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                      <User className="h-5 w-5" />
+                    </div>
+                  </button>
 
-                {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-gray-700 py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                    <Link to="/settings" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</Link>
-                    <button
-                      onClick={handleSignOut}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
-                    >
-                      Sign out
-                    </button>
-                  </div>
-                )}
-              </div>
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-gray-700 py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                      <Link to="/settings" className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">Settings</Link>
+                      <button
+                        onClick={handleSignOut}
+                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
+                      >
+                        Sign out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
