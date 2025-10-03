@@ -592,15 +592,22 @@ const Connections: React.FC = () => {
                   </p>
                   
                   <div className="flex justify-between items-center">
-                    <a 
-                      href="#" 
+                    <a
+                      href={
+                        platform.name === 'TeamSnap' ? 'https://www.teamsnap.com/' :
+                        platform.name === 'SportsEngine' ? 'https://www.sportsengine.com/' :
+                        platform.name === 'Playmetrics' ? 'https://home.playmetrics.com/' :
+                        platform.name === 'GameChanger' ? 'https://gc.com/' :
+                        '#'
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center"
-                      onClick={(e) => e.preventDefault()}
                     >
                       Learn more
                       <ExternalLink className="h-3.5 w-3.5 ml-1" />
                     </a>
-                    
+
                     <button
                       className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                       onClick={() => handleManage(platform.name)}
