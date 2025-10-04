@@ -184,10 +184,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
     // Clean up previous subscription
     if (subscriptionRef.current) {
+      console.log('🔄 Cleaning up previous subscription');
       subscriptionRef.current.unsubscribe();
     }
 
-    console.log('Setting up real-time subscription for conversation:', conversation.id);
+    console.log('🔧 Setting up real-time subscription for conversation:', conversation.id);
 
     // Set up real-time subscription for messages in this conversation
     subscriptionRef.current = supabase
@@ -201,7 +202,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           filter: `conversation_id=eq.${conversation.id}`
         },
         async (payload) => {
-          console.log('New message received via realtime:', payload);
+          console.log('📨 New message received via realtime:', payload.new.id);
           const newMessage = payload.new as Message;
 
           // Get sender info using cached helper
@@ -217,11 +218,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
             // Check if message already exists to prevent duplicates
             const exists = prev.some(msg => msg.id === newMessage.id);
             if (exists) {
-              console.log('Message already exists, skipping duplicate');
+              console.log('⚠️ Realtime: Message already exists, skipping duplicate');
               return prev;
             }
 
-            console.log('Adding new message to state');
+            console.log('➕ Realtime: Adding new message to state');
             return [...prev, messageWithSender];
           });
 
@@ -264,11 +265,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         }
       )
       .subscribe((status) => {
-        console.log('Chat subscription status:', status);
+        console.log('📡 Chat subscription status:', status, 'for conversation:', conversation.id);
         if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to real-time messages for conversation:', conversation.id);
+          console.log('✅ Successfully subscribed to real-time messages');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('Error subscribing to real-time messages');
+          console.error('❌ Error subscribing to real-time messages');
+        } else if (status === 'CLOSED') {
+          console.warn('🔌 Subscription closed');
         }
       });
 
@@ -437,7 +440,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
       if (error) throw error;
 
-      console.log('Message sent successfully:', insertedMessage);
+      console.log('✅ Message sent successfully:', insertedMessage.id);
 
       // Add message optimistically for immediate feedback
       const messageWithSender = {
@@ -449,8 +452,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         // Check if message already exists (from real-time subscription)
         const exists = prev.some(msg => msg.id === insertedMessage.id);
         if (exists) {
+          console.log('⚠️ Message already exists (from realtime), skipping optimistic add');
           return prev;
         }
+        console.log('➕ Adding message optimistically');
         return [...prev, messageWithSender];
       });
 
