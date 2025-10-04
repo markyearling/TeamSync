@@ -716,6 +716,15 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     }
   };
 
+  // Memoize close handlers to prevent ChatModal from re-initializing
+  const handleCloseChatModal = React.useCallback(() => {
+    setSelectedFriend(null);
+  }, []);
+
+  const handleCloseEventModal = React.useCallback(() => {
+    setSelectedEvent(null);
+  }, []);
+
   return (
     <>
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10">
@@ -956,9 +965,9 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
       {/* Chat Modal */}
       {selectedFriend && (
-        <ChatModal 
-          friend={selectedFriend} 
-          onClose={() => setSelectedFriend(null)} 
+        <ChatModal
+          friend={selectedFriend}
+          onClose={handleCloseChatModal}
         />
       )}
 
@@ -966,7 +975,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       {selectedEvent && (
         <EventModal
           event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
+          onClose={handleCloseEventModal}
           mapsLoaded={true}
           mapsLoadError={undefined}
         />
