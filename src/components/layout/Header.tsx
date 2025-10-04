@@ -225,6 +225,13 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       })));
 
       setFriends(friendsWithUnreadCounts);
+
+      // Update selectedFriend reference if it exists to prevent ChatModal from unmounting
+      setSelectedFriend(current => {
+        if (!current) return null;
+        const updatedFriend = friendsWithUnreadCounts.find(f => f.friend_id === current.friend_id);
+        return updatedFriend || current;
+      });
     } catch (error) {
       console.error('Error fetching friends:', error);
     } finally {
