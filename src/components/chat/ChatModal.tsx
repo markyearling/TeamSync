@@ -56,7 +56,25 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const emoticonRef = useRef<HTMLDivElement>(null);
   const subscriptionRef = useRef<any>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const sendersCache = useRef<Map<string, any>>(new Map());
+  const isInitialMount = useRef(true);
   const { isNative } = useCapacitor();
+
+  // Helper function to fetch sender info (with caching)
+  const getSenderInfo = async (senderId: string) => {
+    if (sendersCache.current.has(senderId)) {
+      return sendersCache.current.get(senderId);
+    }
+
+    const { data: senderSettings } = await supabase
+      .from('user_settings')
+      .select('full_name, profile_photo_url')
+      .eq('user_id', senderId)
+      .maybeSingle();
+
+    sendersCache.current.set(senderId, senderSettings);
+    return senderSettings;
+  };
 
   // Load only the most recent messages initially for faster loading
   const INITIAL_MESSAGE_LOAD_LIMIT = 50;
@@ -153,19 +171,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     };
   }, [friend.friend_id, onClose]);
 
-  // Scroll to bottom whenever messages change
+  // Scroll to bottom only on initial load, not on every message change
   useEffect(() => {
-    if (messages.length > 0) {
+    if (!loading && messages.length > 0 && isInitialMount.current) {
+      isInitialMount.current = false;
       forceScrollToBottom();
     }
-  }, [messages]);
-
-  // Scroll to bottom when modal first opens and messages are loaded
-  useEffect(() => {
-    if (!loading && messages.length > 0) {
-      forceScrollToBottom();
-    }
-  }, [loading]);
+  }, [loading, messages.length]);
 
   useEffect(() => {
     if (!conversation || !currentUserId) return;
@@ -191,13 +203,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         async (payload) => {
           console.log('New message received via realtime:', payload);
           const newMessage = payload.new as Message;
-          
-          // Get sender info
-          const { data: senderSettings } = await supabase
-            .from('user_settings')
-            .select('full_name, profile_photo_url')
-            .eq('user_id', newMessage.sender_id)
-            .maybeSingle();
+
+          // Get sender info using cached helper
+          const senderSettings = await getSenderInfo(newMessage.sender_id);
 
           const messageWithSender = {
             ...newMessage,
@@ -212,15 +220,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
               console.log('Message already exists, skipping duplicate');
               return prev;
             }
-            
+
             console.log('Adding new message to state');
-            const newMessages = [...prev, messageWithSender];
-            
-            // Auto-scroll to bottom when new message arrives
-            setTimeout(() => forceScrollToBottom(), 50);
-            
-            return newMessages;
+            return [...prev, messageWithSender];
           });
+
+          // Scroll after state update, outside of setState
+          setTimeout(() => forceScrollToBottom(), 50);
 
           // Mark message as read if it's not from current user and modal is open
           if (newMessage.sender_id !== currentUserId) {
@@ -241,21 +247,17 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         async (payload) => {
           console.log('Message updated via realtime:', payload);
           const updatedMessage = payload.new as Message;
-          
-          // Get sender info
-          const { data: senderSettings } = await supabase
-            .from('user_settings')
-            .select('full_name, profile_photo_url')
-            .eq('user_id', updatedMessage.sender_id)
-            .maybeSingle();
+
+          // Get sender info using cached helper
+          const senderSettings = await getSenderInfo(updatedMessage.sender_id);
 
           const messageWithSender = {
             ...updatedMessage,
             sender: senderSettings
           };
 
-          setMessages(prev => 
-            prev.map(msg => 
+          setMessages(prev =>
+            prev.map(msg =>
               msg.id === updatedMessage.id ? messageWithSender : msg
             )
           );
@@ -449,47 +451,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         if (exists) {
           return prev;
         }
-        const newMessages = [...prev, messageWithSender];
-
-        // Auto-scroll to bottom when sending message
-        setTimeout(() => forceScrollToBottom(), 50);
-
-        return newMessages;
+        return [...prev, messageWithSender];
       });
 
-      // Handle notification asynchronously in the background (non-blocking)
-      (async () => {
-        try {
-          // Check if notification should be sent
-          const { data: shouldNotify } = await supabase
-            .rpc('should_send_message_notification', {
-              p_conversation_id: conversation.id,
-              p_sender_id: currentUserId
-            });
+      // Scroll after state update, outside of setState
+      setTimeout(() => forceScrollToBottom(), 50);
 
-          if (shouldNotify) {
-            console.log('Sending notification for first unread message');
-            const { data: authData } = await supabase.auth.getSession();
-            const token = authData.session?.access_token;
-
-            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-message-notification`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-              },
-              body: JSON.stringify({
-                message_id: insertedMessage.id,
-                conversation_id: conversation.id,
-                sender_id: currentUserId,
-                content: messageContent
-              })
-            });
-          }
-        } catch (notifError) {
-          console.error('Error sending notification (background):', notifError);
-        }
-      })();
+      // Note: Notifications are handled automatically by the database trigger
+      // No need to manually invoke the notification edge function
 
     } catch (error) {
       console.error('Error sending message:', error);
