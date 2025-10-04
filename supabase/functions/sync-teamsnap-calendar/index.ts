@@ -245,26 +245,47 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     // Delete events that no longer exist in the API response
     // This preserves events that still exist (and their messages) while removing stale ones
+    // IMPORTANT: Only delete events with external_id (synced events), never manually created events
     if (apiEventIds.length > 0) {
       console.log('Deleting stale TeamSnap events not in API response...');
-      const { error: deleteError } = await supabaseClient
+
+      // Get all synced events for this team to find which ones to delete
+      const { data: existingEvents } = await supabaseClient
         .from('events')
-        .delete()
+        .select('id, external_id')
         .eq('platform_team_id', teamId)
         .eq('platform', 'TeamSnap')
-        .not('external_id', 'in', `(${apiEventIds.join(',')})`);
+        .not('external_id', 'is', null); // Only get synced events
 
-      if (deleteError) {
-        console.warn('Error deleting stale events:', deleteError.message);
+      if (existingEvents && existingEvents.length > 0) {
+        // Find events that exist in DB but not in API response
+        const eventsToDelete = existingEvents
+          .filter(e => !apiEventIds.includes(e.external_id))
+          .map(e => e.id);
+
+        if (eventsToDelete.length > 0) {
+          console.log(`Deleting ${eventsToDelete.length} stale events`);
+          const { error: deleteError } = await supabaseClient
+            .from('events')
+            .delete()
+            .in('id', eventsToDelete);
+
+          if (deleteError) {
+            console.warn('Error deleting stale events:', deleteError.message);
+          }
+        } else {
+          console.log('No stale events to delete');
+        }
       }
     } else {
-      // No events from API, delete all platform events for this team
-      console.log('No events from API, deleting all TeamSnap events for this team...');
+      // No events from API, delete only synced platform events for this team (preserve manual events)
+      console.log('No events from API, deleting synced TeamSnap events for this team...');
       await supabaseClient
         .from('events')
         .delete()
         .eq('platform_team_id', teamId)
-        .eq('platform', 'TeamSnap');
+        .eq('platform', 'TeamSnap')
+        .not('external_id', 'is', null); // Only delete synced events, preserve manual ones
     }
 
     // Upsert events (insert new, update existing)
