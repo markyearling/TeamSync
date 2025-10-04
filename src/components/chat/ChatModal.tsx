@@ -284,10 +284,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
   const initializeChat = async () => {
     try {
+      console.log('🔄 Initializing chat for friend:', friend.friend_id);
+
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
       if (!user) return;
 
+      console.log('🔄 Current user ID:', user.id);
       setCurrentUserId(user.id);
 
       // Get current user info
@@ -300,16 +303,22 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       setCurrentUserInfo(userSettings);
 
       // Find or create conversation
+      console.log('🔄 Finding or creating conversation');
       let conversationData = await findOrCreateConversation(user.id, friend.friend_id);
+      console.log('🔄 Conversation found/created:', conversationData.id);
       setConversation(conversationData);
 
       // Load messages
+      console.log('🔄 Loading messages');
       await loadMessages(conversationData.id);
 
       // Mark all messages from friend as read
+      console.log('🔄 Marking conversation as read');
       await markConversationAsRead(conversationData.id, user.id);
+
+      console.log('✅ Chat initialization complete');
     } catch (error) {
-      console.error('Error initializing chat:', error);
+      console.error('❌ Error initializing chat:', error);
     } finally {
       setLoading(false);
     }
@@ -375,6 +384,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
   const loadMessages = async (conversationId: string) => {
     try {
+      console.log('📥 Loading messages for conversation:', conversationId);
+
       // Load messages in chronological order
       const { data: messagesData, error } = await supabase
         .from('messages')
@@ -385,7 +396,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
       if (error) throw error;
 
+      console.log('📥 Loaded messages count:', messagesData?.length || 0);
+
       if (!messagesData || messagesData.length === 0) {
+        console.log('📥 No messages found, setting empty array');
         setMessages([]);
         return;
       }
@@ -410,9 +424,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         sender: sendersMap.get(message.sender_id)
       }));
 
+      console.log('📥 Setting messages state with', messagesWithSenders.length, 'messages');
       setMessages(messagesWithSenders);
     } catch (error) {
-      console.error('Error loading messages:', error);
+      console.error('❌ Error loading messages:', error);
     }
   };
 
