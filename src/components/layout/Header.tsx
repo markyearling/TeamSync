@@ -246,6 +246,9 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     }
   }, [authUser, fetchFriends]);
 
+  // TEMPORARILY DISABLED: This subscription was causing infinite loop
+  // TODO: Implement a smarter update mechanism that doesn't trigger full refetch
+  /*
   // Set up real-time subscription for conversations to update when last_message_at changes
   useEffect(() => {
     const setupConversationSubscription = async () => {
@@ -354,6 +357,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
     setupConversationSubscription();
   }, [authUser, fetchFriends]);
+  */
 
   // Set up real-time subscription for friend requests to update when requests are sent/received
   useEffect(() => {
