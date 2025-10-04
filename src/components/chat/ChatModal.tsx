@@ -58,6 +58,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const sendersCache = useRef<Map<string, any>>(new Map());
   const isInitialMount = useRef(true);
+  const initializationInProgress = useRef(false);
+  const hasInitialized = useRef(false);
   const { isNative } = useCapacitor();
 
   // Helper function to fetch sender info (with caching)
@@ -113,8 +115,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     : "bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl h-full max-h-full overflow-hidden flex flex-col";
 
   useEffect(() => {
+    // Reset initialization guards when modal reopens or friend changes
+    hasInitialized.current = false;
+    initializationInProgress.current = false;
+
     initializeChat();
-    
+
     // Focus input when modal opens
     setTimeout(() => {
       inputRef.current?.focus();
@@ -283,6 +289,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   }, [conversation, currentUserId]);
 
   const initializeChat = async () => {
+    // Prevent double initialization
+    if (initializationInProgress.current || hasInitialized.current) {
+      console.log('⏭️ Skipping initialization (already initialized or in progress)');
+      return;
+    }
+
+    initializationInProgress.current = true;
+
     try {
       console.log('🔄 Initializing chat for friend:', friend.friend_id);
 
@@ -317,10 +331,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       await markConversationAsRead(conversationData.id, user.id);
 
       console.log('✅ Chat initialization complete');
+      hasInitialized.current = true;
     } catch (error) {
       console.error('❌ Error initializing chat:', error);
     } finally {
       setLoading(false);
+      initializationInProgress.current = false;
     }
   };
 
