@@ -402,12 +402,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     try {
       console.log('📥 Loading messages for conversation:', conversationId);
 
-      // Load messages in chronological order
+      // Load MOST RECENT messages in reverse order (newest first), then reverse the array
+      // This ensures we always see the latest messages even if there are more than LIMIT
       const { data: messagesData, error } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })  // Get newest first
         .limit(INITIAL_MESSAGE_LOAD_LIMIT);
 
       if (error) throw error;
@@ -420,8 +421,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         return;
       }
 
+      console.log('📥 Newest message:', messagesData[0]?.created_at);
+      console.log('📥 Oldest message loaded:', messagesData[messagesData.length - 1]?.created_at);
+
+      // Reverse the array so messages are in chronological order (oldest to newest)
+      const messagesInChronologicalOrder = messagesData.reverse();
+
       // Get unique sender IDs
-      const senderIds = [...new Set(messagesData.map(m => m.sender_id))];
+      const senderIds = [...new Set(messagesInChronologicalOrder.map(m => m.sender_id))];
 
       // Batch fetch sender info for all unique senders
       const { data: sendersData } = await supabase
@@ -435,7 +442,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       );
 
       // Attach sender info to messages
-      const messagesWithSenders = messagesData.map(message => ({
+      const messagesWithSenders = messagesInChronologicalOrder.map(message => ({
         ...message,
         sender: sendersMap.get(message.sender_id)
       }));
