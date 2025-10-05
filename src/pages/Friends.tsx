@@ -1,8 +1,10 @@
-import React from 'react';
-import { Users } from 'lucide-react';
+import React, { useState } from 'react';
+import { Users, ChevronDown, ChevronUp } from 'lucide-react';
 import FriendsManager from '../components/friends/FriendsManager';
 
 const Friends: React.FC = () => {
+  const [showAccessLevels, setShowAccessLevels] = useState(false);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -28,24 +30,37 @@ const Friends: React.FC = () => {
             </p>
           </div>
 
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
-            <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
-              Access Levels Explained
-            </h3>
-            <div className="space-y-2 text-sm text-blue-700 dark:text-blue-300">
-              <div className="flex items-start">
-                <span className="font-medium mr-2">💬 Friend:</span>
-                <span>Can chat and send messages only</span>
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg mb-6">
+            <button
+              onClick={() => setShowAccessLevels(!showAccessLevels)}
+              className="w-full p-4 flex items-center justify-between hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors rounded-lg"
+            >
+              <h3 className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                Access Levels Explained
+              </h3>
+              {showAccessLevels ? (
+                <ChevronUp className="h-5 w-5 text-blue-800 dark:text-blue-200" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-blue-800 dark:text-blue-200" />
+              )}
+            </button>
+
+            {showAccessLevels && (
+              <div className="px-4 pb-4 space-y-2 text-sm text-blue-700 dark:text-blue-300">
+                <div className="flex items-start">
+                  <span className="font-medium mr-2">💬 Friend:</span>
+                  <span>Can chat and send messages only</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="font-medium mr-2">👁️ Viewer:</span>
+                  <span>Can view schedules and events in dashboard and calendar</span>
+                </div>
+                <div className="flex items-start">
+                  <span className="font-medium mr-2">👑 Administrator:</span>
+                  <span>Can view and manage all schedules, events, and profiles</span>
+                </div>
               </div>
-              <div className="flex items-start">
-                <span className="font-medium mr-2">👁️ Viewer:</span>
-                <span>Can view schedules and events in dashboard and calendar</span>
-              </div>
-              <div className="flex items-start">
-                <span className="font-medium mr-2">👑 Administrator:</span>
-                <span>Can view and manage all schedules, events, and profiles</span>
-              </div>
-            </div>
+            )}
           </div>
 
           <FriendsManager />

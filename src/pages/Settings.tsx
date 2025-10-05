@@ -714,7 +714,7 @@ const Settings: React.FC = () => {
                 className="px-3 py-2 sm:px-4 bg-red-600 text-white rounded-md hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center whitespace-nowrap text-sm"
               >
                 <Trash2 className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-                <span className="truncate">Delete Account</span>
+                <span className={`truncate ${isNative ? 'hidden' : ''}`}>Delete Account</span>
               </button>
             </div>
           </div>
