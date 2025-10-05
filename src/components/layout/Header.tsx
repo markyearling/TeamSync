@@ -199,15 +199,23 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
           if (conversation) {
             // Count unread messages from this friend
-            const { count } = await supabase
+            const { count, error: countError } = await supabase
               .from('messages')
               .select('*', { count: 'exact', head: true })
               .eq('conversation_id', conversation.id)
               .eq('sender_id', friendship.friend_id)
               .eq('read', false);
 
+            if (countError) {
+              console.error('💬 HEADER: Error counting unread messages for', friendship.friend.full_name, countError);
+            }
+
             unreadCount = count || 0;
             lastMessageAt = conversation.last_message_at;
+
+            if (unreadCount > 0) {
+              console.log(`💬 HEADER: Found ${unreadCount} unread messages from ${friendship.friend.full_name}`);
+            }
           }
 
           return {
