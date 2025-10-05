@@ -514,7 +514,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         .insert({
           conversation_id: conversation.id,
           sender_id: currentUserId,
-          content: '[Image]',
+          content: '',
           has_image: true
         })
         .select()
@@ -592,7 +592,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           console.log('✅ Local state updated');
 
           // Send notification in background after image upload completes
-          sendMessageNotification(messageData.id, '[Image]').catch(err => {
+          sendMessageNotification(messageData.id, '📷 Photo').catch(err => {
             console.error('Background notification failed:', err);
           });
         }
@@ -673,7 +673,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         .insert({
           conversation_id: conversation.id,
           sender_id: currentUserId,
-          content: '[Image]',
+          content: '',
           has_image: true
         })
         .select()
@@ -751,7 +751,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           console.log('✅ Local state updated');
 
           // Send notification in background after image upload completes
-          sendMessageNotification(messageData.id, '[Image]').catch(err => {
+          sendMessageNotification(messageData.id, '📷 Photo').catch(err => {
             console.error('Background notification failed:', err);
           });
         }
@@ -1046,12 +1046,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
                         <img
                           src={message.image_url}
                           alt="Message attachment"
-                          className="max-w-full rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                          className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                           onClick={() => window.open(message.image_url, '_blank')}
                           style={{ maxHeight: '300px', objectFit: 'contain' }}
                         />
                       )}
-                      <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                      {!message.image_url && (
+                        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                      )}
                     </div>
                     <div className={`mt-1 text-xs text-gray-500 dark:text-gray-400 ${
                       isCurrentUser ? 'text-right' : 'text-left'
@@ -1130,26 +1132,35 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         )}
 
         {/* Message Input */}
-        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className="flex space-x-3">
+        <div
+          className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0"
+          style={isNative && keyboardHeight > 0 ? {
+            position: 'fixed',
+            bottom: `${keyboardHeight}px`,
+            left: 0,
+            right: 0,
+            backgroundColor: 'inherit'
+          } : {}}
+        >
+          <div className="flex space-x-2">
             <button
               onClick={() => setShowEmoticons(!showEmoticons)}
-              className={`p-2 rounded-full transition-colors ${
+              className={`flex-shrink-0 p-2 rounded-full transition-colors ${
                 showEmoticons
                   ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
               title="Add emoticon"
             >
-              <Smile className="h-5 w-5" />
+              <Smile className={isNative ? 'h-4 w-4' : 'h-5 w-5'} />
             </button>
             <button
               onClick={() => isNative ? setShowImageOptions(!showImageOptions) : fileInputRef.current?.click()}
               disabled={uploadingImage || sending}
-              className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex-shrink-0 p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title="Add image"
             >
-              <Camera className="h-5 w-5" />
+              <Camera className={isNative ? 'h-4 w-4' : 'h-5 w-5'} />
             </button>
             <input
               ref={fileInputRef}
@@ -1170,18 +1181,18 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
                 setTimeout(() => forceScrollToBottom(), 100);
               }}
               placeholder="Type a message..."
-              className="flex-1 rounded-full border border-gray-300 dark:border-gray-600 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+              className={`flex-1 rounded-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${isNative ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'}`}
               disabled={sending}
             />
             <button
               onClick={sendMessage}
               disabled={!newMessage.trim() || sending}
-              className="bg-blue-600 text-white rounded-full p-2 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={`flex-shrink-0 bg-blue-600 text-white rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isNative ? 'p-1.5' : 'p-2'}`}
             >
               {sending ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent" />
+                <div className={`animate-spin rounded-full border-2 border-white border-t-transparent ${isNative ? 'h-4 w-4' : 'h-5 w-5'}`} />
               ) : (
-                <Send className="h-5 w-5" />
+                <Send className={isNative ? 'h-4 w-4' : 'h-5 w-5'} />
               )}
             </button>
           </div>
