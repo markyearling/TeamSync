@@ -130,10 +130,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
     initializeChat();
 
-    // Focus input when modal opens
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 100);
+    // Don't auto-focus on native to prevent keyboard from appearing immediately
+    // User can tap the input when ready
+    if (!isNative) {
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
 
     // Set up keyboard listeners for native apps
     let keyboardWillShowListener: any = null;
@@ -143,11 +146,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       console.log('Setting up keyboard listeners for native app');
       
       keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', (info) => {
-        console.log('Keyboard will show with height:', info.keyboardHeight);
+        console.log('⌨️ Keyboard will show with height:', info.keyboardHeight);
         setKeyboardHeight(info.keyboardHeight);
-        
+
         // Scroll to bottom when keyboard appears to keep input visible
-        setTimeout(() => forceScrollToBottom(), 100);
+        setTimeout(() => {
+          console.log('Scrolling to bottom after keyboard show');
+          forceScrollToBottom();
+        }, 150);
       });
 
       keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
@@ -962,7 +968,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         onClick={(e) => e.stopPropagation()}
         style={isNative && keyboardHeight > 0 ? {
           height: `calc(100vh - ${keyboardHeight}px)`,
-          maxHeight: `calc(100vh - ${keyboardHeight}px)`
+          maxHeight: `calc(100vh - ${keyboardHeight}px)`,
+          transition: 'height 0.2s ease-out'
+        } : isNative ? {
+          height: '100vh',
+          maxHeight: '100vh'
         } : {}}
       >
         {/* Header */}
@@ -1178,8 +1188,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
               onKeyPress={handleKeyPress}
               onFocus={() => {
                 console.log('Chat input focused - keyboard should appear');
+                console.log('Current keyboard height state:', keyboardHeight);
                 // Scroll to bottom when input is focused to ensure visibility
-                setTimeout(() => forceScrollToBottom(), 100);
+                setTimeout(() => {
+                  console.log('Scrolling after input focus, keyboard height:', keyboardHeight);
+                  forceScrollToBottom();
+                }, 300);
               }}
               placeholder="Type a message..."
               className={`flex-1 rounded-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${isNative ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'}`}

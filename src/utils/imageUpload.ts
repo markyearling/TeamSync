@@ -71,15 +71,36 @@ export const compressImage = async (
 };
 
 export const dataUrlToBlob = (dataUrl: string): Blob => {
-  const arr = dataUrl.split(',');
-  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
-  const bstr = atob(arr[1]);
-  let n = bstr.length;
-  const u8arr = new Uint8Array(n);
-  while (n--) {
-    u8arr[n] = bstr.charCodeAt(n);
+  if (!dataUrl || typeof dataUrl !== 'string') {
+    console.error('Invalid data URL:', dataUrl);
+    throw new Error('Invalid data URL provided');
   }
-  return new Blob([u8arr], { type: mime });
+
+  if (!dataUrl.includes(',')) {
+    console.error('Data URL missing comma separator:', dataUrl.substring(0, 100));
+    throw new Error('Malformed data URL');
+  }
+
+  const arr = dataUrl.split(',');
+  if (arr.length < 2 || !arr[1]) {
+    console.error('Data URL split failed:', arr);
+    throw new Error('Invalid data URL format');
+  }
+
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+
+  try {
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  } catch (error) {
+    console.error('Error decoding base64:', error);
+    throw new Error('Failed to decode image data');
+  }
 };
 
 export const uploadEventMessageImage = async (
@@ -191,7 +212,21 @@ export const uploadFriendMessageImage = async (
   messageId: string
 ): Promise<UploadImageResult> => {
   try {
+    console.log('Starting friend message image upload...');
+    console.log('Data URL length:', dataUrl?.length || 0);
+    console.log('Data URL preview:', dataUrl?.substring(0, 100));
+
+    if (!dataUrl || typeof dataUrl !== 'string') {
+      throw new Error('Invalid data URL provided to upload function');
+    }
+
     const compressedDataUrl = await compressImage(dataUrl);
+
+    if (!compressedDataUrl) {
+      throw new Error('Compression returned empty result');
+    }
+
+    console.log('Compressed data URL length:', compressedDataUrl.length);
     const blob = dataUrlToBlob(compressedDataUrl);
 
     const fileExtension = 'jpg';
