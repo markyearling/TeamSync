@@ -536,6 +536,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
         if (updateError) {
           console.error('Error updating message with image URL:', updateError);
+        } else {
+          // Optimistically update the local state immediately
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === messageData.id
+                ? { ...msg, image_url: uploadResult.url }
+                : msg
+            )
+          );
         }
       } else {
         console.error('Error uploading image:', uploadResult.error);
@@ -581,6 +590,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
         if (updateError) {
           console.error('Error updating message with image URL:', updateError);
+        } else {
+          // Optimistically update the local state immediately
+          setMessages(prev =>
+            prev.map(msg =>
+              msg.id === messageData.id
+                ? { ...msg, image_url: uploadResult.url }
+                : msg
+            )
+          );
         }
       } else {
         console.error('Error uploading image from file:', uploadResult.error);
