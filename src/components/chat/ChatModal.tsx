@@ -546,6 +546,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           // Optimistically update the local state immediately
           setMessages(prev => {
             console.log('Current messages count:', prev.length);
+            console.log('Looking for message ID:', messageData.id);
+            console.log('Message IDs in state:', prev.map(m => m.id));
+
             const updated = prev.map(msg => {
               if (msg.id === messageData.id) {
                 console.log('Found message to update:', msg.id);
@@ -553,7 +556,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
               }
               return msg;
             });
+
             console.log('Updated messages count:', updated.length);
+
+            // Check if we found the message
+            const foundMessage = updated.find(m => m.id === messageData.id && m.image_url === uploadResult.url);
+            if (!foundMessage) {
+              console.error('❌ Message not found in state! Need to wait for realtime event.');
+            }
+
             return updated;
           });
 
@@ -613,6 +624,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           // Optimistically update the local state immediately
           setMessages(prev => {
             console.log('Current messages count:', prev.length);
+            console.log('Looking for message ID:', messageData.id);
+            console.log('Message IDs in state:', prev.map(m => m.id));
+
             const updated = prev.map(msg => {
               if (msg.id === messageData.id) {
                 console.log('Found message to update:', msg.id);
@@ -620,7 +634,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
               }
               return msg;
             });
+
             console.log('Updated messages count:', updated.length);
+
+            // Check if we found the message
+            const foundMessage = updated.find(m => m.id === messageData.id && m.image_url === uploadResult.url);
+            if (!foundMessage) {
+              console.error('❌ Message not found in state! Need to wait for realtime event.');
+            }
+
             return updated;
           });
 
