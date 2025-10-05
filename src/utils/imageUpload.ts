@@ -13,36 +13,59 @@ export const compressImage = async (
 ): Promise<string> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
+
+    // Set a timeout for image loading
+    const timeout = setTimeout(() => {
+      console.warn('Image loading timeout, using original data URL');
+      resolve(dataUrl); // Return original if loading takes too long
+    }, 5000);
+
     img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
+      clearTimeout(timeout);
+      try {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
 
-      if (width > height) {
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
+        if (width > height) {
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+          }
         }
-      } else {
-        if (height > maxHeight) {
-          width = (width * maxHeight) / height;
-          height = maxHeight;
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          console.warn('Failed to get canvas context, using original');
+          resolve(dataUrl);
+          return;
         }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      } catch (error) {
+        console.error('Error compressing image:', error);
+        resolve(dataUrl); // Return original on error
       }
-
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('Failed to get canvas context'));
-        return;
-      }
-
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
     };
-    img.onerror = () => reject(new Error('Failed to load image'));
+
+    img.onerror = (error) => {
+      clearTimeout(timeout);
+      console.error('Failed to load image for compression:', error);
+      // Return original data URL instead of rejecting
+      resolve(dataUrl);
+    };
+
+    // On mobile/Capacitor, we may need to handle CORS
+    img.crossOrigin = 'anonymous';
     img.src = dataUrl;
   });
 };

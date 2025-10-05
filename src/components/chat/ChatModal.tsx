@@ -961,8 +961,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         className={modalContentClasses}
         onClick={(e) => e.stopPropagation()}
         style={isNative && keyboardHeight > 0 ? {
-          paddingBottom: `${keyboardHeight}px`,
-          maxHeight: '100%'
+          height: `calc(100vh - ${keyboardHeight}px)`,
+          maxHeight: `calc(100vh - ${keyboardHeight}px)`
         } : {}}
       >
         {/* Header */}
@@ -1142,16 +1142,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         )}
 
         {/* Message Input */}
-        <div
-          className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0"
-          style={isNative && keyboardHeight > 0 ? {
-            position: 'fixed',
-            bottom: `${keyboardHeight}px`,
-            left: 0,
-            right: 0,
-            backgroundColor: 'inherit'
-          } : {}}
-        >
+        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-800">
           <div className="flex items-center space-x-1">
             <button
               onClick={() => setShowEmoticons(!showEmoticons)}
