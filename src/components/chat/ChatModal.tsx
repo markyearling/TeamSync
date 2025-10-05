@@ -529,6 +529,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       );
 
       if (uploadResult.url) {
+        console.log('✅ Image uploaded successfully:', uploadResult.url);
+        console.log('📝 Updating message in database with image URL, message ID:', messageData.id);
+
         const { error: updateError } = await supabase
           .from('messages')
           .update({ image_url: uploadResult.url })
@@ -537,14 +540,24 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         if (updateError) {
           console.error('Error updating message with image URL:', updateError);
         } else {
+          console.log('✅ Database updated successfully');
+          console.log('🔄 Optimistically updating local state');
+
           // Optimistically update the local state immediately
-          setMessages(prev =>
-            prev.map(msg =>
-              msg.id === messageData.id
-                ? { ...msg, image_url: uploadResult.url }
-                : msg
-            )
-          );
+          setMessages(prev => {
+            console.log('Current messages count:', prev.length);
+            const updated = prev.map(msg => {
+              if (msg.id === messageData.id) {
+                console.log('Found message to update:', msg.id);
+                return { ...msg, image_url: uploadResult.url };
+              }
+              return msg;
+            });
+            console.log('Updated messages count:', updated.length);
+            return updated;
+          });
+
+          console.log('✅ Local state updated');
         }
       } else {
         console.error('Error uploading image:', uploadResult.error);
@@ -583,6 +596,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       );
 
       if (uploadResult.url) {
+        console.log('✅ Image file uploaded successfully:', uploadResult.url);
+        console.log('📝 Updating message in database with image URL, message ID:', messageData.id);
+
         const { error: updateError } = await supabase
           .from('messages')
           .update({ image_url: uploadResult.url })
@@ -591,14 +607,24 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         if (updateError) {
           console.error('Error updating message with image URL:', updateError);
         } else {
+          console.log('✅ Database updated successfully');
+          console.log('🔄 Optimistically updating local state');
+
           // Optimistically update the local state immediately
-          setMessages(prev =>
-            prev.map(msg =>
-              msg.id === messageData.id
-                ? { ...msg, image_url: uploadResult.url }
-                : msg
-            )
-          );
+          setMessages(prev => {
+            console.log('Current messages count:', prev.length);
+            const updated = prev.map(msg => {
+              if (msg.id === messageData.id) {
+                console.log('Found message to update:', msg.id);
+                return { ...msg, image_url: uploadResult.url };
+              }
+              return msg;
+            });
+            console.log('Updated messages count:', updated.length);
+            return updated;
+          });
+
+          console.log('✅ Local state updated');
         }
       } else {
         console.error('Error uploading image from file:', uploadResult.error);
