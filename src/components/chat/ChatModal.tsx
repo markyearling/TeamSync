@@ -508,6 +508,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
     try {
       setUploadingImage(true);
+      console.log('📸 Starting image upload process...');
+      console.log('Conversation ID:', conversation.id);
+      console.log('Sender ID:', currentUserId);
 
       const { data: messageData, error: messageError } = await supabase
         .from('messages')
@@ -520,7 +523,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         .select()
         .single();
 
-      if (messageError) throw messageError;
+      if (messageError) {
+        console.error('❌ Error creating message:', messageError);
+        throw messageError;
+      }
 
       // Add message to state optimistically with sender info
       const senderSettings = await getSenderInfo(currentUserId);
@@ -543,11 +549,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       // Scroll to show the new message
       setTimeout(() => forceScrollToBottom(), 50);
 
+      console.log('📤 Uploading image to storage...');
       const uploadResult = await uploadFriendMessageImage(
         dataUrl,
         conversation.id,
         messageData.id
       );
+
+      console.log('Upload result:', uploadResult);
 
       if (uploadResult.url) {
         console.log('✅ Image uploaded successfully:', uploadResult.url);
@@ -597,11 +606,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           });
         }
       } else {
-        console.error('Error uploading image:', uploadResult.error);
+        console.error('❌ Error uploading image:', uploadResult.error);
+        alert(`Failed to upload image: ${uploadResult.error}`);
       }
     } catch (error) {
-      console.error('Error handling image upload:', error);
-      alert('Failed to send image');
+      console.error('❌ Error handling image upload:', error);
+      alert(`Failed to send image: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setUploadingImage(false);
     }
@@ -1142,14 +1152,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
             backgroundColor: 'inherit'
           } : {}}
         >
-          <div className="flex space-x-2">
+          <div className="flex items-center space-x-1">
             <button
               onClick={() => setShowEmoticons(!showEmoticons)}
-              className={`flex-shrink-0 p-2 rounded-full transition-colors ${
+              className={`flex-shrink-0 rounded-full transition-colors ${
                 showEmoticons
                   ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
-              }`}
+              } ${isNative ? 'p-1.5' : 'p-2'}`}
               title="Add emoticon"
             >
               <Smile className={isNative ? 'h-4 w-4' : 'h-5 w-5'} />
@@ -1157,7 +1167,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
             <button
               onClick={() => isNative ? setShowImageOptions(!showImageOptions) : fileInputRef.current?.click()}
               disabled={uploadingImage || sending}
-              className="flex-shrink-0 p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className={`flex-shrink-0 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isNative ? 'p-1.5' : 'p-2'}`}
               title="Add image"
             >
               <Camera className={isNative ? 'h-4 w-4' : 'h-5 w-5'} />
@@ -1187,7 +1197,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
             <button
               onClick={sendMessage}
               disabled={!newMessage.trim() || sending}
-              className={`flex-shrink-0 bg-blue-600 text-white rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${isNative ? 'p-1.5' : 'p-2'}`}
+              className={`flex-shrink-0 bg-blue-600 text-white rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center ${isNative ? 'p-2 w-8 h-8' : 'p-2.5 w-10 h-10'}`}
             >
               {sending ? (
                 <div className={`animate-spin rounded-full border-2 border-white border-t-transparent ${isNative ? 'h-4 w-4' : 'h-5 w-5'}`} />
