@@ -1,5 +1,5 @@
 import React from 'react';
-import { Users, Search, X, MessageCircle } from 'lucide-react';
+import { Users, Search, X, MessageCircle, Shield, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCapacitor } from '../../hooks/useCapacitor';
 
@@ -42,7 +42,14 @@ const FriendsListModal: React.FC<FriendsListModalProps> = ({
   const { isNative } = useCapacitor();
 
   const getRoleIcon = (role: string) => {
-    return role === 'administrator' ? '👑' : role === 'viewer' ? '👁️' : '💬';
+    switch (role) {
+      case 'administrator':
+        return <Shield className="h-3.5 w-3.5 text-red-500" />;
+      case 'viewer':
+        return <Eye className="h-3.5 w-3.5 text-blue-500" />;
+      default:
+        return <MessageCircle className="h-3.5 w-3.5 text-green-500" />;
+    }
   };
 
   const getRoleLabel = (role: string) => {

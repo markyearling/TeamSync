@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, ChevronDown, ChevronUp } from 'lucide-react';
+import { Users, ChevronDown, ChevronUp, Shield, Eye, MessageCircle } from 'lucide-react';
 import FriendsManager from '../components/friends/FriendsManager';
 
 const Friends: React.FC = () => {
@@ -46,18 +46,27 @@ const Friends: React.FC = () => {
             </button>
 
             {showAccessLevels && (
-              <div className="px-4 pb-4 space-y-2 text-sm text-blue-700 dark:text-blue-300">
+              <div className="px-4 pb-4 space-y-3 text-sm text-blue-700 dark:text-blue-300">
                 <div className="flex items-start">
-                  <span className="font-medium mr-2">💬 Friend:</span>
-                  <span>Can chat and send messages only</span>
+                  <MessageCircle className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-medium">Friend:</span>
+                    <span className="ml-1">Can chat and send messages only</span>
+                  </div>
                 </div>
                 <div className="flex items-start">
-                  <span className="font-medium mr-2">👁️ Viewer:</span>
-                  <span>Can view schedules and events in dashboard and calendar</span>
+                  <Eye className="h-5 w-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-medium">Viewer:</span>
+                    <span className="ml-1">Can view schedules and events in dashboard and calendar</span>
+                  </div>
                 </div>
                 <div className="flex items-start">
-                  <span className="font-medium mr-2">👑 Administrator:</span>
-                  <span>Can view and manage all schedules, events, and profiles</span>
+                  <Shield className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-medium">Administrator:</span>
+                    <span className="ml-1">Can view and manage all schedules, events, and profiles</span>
+                  </div>
                 </div>
               </div>
             )}

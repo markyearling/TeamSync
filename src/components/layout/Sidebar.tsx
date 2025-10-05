@@ -1,16 +1,19 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { 
-  Home, 
-  Calendar, 
-  Link as LinkIcon, 
-  Users, 
-  Settings, 
+import {
+  Home,
+  Calendar,
+  Link as LinkIcon,
+  Users,
+  Settings,
   X,
   UserPlus,
   ChevronDown,
   ChevronRight,
-  HelpCircle
+  HelpCircle,
+  Shield,
+  Eye,
+  MessageCircle
 } from 'lucide-react';
 import { useProfiles } from '../../context/ProfilesContext';
 import { useCapacitor } from '../../hooks/useCapacitor';
@@ -217,9 +220,21 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
                   ) : (
                     child.name.charAt(0)
                   )}
-                  {/* Administrator badge */}
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-500 rounded-full flex items-center justify-center">
-                    <span className="text-xs text-white">{child.accessRole === 'administrator' ? '👑' : '👁️'}</span>
+                  {/* Access role badge */}
+                  <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center ${
+                    child.accessRole === 'administrator'
+                      ? 'bg-red-500'
+                      : child.accessRole === 'viewer'
+                      ? 'bg-blue-500'
+                      : 'bg-green-500'
+                  }`}>
+                    {child.accessRole === 'administrator' ? (
+                      <Shield className="h-2.5 w-2.5 text-white" />
+                    ) : child.accessRole === 'viewer' ? (
+                      <Eye className="h-2.5 w-2.5 text-white" />
+                    ) : (
+                      <MessageCircle className="h-2.5 w-2.5 text-white" />
+                    )}
                   </div>
                 </div>
                 <div className="flex-1 text-left">
