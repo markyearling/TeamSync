@@ -207,14 +207,14 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               .eq('read', false);
 
             if (countError) {
-              console.error('💬 HEADER: Error counting unread messages for', friendship.friend.full_name, countError);
+              console.error('💬 HEADER: Error counting unread messages for', friend.full_name, countError);
             }
 
             unreadCount = count || 0;
             lastMessageAt = conversation.last_message_at;
 
             if (unreadCount > 0) {
-              console.log(`💬 HEADER: Found ${unreadCount} unread messages from ${friendship.friend.full_name}`);
+              console.log(`💬 HEADER: Found ${unreadCount} unread messages from ${friend.full_name}`);
             }
           }
 
