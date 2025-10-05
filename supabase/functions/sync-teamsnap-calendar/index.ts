@@ -292,8 +292,28 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (eventsToUpsert.length > 0) {
       console.log('Upserting TeamSnap events...');
 
+      // First, fetch existing events to get their IDs
+      const { data: existingEventsForUpsert } = await supabaseClient
+        .from('events')
+        .select('id, external_id, platform, platform_team_id')
+        .eq('platform_team_id', teamId)
+        .eq('platform', 'TeamSnap')
+        .in('external_id', eventsToUpsert.map(e => e.external_id));
+
+      // Create a map of external_id -> event_id for quick lookup
+      const existingEventsMap = new Map(
+        existingEventsForUpsert?.map(e => [e.external_id, e.id]) || []
+      );
+
+      // Add existing event IDs to the upsert payload to preserve them
+      const eventsWithIds = eventsToUpsert.map(event => ({
+        ...event,
+        // If event exists, use its ID to update it; otherwise let DB generate new ID
+        ...(existingEventsMap.has(event.external_id) ? { id: existingEventsMap.get(event.external_id) } : {})
+      }));
+
       // Use raw SQL for proper upsert with external_id
-      for (const event of eventsToUpsert) {
+      for (const event of eventsWithIds) {
         const { error: upsertError } = await supabaseClient
           .from('events')
           .upsert(event, {
@@ -307,7 +327,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
       }
 
-      console.log(`Successfully upserted ${eventsToUpsert.length} events`);
+      console.log(`Successfully upserted ${eventsWithIds.length} events`);
     } else {
       console.log('No events to upsert');
     }

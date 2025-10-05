@@ -446,6 +446,7 @@ Deno.serve(async (req: Request) => {
           End: ${endDateTime.toString()} -> UTC: ${endTimeUTC}`);
         
         return {
+          external_id: event.uid || `${event.summary}-${startTimeUTC}`,
           title: title,
           description: description,
           start_time: startTimeUTC,
@@ -475,34 +476,36 @@ Deno.serve(async (req: Request) => {
       const deduplicatedEvents = Array.from(uniqueEvents.values());
       console.log('Deduplicated events:', deduplicatedEvents.length, 'from original:', events.length);
 
-      // Delete existing events for this profile and team to avoid duplicates
-      console.log('Deleting existing events for profile:', profileId, 'and team:', teamId);
-      const { error: deleteError } = await supabaseClient
-        .from('events')
-        .delete()
-        .eq('platform_team_id', teamId)
-        .eq('platform', 'GameChanger');
-
-      if (deleteError) {
-        console.error('Error deleting existing events:', deleteError);
-        throw new Error(`Failed to delete existing events: ${deleteError.message}`);
+      const apiEventIds = deduplicatedEvents.map(e => e.external_id);
+      if (apiEventIds.length > 0) {
+        const { data: existingEvents } = await supabaseClient
+          .from('events')
+          .select('id, external_id')
+          .eq('platform_team_id', teamId)
+          .eq('platform', 'GameChanger')
+          .not('external_id', 'is', null);
+        if (existingEvents && existingEvents.length > 0) {
+          const eventsToDelete = existingEvents.filter(e => !apiEventIds.includes(e.external_id)).map(e => e.id);
+          if (eventsToDelete.length > 0) {
+            await supabaseClient.from('events').delete().in('id', eventsToDelete);
+          }
+        }
       }
 
-      // Insert new events
       if (deduplicatedEvents.length > 0) {
-        console.log('Inserting new events into database');
-        const { data: eventsData, error: eventsError } = await supabaseClient
+        const { data: existingEventsForUpsert } = await supabaseClient
           .from('events')
-          .insert(deduplicatedEvents);
-
-        if (eventsError) {
-          console.error('Error inserting events:', eventsError);
-          throw eventsError;
+          .select('id, external_id')
+          .eq('platform_team_id', teamId)
+          .eq('platform', 'GameChanger')
+          .in('external_id', deduplicatedEvents.map(e => e.external_id));
+        const existingEventsMap = new Map(existingEventsForUpsert?.map(e => [e.external_id, e.id]) || []);
+        const eventsWithIds = deduplicatedEvents.map(event => ({...event, ...(existingEventsMap.has(event.external_id) ? { id: existingEventsMap.get(event.external_id) } : {})}));
+        for (const event of eventsWithIds) {
+          const { error: upsertError } = await supabaseClient.from('events').upsert(event, {onConflict: 'platform,platform_team_id,external_id', ignoreDuplicates: false});
+          if (upsertError) throw upsertError;
         }
-
-        console.log('Successfully inserted events:', eventsData);
-      } else {
-        console.log('No events to insert');
+        console.log(`Successfully upserted ${eventsWithIds.length} events`);
       }
 
       return new Response(
