@@ -590,6 +590,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           });
 
           console.log('✅ Local state updated');
+
+          // Send notification in background after image upload completes
+          sendMessageNotification(messageData.id, '[Image]').catch(err => {
+            console.error('Background notification failed:', err);
+          });
         }
       } else {
         console.error('Error uploading image:', uploadResult.error);
@@ -599,6 +604,61 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       alert('Failed to send image');
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  // Helper function to send message notification
+  const sendMessageNotification = async (messageId: string, content: string) => {
+    if (!conversation || !currentUserId) return;
+
+    try {
+      // Check if notification should be sent using the database function
+      const { data: shouldNotify, error: checkError } = await supabase
+        .rpc('should_send_message_notification', {
+          p_conversation_id: conversation.id,
+          p_sender_id: currentUserId
+        });
+
+      if (checkError) {
+        console.error('Error checking if notification should be sent:', checkError);
+        return;
+      }
+
+      if (!shouldNotify) {
+        console.log('📵 Skipping notification - recipient already has unread messages');
+        return;
+      }
+
+      console.log('📬 Sending message notification...');
+
+      // Call the edge function to send notification
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-message-notification`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          },
+          body: JSON.stringify({
+            message_id: messageId,
+            conversation_id: conversation.id,
+            sender_id: currentUserId,
+            content: content
+          })
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Failed to send notification:', errorData);
+      } else {
+        const result = await response.json();
+        console.log('✅ Notification sent successfully:', result);
+      }
+    } catch (error) {
+      console.error('Error sending message notification:', error);
+      // Don't throw - notification failure shouldn't block message sending
     }
   };
 
@@ -689,6 +749,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           });
 
           console.log('✅ Local state updated');
+
+          // Send notification in background after image upload completes
+          sendMessageNotification(messageData.id, '[Image]').catch(err => {
+            console.error('Background notification failed:', err);
+          });
         }
       } else {
         console.error('Error uploading image from file:', uploadResult.error);
@@ -747,8 +812,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       // Scroll after state update, outside of setState
       setTimeout(() => forceScrollToBottom(), 50);
 
-      // Note: Notifications are handled automatically by the database trigger
-      // No need to manually invoke the notification edge function
+      // Send notification in background (don't await to avoid blocking UI)
+      sendMessageNotification(insertedMessage.id, messageContent).catch(err => {
+        console.error('Background notification failed:', err);
+      });
 
     } catch (error) {
       console.error('Error sending message:', error);
