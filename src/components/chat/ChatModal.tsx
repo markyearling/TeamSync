@@ -522,6 +522,27 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
       if (messageError) throw messageError;
 
+      // Add message to state optimistically with sender info
+      const senderSettings = await getSenderInfo(currentUserId);
+      const messageWithSender = {
+        ...messageData,
+        sender: senderSettings
+      };
+
+      setMessages(prev => {
+        // Check if message already exists (from real-time)
+        const exists = prev.some(msg => msg.id === messageData.id);
+        if (exists) {
+          console.log('⚠️ Message already exists from realtime, skipping optimistic add');
+          return prev;
+        }
+        console.log('➕ Optimistically adding image message to state');
+        return [...prev, messageWithSender];
+      });
+
+      // Scroll to show the new message
+      setTimeout(() => forceScrollToBottom(), 50);
+
       const uploadResult = await uploadFriendMessageImage(
         dataUrl,
         conversation.id,
@@ -599,6 +620,27 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         .single();
 
       if (messageError) throw messageError;
+
+      // Add message to state optimistically with sender info
+      const senderSettings = await getSenderInfo(currentUserId);
+      const messageWithSender = {
+        ...messageData,
+        sender: senderSettings
+      };
+
+      setMessages(prev => {
+        // Check if message already exists (from real-time)
+        const exists = prev.some(msg => msg.id === messageData.id);
+        if (exists) {
+          console.log('⚠️ Message already exists from realtime, skipping optimistic add');
+          return prev;
+        }
+        console.log('➕ Optimistically adding image message to state');
+        return [...prev, messageWithSender];
+      });
+
+      // Scroll to show the new message
+      setTimeout(() => forceScrollToBottom(), 50);
 
       const uploadResult = await uploadFriendMessageImageFromFile(
         file,
