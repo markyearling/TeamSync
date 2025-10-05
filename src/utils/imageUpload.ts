@@ -160,3 +160,106 @@ export const deleteEventMessageImage = async (imageUrl: string): Promise<boolean
     return false;
   }
 };
+
+// Friend message image upload functions
+export const uploadFriendMessageImage = async (
+  dataUrl: string,
+  conversationId: string,
+  messageId: string
+): Promise<UploadImageResult> => {
+  try {
+    const compressedDataUrl = await compressImage(dataUrl);
+    const blob = dataUrlToBlob(compressedDataUrl);
+
+    const fileExtension = 'jpg';
+    const fileName = `${Date.now()}.${fileExtension}`;
+    const filePath = `${conversationId}/${messageId}/${fileName}`;
+
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('message-images')
+      .upload(filePath, blob, {
+        contentType: 'image/jpeg',
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('Upload error:', uploadError);
+      return { url: null, error: uploadError.message };
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('message-images')
+      .getPublicUrl(uploadData.path);
+
+    return { url: urlData.publicUrl, error: null };
+  } catch (error) {
+    console.error('Error uploading friend message image:', error);
+    return {
+      url: null,
+      error: error instanceof Error ? error.message : 'Failed to upload image'
+    };
+  }
+};
+
+export const uploadFriendMessageImageFromFile = async (
+  file: File,
+  conversationId: string,
+  messageId: string
+): Promise<UploadImageResult> => {
+  try {
+    if (file.size > 5 * 1024 * 1024) {
+      return { url: null, error: 'Image size must be less than 5MB' };
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      return { url: null, error: 'Invalid image type. Only JPEG, PNG, GIF, and WebP are allowed' };
+    }
+
+    const reader = new FileReader();
+    return new Promise((resolve) => {
+      reader.onload = async (e) => {
+        const dataUrl = e.target?.result as string;
+        const result = await uploadFriendMessageImage(dataUrl, conversationId, messageId);
+        resolve(result);
+      };
+      reader.onerror = () => {
+        resolve({ url: null, error: 'Failed to read image file' });
+      };
+      reader.readAsDataURL(file);
+    });
+  } catch (error) {
+    console.error('Error processing friend message image file:', error);
+    return {
+      url: null,
+      error: error instanceof Error ? error.message : 'Failed to process image'
+    };
+  }
+};
+
+export const deleteFriendMessageImage = async (imageUrl: string): Promise<boolean> => {
+  try {
+    const urlParts = imageUrl.split('/message-images/');
+    if (urlParts.length < 2) {
+      console.error('Invalid image URL format');
+      return false;
+    }
+
+    const filePath = urlParts[1].split('?')[0];
+
+    const { error } = await supabase.storage
+      .from('message-images')
+      .remove([filePath]);
+
+    if (error) {
+      console.error('Error deleting friend message image:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in deleteFriendMessageImage:', error);
+    return false;
+  }
+};

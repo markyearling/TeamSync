@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Send, MessageCircle, User, Smile } from 'lucide-react';
+import { X, Send, MessageCircle, User, Smile, Camera, Image as ImageIcon } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCapacitor } from '../../hooks/useCapacitor';
+import { useCamera } from '../../hooks/useCamera';
 import { Keyboard } from '@capacitor/keyboard';
+import { uploadFriendMessageImage, uploadFriendMessageImageFromFile } from '../../utils/imageUpload';
 
 interface Friend {
   id: string;
@@ -22,6 +24,8 @@ interface Message {
   content: string;
   read: boolean;
   created_at: string;
+  image_url?: string;
+  has_image?: boolean;
   sender?: {
     full_name?: string;
     profile_photo_url?: string;
@@ -50,10 +54,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const [currentUserInfo, setCurrentUserInfo] = useState<any>(null);
   const [showEmoticons, setShowEmoticons] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [showImageOptions, setShowImageOptions] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const emoticonRef = useRef<HTMLDivElement>(null);
+  const imageOptionsRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const subscriptionRef = useRef<any>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const sendersCache = useRef<Map<string, any>>(new Map());
@@ -61,6 +69,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const initializationInProgress = useRef(false);
   const hasInitialized = useRef(false);
   const { isNative } = useCapacitor();
+  const { takePhoto, selectFromGallery } = useCamera();
 
   // Helper function to fetch sender info (with caching)
   const getSenderInfo = async (senderId: string) => {
@@ -151,7 +160,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       if (emoticonRef.current && !emoticonRef.current.contains(event.target as Node)) {
         setShowEmoticons(false);
       }
-      
+
+      if (imageOptionsRef.current && !imageOptionsRef.current.contains(event.target as Node)) {
+        setShowImageOptions(false);
+      }
+
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         onClose();
       }
@@ -454,6 +467,132 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     }
   };
 
+  const handleTakePhoto = async () => {
+    try {
+      setShowImageOptions(false);
+      const photo = await takePhoto();
+      if (photo) {
+        await handleImageUpload(photo.dataUrl);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      alert('Failed to take photo');
+    }
+  };
+
+  const handleSelectFromGallery = async () => {
+    try {
+      setShowImageOptions(false);
+      const photo = await selectFromGallery();
+      if (photo) {
+        await handleImageUpload(photo.dataUrl);
+      }
+    } catch (error) {
+      console.error('Error selecting from gallery:', error);
+      alert('Failed to select image');
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !conversation || !currentUserId) return;
+
+    await handleImageUploadFromFile(file);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleImageUpload = async (dataUrl: string) => {
+    if (!conversation || !currentUserId) return;
+
+    try {
+      setUploadingImage(true);
+
+      const { data: messageData, error: messageError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversation.id,
+          sender_id: currentUserId,
+          content: '[Image]',
+          has_image: true
+        })
+        .select()
+        .single();
+
+      if (messageError) throw messageError;
+
+      const uploadResult = await uploadFriendMessageImage(
+        dataUrl,
+        conversation.id,
+        messageData.id
+      );
+
+      if (uploadResult.url) {
+        const { error: updateError } = await supabase
+          .from('messages')
+          .update({ image_url: uploadResult.url })
+          .eq('id', messageData.id);
+
+        if (updateError) {
+          console.error('Error updating message with image URL:', updateError);
+        }
+      } else {
+        console.error('Error uploading image:', uploadResult.error);
+      }
+    } catch (error) {
+      console.error('Error handling image upload:', error);
+      alert('Failed to send image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleImageUploadFromFile = async (file: File) => {
+    if (!conversation || !currentUserId) return;
+
+    try {
+      setUploadingImage(true);
+
+      const { data: messageData, error: messageError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversation.id,
+          sender_id: currentUserId,
+          content: '[Image]',
+          has_image: true
+        })
+        .select()
+        .single();
+
+      if (messageError) throw messageError;
+
+      const uploadResult = await uploadFriendMessageImageFromFile(
+        file,
+        conversation.id,
+        messageData.id
+      );
+
+      if (uploadResult.url) {
+        const { error: updateError } = await supabase
+          .from('messages')
+          .update({ image_url: uploadResult.url })
+          .eq('id', messageData.id);
+
+        if (updateError) {
+          console.error('Error updating message with image URL:', updateError);
+        }
+      } else {
+        console.error('Error uploading image from file:', uploadResult.error);
+      }
+    } catch (error) {
+      console.error('Error handling image upload from file:', error);
+      alert('Failed to send image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !conversation || !currentUserId || sending) return;
 
@@ -637,7 +776,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         className={modalContentClasses}
         onClick={(e) => e.stopPropagation()}
         style={isNative && keyboardHeight > 0 ? {
-          height: `calc(100% - ${keyboardHeight}px)`
+          paddingBottom: `${keyboardHeight}px`,
+          maxHeight: '100%'
         } : {}}
       >
         {/* Header */}
@@ -727,6 +867,15 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
                           : 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white'
                       }`}
                     >
+                      {message.image_url && (
+                        <img
+                          src={message.image_url}
+                          alt="Message attachment"
+                          className="max-w-full rounded-lg mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => window.open(message.image_url, '_blank')}
+                          style={{ maxHeight: '300px', objectFit: 'contain' }}
+                        />
+                      )}
                       <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
                     </div>
                     <div className={`mt-1 text-xs text-gray-500 dark:text-gray-400 ${
@@ -778,20 +927,62 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           </div>
         )}
 
+        {/* Image Options Modal for Mobile */}
+        {showImageOptions && isNative && (
+          <div
+            ref={imageOptionsRef}
+            className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 flex-shrink-0"
+          >
+            <div className="p-4 space-y-2">
+              <button
+                onClick={handleTakePhoto}
+                disabled={uploadingImage}
+                className="w-full flex items-center justify-center px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Camera className="h-5 w-5 mr-2" />
+                Take Photo
+              </button>
+              <button
+                onClick={handleSelectFromGallery}
+                disabled={uploadingImage}
+                className="w-full flex items-center justify-center px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ImageIcon className="h-5 w-5 mr-2" />
+                Choose from Gallery
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Message Input */}
         <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <div className="flex space-x-3">
             <button
               onClick={() => setShowEmoticons(!showEmoticons)}
               className={`p-2 rounded-full transition-colors ${
-                showEmoticons 
-                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400' 
+                showEmoticons
+                  ? 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-400'
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'
               }`}
               title="Add emoticon"
             >
               <Smile className="h-5 w-5" />
             </button>
+            <button
+              onClick={() => isNative ? setShowImageOptions(!showImageOptions) : fileInputRef.current?.click()}
+              disabled={uploadingImage || sending}
+              className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Add image"
+            >
+              <Camera className="h-5 w-5" />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
             <input
               ref={inputRef}
               type="text"

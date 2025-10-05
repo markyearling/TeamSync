@@ -254,9 +254,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     }
   }, [authUser, fetchFriends]);
 
-  // TEMPORARILY DISABLED: This subscription was causing infinite loop
-  // TODO: Implement a smarter update mechanism that doesn't trigger full refetch
-  /*
   // Set up real-time subscription for conversations to update when last_message_at changes
   useEffect(() => {
     const setupConversationSubscription = async () => {
@@ -264,7 +261,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       if (!authUser) return;
 
       console.log('🗨️ HEADER: Setting up conversations subscriptions for user:', authUser.id);
-      console.log('🗨️ HEADER: AuthUser object:', { id: authUser.id, email: authUser.email || 'N/A' });
 
       // Subscription for when current user is participant_1
       const conversationSubscription1 = supabase
@@ -272,44 +268,17 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         .on(
           'postgres_changes',
           {
-            event: '*',
+            event: 'UPDATE',
             schema: 'public',
             table: 'conversations',
             filter: `participant_1_id=eq.${authUser.id}`
           },
           (payload) => {
-            console.log('🗨️ HEADER: Conversation P1 channel event:', payload.eventType, payload.new);
+            console.log('🗨️ HEADER: Conversation P1 updated:', payload.new);
             fetchFriends();
           }
         )
-        .on(
-          'system',
-          'CONNECTING',
-          () => console.log('🗨️ HEADER: Conversation P1 channel: CONNECTING')
-        )
-        .on(
-          'system',
-          'CONNECTED',
-          () => console.log('🗨️ HEADER: Conversation P1 channel: CONNECTED')
-        )
-        .on(
-          'system',
-          'CLOSED',
-          () => console.log('🗨️ HEADER: Conversation P1 channel: CLOSED')
-        )
-        .on(
-          'system',
-                    'ERROR', // This catches system-level errors from the Realtime client
-          (err) => console.log('🗨️ HEADER: Conversation P1 channel: SYSTEM ERROR (might be benign)', err)
-        )
-        .subscribe((status) => {
-          console.log('🗨️ HEADER: Conversations P1 subscription status:', status);
-          if (status === 'SUBSCRIBED') {
-            console.log('🗨️ HEADER: Successfully subscribed to conversations P1 realtime updates');
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('🗨️ HEADER: Error subscribing to conversations P1 realtime updates');
-          }
-        });
+        .subscribe();
 
       // Subscription for when current user is participant_2
       const conversationSubscription2 = supabase
@@ -317,46 +286,18 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         .on(
           'postgres_changes',
           {
-            event: '*',
+            event: 'UPDATE',
             schema: 'public',
             table: 'conversations',
             filter: `participant_2_id=eq.${authUser.id}`
           },
           (payload) => {
-            console.log('🗨️ HEADER: Conversation P2 channel event:', payload.eventType, payload.new);
+            console.log('🗨️ HEADER: Conversation P2 updated:', payload.new);
             fetchFriends();
           }
         )
-        .on(
-          'system',
-          'CONNECTING',
-          () => console.log('🗨️ HEADER: Conversation P2 channel: CONNECTING')
-        )
-        .on(
-          'system',
-          'CONNECTED',
-          () => console.log('🗨️ HEADER: Conversation P2 channel: CONNECTED')
-        )
-        .on(
-          'system',
-          'CLOSED',
-          () => console.log('🗨️ HEADER: Conversation P2 channel: CLOSED')
-        )
-        .on(
-          'system',
-                   'ERROR', // This catches system-level errors from the Realtime client
-          (err) => console.log('🗨️ HEADER: Conversation P2 channel: SYSTEM ERROR (might be benign)', err)
-        )
-        .subscribe((status) => {
-          console.log('🗨️ HEADER: Conversations P2 subscription status:', status);
-          if (status === 'SUBSCRIBED') {
-            console.log('🗨️ HEADER: Successfully subscribed to conversations P2 realtime updates');
-          } else if (status === 'CHANNEL_ERROR') {
-            console.error('🗨️ HEADER: Error subscribing to conversations P2 realtime updates');
-          }
-        });
+        .subscribe();
 
-      console.log('🗨️ HEADER: Conversations subscriptions setup complete for user:', authUser.id);
       return () => {
         conversationSubscription1.unsubscribe();
         conversationSubscription2.unsubscribe();
@@ -364,8 +305,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     };
 
     setupConversationSubscription();
-  }, [authUser, fetchFriends]);
-  */
+  }, [authUser]);
 
   // Set up real-time subscription for friend requests to update when requests are sent/received
   useEffect(() => {
