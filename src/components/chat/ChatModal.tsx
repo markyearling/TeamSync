@@ -464,9 +464,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const handleTakePhoto = async () => {
     try {
       setShowImageOptions(false);
-      const photo = await takePhoto();
-      if (photo) {
-        await handleImageUpload(photo.dataUrl);
+      const photoDataUrl = await takePhoto();
+      if (photoDataUrl) {
+        await handleImageUpload(photoDataUrl);
       }
     } catch (error) {
       console.error('Error taking photo:', error);
@@ -477,9 +477,9 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const handleSelectFromGallery = async () => {
     try {
       setShowImageOptions(false);
-      const photo = await selectFromGallery();
-      if (photo) {
-        await handleImageUpload(photo.dataUrl);
+      const photoDataUrl = await selectFromGallery();
+      if (photoDataUrl) {
+        await handleImageUpload(photoDataUrl);
       }
     } catch (error) {
       console.error('Error selecting from gallery:', error);
