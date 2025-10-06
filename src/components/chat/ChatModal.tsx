@@ -121,7 +121,27 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
   const modalContentClasses = isNative
     ? "flex flex-col h-full w-full overflow-hidden"
-    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl h-full max-h-full overflow-hidden flex flex-col";
+    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl h-full max-h-[90vh] overflow-hidden flex flex-col";
+
+  // Handle keyboard height adjustments for mobile
+  useEffect(() => {
+    if (!isNative) return;
+
+    const keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', (info) => {
+      console.log('Keyboard will show, height:', info.keyboardHeight);
+      setKeyboardHeight(info.keyboardHeight);
+    });
+
+    const keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
+      console.log('Keyboard will hide');
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      keyboardWillShowListener.remove();
+      keyboardWillHideListener.remove();
+    };
+  }, [isNative]);
 
   useEffect(() => {
     // Reset initialization guards when modal reopens or friend changes
@@ -130,38 +150,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
     initializeChat();
 
-    // Don't auto-focus on native to prevent keyboard from appearing immediately
-    // User can tap the input when ready
-    if (!isNative) {
-      setTimeout(() => {
-        inputRef.current?.focus();
-      }, 100);
-    }
-
-    // Set up keyboard listeners for native apps
-    let keyboardWillShowListener: any = null;
-    let keyboardWillHideListener: any = null;
-
-    if (isNative) {
-      console.log('Setting up keyboard listeners for native app');
-      
-      keyboardWillShowListener = Keyboard.addListener('keyboardWillShow', (info) => {
-        console.log('⌨️ Keyboard will show with height:', info.keyboardHeight);
-        setKeyboardHeight(info.keyboardHeight);
-
-        // Scroll to bottom when keyboard appears to keep input visible
-        setTimeout(() => {
-          console.log('Scrolling to bottom after keyboard show');
-          forceScrollToBottom();
-        }, 150);
-      });
-
-      keyboardWillHideListener = Keyboard.addListener('keyboardWillHide', () => {
-        console.log('Keyboard will hide');
-        setKeyboardHeight(0);
-      });
-    }
-    // Close emoticon picker when clicking outside
+    // Focus input when modal opens
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+    // Handle clicks outside the modal
     const handleClickOutside = (event: MouseEvent) => {
       if (emoticonRef.current && !emoticonRef.current.contains(event.target as Node)) {
         setShowEmoticons(false);
@@ -176,25 +169,20 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    
+    if (!isNative) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      
-      // Clean up keyboard listeners
-      if (keyboardWillShowListener) {
-        keyboardWillShowListener.remove();
+      if (!isNative) {
+        document.removeEventListener('mousedown', handleClickOutside);
       }
-      if (keyboardWillHideListener) {
-        keyboardWillHideListener.remove();
-      }
-      
       // Clean up subscription
       if (subscriptionRef.current) {
         subscriptionRef.current.unsubscribe();
       }
     };
-  }, [friend.friend_id, onClose]);
+  }, [friend.friend_id, onClose, isNative]);
 
   // Scroll to bottom only on initial load, not on every message change
   useEffect(() => {
@@ -966,14 +954,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         ref={modalRef}
         className={modalContentClasses}
         onClick={(e) => e.stopPropagation()}
-        style={isNative && keyboardHeight > 0 ? {
-          height: `calc(100vh - ${keyboardHeight}px)`,
-          maxHeight: `calc(100vh - ${keyboardHeight}px)`,
-          transition: 'height 0.2s ease-out'
-        } : isNative ? {
-          height: '100vh',
-          maxHeight: '100vh'
-        } : {}}
       >
         {/* Header */}
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
@@ -1152,7 +1132,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         )}
 
         {/* Message Input */}
-        <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-800">
+        <div
+          className="px-4 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-800"
+          style={isNative && keyboardHeight > 0 ? { paddingBottom: `${keyboardHeight}px` } : {}}
+        >
           <div className="flex items-center space-x-1">
             <button
               onClick={() => setShowEmoticons(!showEmoticons)}
@@ -1188,12 +1171,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
               onKeyPress={handleKeyPress}
               onFocus={() => {
                 console.log('Chat input focused - keyboard should appear');
-                console.log('Current keyboard height state:', keyboardHeight);
-                // Scroll to bottom when input is focused to ensure visibility
-                setTimeout(() => {
-                  console.log('Scrolling after input focus, keyboard height:', keyboardHeight);
-                  forceScrollToBottom();
-                }, 300);
+                setTimeout(() => forceScrollToBottom(), 300);
               }}
               placeholder="Type a message..."
               className={`flex-1 rounded-full border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white ${isNative ? 'px-3 py-1.5 text-sm' : 'px-4 py-2'}`}
