@@ -125,6 +125,36 @@ Deno.serve(async (req) => {
       console.log(`[Message Notif] FCM Token length: ${recipientFcmToken.length}`);
     }
 
+    // Check if recipient is actively viewing this conversation
+    console.log('Checking if recipient is actively viewing conversation...');
+    const { data: isActivelyViewing, error: activeCheckError } = await supabaseClient
+      .rpc('is_user_actively_viewing_conversation', {
+        p_user_id: recipientId,
+        p_conversation_id: conversation_id
+      });
+
+    if (activeCheckError) {
+      console.error('Error checking active viewing status:', activeCheckError);
+    }
+
+    console.log('Recipient actively viewing conversation:', isActivelyViewing);
+
+    // Skip notification if recipient is actively viewing the conversation
+    if (isActivelyViewing) {
+      console.log('📵 Skipping notification - recipient is actively viewing this conversation');
+      return new Response(
+        JSON.stringify({
+          success: true,
+          notificationSkipped: true,
+          reason: 'Recipient is actively viewing conversation'
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        }
+      );
+    }
+
     // Create notification for the recipient
     console.log('Creating database notification for recipient:', recipientId);
     const { data: notification, error: notificationError } = await supabaseClient

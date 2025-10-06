@@ -69,6 +69,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const isInitialMount = useRef(true);
   const initializationInProgress = useRef(false);
   const hasInitialized = useRef(false);
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const activeConversationIdRef = useRef<string | null>(null);
   const { isNative } = useCapacitor();
   const { takePhoto, selectFromGallery } = useCamera();
 
@@ -90,6 +92,72 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
   // Load only the most recent messages initially for faster loading
   const INITIAL_MESSAGE_LOAD_LIMIT = 50;
+
+  // Active conversation tracking helpers
+  const setActiveConversation = async (conversationId: string, userId: string) => {
+    try {
+      console.log('🟢 Setting active conversation:', conversationId);
+      const { error } = await supabase
+        .from('active_conversations')
+        .upsert({
+          user_id: userId,
+          conversation_id: conversationId,
+          last_active_at: new Date().toISOString(),
+          device_type: isNative ? 'mobile' : 'web'
+        }, {
+          onConflict: 'user_id,conversation_id'
+        });
+
+      if (error) {
+        console.error('Error setting active conversation:', error);
+      } else {
+        console.log('✅ Active conversation set successfully');
+        activeConversationIdRef.current = conversationId;
+      }
+    } catch (error) {
+      console.error('Exception setting active conversation:', error);
+    }
+  };
+
+  const updateActiveConversationHeartbeat = async (conversationId: string, userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('active_conversations')
+        .update({
+          last_active_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .eq('conversation_id', conversationId);
+
+      if (error) {
+        console.error('Error updating heartbeat:', error);
+      } else {
+        console.log('💓 Heartbeat updated for conversation:', conversationId);
+      }
+    } catch (error) {
+      console.error('Exception updating heartbeat:', error);
+    }
+  };
+
+  const clearActiveConversation = async (conversationId: string, userId: string) => {
+    try {
+      console.log('🔴 Clearing active conversation:', conversationId);
+      const { error } = await supabase
+        .from('active_conversations')
+        .delete()
+        .eq('user_id', userId)
+        .eq('conversation_id', conversationId);
+
+      if (error) {
+        console.error('Error clearing active conversation:', error);
+      } else {
+        console.log('✅ Active conversation cleared successfully');
+        activeConversationIdRef.current = null;
+      }
+    } catch (error) {
+      console.error('Exception clearing active conversation:', error);
+    }
+  };
 
   // Popular emoticons organized by category
   const emoticons = {
@@ -296,6 +364,31 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     };
   }, [conversation, currentUserId]);
 
+  // Set up heartbeat to keep active conversation status fresh
+  useEffect(() => {
+    if (!conversation || !currentUserId) return;
+
+    // Start heartbeat interval (update every 45 seconds)
+    console.log('💓 Starting heartbeat for conversation:', conversation.id);
+    heartbeatIntervalRef.current = setInterval(() => {
+      updateActiveConversationHeartbeat(conversation.id, currentUserId);
+    }, 45000); // 45 seconds
+
+    // Cleanup function
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        console.log('🛑 Stopping heartbeat');
+        clearInterval(heartbeatIntervalRef.current);
+        heartbeatIntervalRef.current = null;
+      }
+
+      // Clear active conversation status when modal closes
+      if (activeConversationIdRef.current) {
+        clearActiveConversation(conversation.id, currentUserId);
+      }
+    };
+  }, [conversation, currentUserId]);
+
   const initializeChat = async () => {
     // Prevent double initialization
     if (initializationInProgress.current || hasInitialized.current) {
@@ -337,6 +430,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       // Mark all messages from friend as read
       console.log('🔄 Marking conversation as read');
       await markConversationAsRead(conversationData.id, user.id);
+
+      // Set active conversation status
+      console.log('🔄 Setting active conversation status');
+      await setActiveConversation(conversationData.id, user.id);
 
       console.log('✅ Chat initialization complete');
       hasInitialized.current = true;
@@ -507,33 +604,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       console.log('Conversation ID:', conversation.id);
       console.log('Sender ID:', currentUserId);
 
-      // Check if recipient has unread messages
-      const { data: convData, error: convError } = await supabase
-        .from('conversations')
-        .select('participant_1_id, participant_2_id, participant_1_last_read_at, participant_2_last_read_at, last_message_at')
-        .eq('id', conversation.id)
-        .single();
-
-      let shouldSendNotification = false;
-      if (convData && !convError) {
-        const isP1Sender = convData.participant_1_id === currentUserId;
-        const recipientLastRead = isP1Sender ? convData.participant_2_last_read_at : convData.participant_1_last_read_at;
-        const lastMessageAt = convData.last_message_at;
-        shouldSendNotification = !lastMessageAt || new Date(recipientLastRead) >= new Date(lastMessageAt);
-        console.log('📊 IMAGE NOTIFICATION DECISION:', {
-          currentUserId,
-          participant1: convData.participant_1_id,
-          participant2: convData.participant_2_id,
-          isP1Sender,
-          p1LastRead: convData.participant_1_last_read_at,
-          p2LastRead: convData.participant_2_last_read_at,
-          recipientLastRead,
-          lastMessageAt,
-          comparison: lastMessageAt ? `${new Date(recipientLastRead).getTime()} >= ${new Date(lastMessageAt).getTime()}` : 'no messages yet',
-          shouldNotify: shouldSendNotification
-        });
-      }
-
       const { data: messageData, error: messageError } = await supabase
         .from('messages')
         .insert({
@@ -622,14 +692,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
           console.log('✅ Local state updated');
 
-          // Send notification in background after image upload completes
-          if (shouldSendNotification) {
-            sendMessageNotification(messageData.id, '📷 Photo').catch(err => {
-              console.error('Background notification failed:', err);
-            });
-          } else {
-            console.log('📵 Skipping notification - recipient already has unread messages');
-          }
+          // Always send notification - edge function will check if recipient is actively viewing
+          console.log('📤 Sending notification for image message:', messageData.id);
+          sendMessageNotification(messageData.id, '📷 Photo').catch(err => {
+            console.error('Background notification failed:', err);
+          });
         }
       } else {
         console.error('❌ Error uploading image:', uploadResult.error);
@@ -687,20 +754,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
     try {
       setUploadingImage(true);
-
-      // Check notification status BEFORE inserting message
-      const { data: shouldNotify, error: checkError } = await supabase
-        .rpc('should_send_message_notification', {
-          p_conversation_id: conversation.id,
-          p_sender_id: currentUserId
-        });
-
-      if (checkError) {
-        console.error('Error checking notification status:', checkError);
-      }
-
-      const shouldSendNotification = !checkError && shouldNotify;
-      console.log('📊 Should send notification for image file (checked BEFORE insert):', shouldSendNotification);
 
       const { data: messageData, error: messageError } = await supabase
         .from('messages')
@@ -784,14 +837,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
           console.log('✅ Local state updated');
 
-          // Send notification in background after image upload completes
-          if (shouldSendNotification) {
-            sendMessageNotification(messageData.id, '📷 Photo').catch(err => {
-              console.error('Background notification failed:', err);
-            });
-          } else {
-            console.log('📵 Skipping notification - recipient already has unread messages');
-          }
+          // Always send notification - edge function will check if recipient is actively viewing
+          console.log('📤 Sending notification for image file message:', messageData.id);
+          sendMessageNotification(messageData.id, '📷 Photo').catch(err => {
+            console.error('Background notification failed:', err);
+          });
         }
       } else {
         console.error('Error uploading image from file:', uploadResult.error);
@@ -815,44 +865,6 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     setShowEmoticons(false);
 
     try {
-      // Check if recipient has unread messages by comparing last_read_at timestamps
-      // We need to fetch the latest conversation data to check this
-      const { data: convData, error: convError } = await supabase
-        .from('conversations')
-        .select('participant_1_id, participant_2_id, participant_1_last_read_at, participant_2_last_read_at, last_message_at')
-        .eq('id', conversation.id)
-        .single();
-
-      if (convError) {
-        console.error('Error fetching conversation:', convError);
-      }
-
-      let shouldSendNotification = false;
-      if (convData) {
-        // Determine which participant is the recipient
-        const isP1Sender = convData.participant_1_id === currentUserId;
-        const recipientLastRead = isP1Sender
-          ? convData.participant_2_last_read_at
-          : convData.participant_1_last_read_at;
-        const lastMessageAt = convData.last_message_at;
-
-        // Send notification if recipient has read all messages (last_read_at >= last_message_at)
-        // This means they're caught up and this will be their first new unread message
-        shouldSendNotification = !lastMessageAt || new Date(recipientLastRead) >= new Date(lastMessageAt);
-
-        console.log('📊 NOTIFICATION DECISION:', {
-          currentUserId,
-          participant1: convData.participant_1_id,
-          participant2: convData.participant_2_id,
-          isP1Sender,
-          p1LastRead: convData.participant_1_last_read_at,
-          p2LastRead: convData.participant_2_last_read_at,
-          recipientLastRead,
-          lastMessageAt,
-          comparison: lastMessageAt ? `${new Date(recipientLastRead).getTime()} >= ${new Date(lastMessageAt).getTime()}` : 'no messages yet',
-          shouldNotify: shouldSendNotification
-        });
-      }
 
       // Insert the message
       const { data: insertedMessage, error } = await supabase
@@ -889,14 +901,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       // Scroll after state update, outside of setState
       setTimeout(() => forceScrollToBottom(), 50);
 
-      // Send notification in background if needed
-      if (shouldSendNotification) {
-        sendMessageNotification(insertedMessage.id, messageContent).catch(err => {
-          console.error('Background notification failed:', err);
-        });
-      } else {
-        console.log('📵 Skipping notification - recipient already has unread messages');
-      }
+      // Always send notification - edge function will check if recipient is actively viewing
+      console.log('📤 Sending notification for message:', insertedMessage.id);
+      sendMessageNotification(insertedMessage.id, messageContent).catch(err => {
+        console.error('Background notification failed:', err);
+      });
 
     } catch (error) {
       console.error('Error sending message:', error);
