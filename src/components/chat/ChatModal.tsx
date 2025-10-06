@@ -520,7 +520,18 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         const recipientLastRead = isP1Sender ? convData.participant_2_last_read_at : convData.participant_1_last_read_at;
         const lastMessageAt = convData.last_message_at;
         shouldSendNotification = !lastMessageAt || new Date(recipientLastRead) >= new Date(lastMessageAt);
-        console.log('📊 Image notification check:', { recipientLastRead, lastMessageAt, shouldNotify: shouldSendNotification });
+        console.log('📊 IMAGE NOTIFICATION DECISION:', {
+          currentUserId,
+          participant1: convData.participant_1_id,
+          participant2: convData.participant_2_id,
+          isP1Sender,
+          p1LastRead: convData.participant_1_last_read_at,
+          p2LastRead: convData.participant_2_last_read_at,
+          recipientLastRead,
+          lastMessageAt,
+          comparison: lastMessageAt ? `${new Date(recipientLastRead).getTime()} >= ${new Date(lastMessageAt).getTime()}` : 'no messages yet',
+          shouldNotify: shouldSendNotification
+        });
       }
 
       const { data: messageData, error: messageError } = await supabase
@@ -829,9 +840,16 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
         // This means they're caught up and this will be their first new unread message
         shouldSendNotification = !lastMessageAt || new Date(recipientLastRead) >= new Date(lastMessageAt);
 
-        console.log('📊 Notification check:', {
+        console.log('📊 NOTIFICATION DECISION:', {
+          currentUserId,
+          participant1: convData.participant_1_id,
+          participant2: convData.participant_2_id,
+          isP1Sender,
+          p1LastRead: convData.participant_1_last_read_at,
+          p2LastRead: convData.participant_2_last_read_at,
           recipientLastRead,
           lastMessageAt,
+          comparison: lastMessageAt ? `${new Date(recipientLastRead).getTime()} >= ${new Date(lastMessageAt).getTime()}` : 'no messages yet',
           shouldNotify: shouldSendNotification
         });
       }
