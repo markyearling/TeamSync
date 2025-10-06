@@ -56,6 +56,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [showImageOptions, setShowImageOptions] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -506,6 +507,20 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       console.log('Conversation ID:', conversation.id);
       console.log('Sender ID:', currentUserId);
 
+      // Check notification status BEFORE inserting message
+      const { data: shouldNotify, error: checkError } = await supabase
+        .rpc('should_send_message_notification', {
+          p_conversation_id: conversation.id,
+          p_sender_id: currentUserId
+        });
+
+      if (checkError) {
+        console.error('Error checking notification status:', checkError);
+      }
+
+      const shouldSendNotification = !checkError && shouldNotify;
+      console.log('📊 Should send notification for image (checked BEFORE insert):', shouldSendNotification);
+
       const { data: messageData, error: messageError } = await supabase
         .from('messages')
         .insert({
@@ -595,9 +610,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           console.log('✅ Local state updated');
 
           // Send notification in background after image upload completes
-          sendMessageNotification(messageData.id, '📷 Photo').catch(err => {
-            console.error('Background notification failed:', err);
-          });
+          if (shouldSendNotification) {
+            sendMessageNotification(messageData.id, '📷 Photo').catch(err => {
+              console.error('Background notification failed:', err);
+            });
+          } else {
+            console.log('📵 Skipping notification - recipient already has unread messages');
+          }
         }
       } else {
         console.error('❌ Error uploading image:', uploadResult.error);
@@ -612,27 +631,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
   };
 
   // Helper function to send message notification
+  // Note: Caller should check shouldNotify BEFORE calling this function
   const sendMessageNotification = async (messageId: string, content: string) => {
     if (!conversation || !currentUserId) return;
 
     try {
-      // Check if notification should be sent using the database function
-      const { data: shouldNotify, error: checkError } = await supabase
-        .rpc('should_send_message_notification', {
-          p_conversation_id: conversation.id,
-          p_sender_id: currentUserId
-        });
-
-      if (checkError) {
-        console.error('Error checking if notification should be sent:', checkError);
-        return;
-      }
-
-      if (!shouldNotify) {
-        console.log('📵 Skipping notification - recipient already has unread messages');
-        return;
-      }
-
       console.log('📬 Sending message notification...');
 
       // Call the edge function to send notification
@@ -671,6 +674,20 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
 
     try {
       setUploadingImage(true);
+
+      // Check notification status BEFORE inserting message
+      const { data: shouldNotify, error: checkError } = await supabase
+        .rpc('should_send_message_notification', {
+          p_conversation_id: conversation.id,
+          p_sender_id: currentUserId
+        });
+
+      if (checkError) {
+        console.error('Error checking notification status:', checkError);
+      }
+
+      const shouldSendNotification = !checkError && shouldNotify;
+      console.log('📊 Should send notification for image file (checked BEFORE insert):', shouldSendNotification);
 
       const { data: messageData, error: messageError } = await supabase
         .from('messages')
@@ -755,9 +772,13 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           console.log('✅ Local state updated');
 
           // Send notification in background after image upload completes
-          sendMessageNotification(messageData.id, '📷 Photo').catch(err => {
-            console.error('Background notification failed:', err);
-          });
+          if (shouldSendNotification) {
+            sendMessageNotification(messageData.id, '📷 Photo').catch(err => {
+              console.error('Background notification failed:', err);
+            });
+          } else {
+            console.log('📵 Skipping notification - recipient already has unread messages');
+          }
         }
       } else {
         console.error('Error uploading image from file:', uploadResult.error);
@@ -781,7 +802,21 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     setShowEmoticons(false);
 
     try {
-      // Insert the message immediately without waiting for notification logic
+      // Check notification status BEFORE inserting message
+      const { data: shouldNotify, error: checkError } = await supabase
+        .rpc('should_send_message_notification', {
+          p_conversation_id: conversation.id,
+          p_sender_id: currentUserId
+        });
+
+      if (checkError) {
+        console.error('Error checking notification status:', checkError);
+      }
+
+      const shouldSendNotification = !checkError && shouldNotify;
+      console.log('📊 Should send notification (checked BEFORE insert):', shouldSendNotification);
+
+      // Insert the message
       const { data: insertedMessage, error } = await supabase
         .from('messages')
         .insert({
@@ -816,10 +851,14 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       // Scroll after state update, outside of setState
       setTimeout(() => forceScrollToBottom(), 50);
 
-      // Send notification in background (don't await to avoid blocking UI)
-      sendMessageNotification(insertedMessage.id, messageContent).catch(err => {
-        console.error('Background notification failed:', err);
-      });
+      // Send notification in background if needed
+      if (shouldSendNotification) {
+        sendMessageNotification(insertedMessage.id, messageContent).catch(err => {
+          console.error('Background notification failed:', err);
+        });
+      } else {
+        console.log('📵 Skipping notification - recipient already has unread messages');
+      }
 
     } catch (error) {
       console.error('Error sending message:', error);
@@ -1047,8 +1086,8 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
                           src={message.image_url}
                           alt="Message attachment"
                           className="max-w-full rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                          onClick={() => window.open(message.image_url, '_blank')}
-                          style={{ maxHeight: '300px', objectFit: 'contain' }}
+                          onClick={() => setEnlargedImage(message.image_url!)}
+                          style={{ maxHeight: '200px', width: 'auto', objectFit: 'cover' }}
                         />
                       )}
                       {!message.image_url && (
@@ -1191,6 +1230,27 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
           </div>
         </div>
       </div>
+
+      {/* Enlarged Image Modal */}
+      {enlargedImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center p-4"
+          onClick={() => setEnlargedImage(null)}
+        >
+          <button
+            onClick={() => setEnlargedImage(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+          >
+            <X className="h-8 w-8" />
+          </button>
+          <img
+            src={enlargedImage}
+            alt="Enlarged view"
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };
