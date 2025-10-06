@@ -507,19 +507,21 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
       console.log('Conversation ID:', conversation.id);
       console.log('Sender ID:', currentUserId);
 
-      // Check notification status BEFORE inserting message
-      const { data: shouldNotify, error: checkError } = await supabase
-        .rpc('should_send_message_notification', {
-          p_conversation_id: conversation.id,
-          p_sender_id: currentUserId
-        });
+      // Check if recipient has unread messages
+      const { data: convData, error: convError } = await supabase
+        .from('conversations')
+        .select('participant_1_id, participant_2_id, participant_1_last_read_at, participant_2_last_read_at, last_message_at')
+        .eq('id', conversation.id)
+        .single();
 
-      if (checkError) {
-        console.error('Error checking notification status:', checkError);
+      let shouldSendNotification = false;
+      if (convData && !convError) {
+        const isP1Sender = convData.participant_1_id === currentUserId;
+        const recipientLastRead = isP1Sender ? convData.participant_2_last_read_at : convData.participant_1_last_read_at;
+        const lastMessageAt = convData.last_message_at;
+        shouldSendNotification = !lastMessageAt || new Date(recipientLastRead) >= new Date(lastMessageAt);
+        console.log('📊 Image notification check:', { recipientLastRead, lastMessageAt, shouldNotify: shouldSendNotification });
       }
-
-      const shouldSendNotification = !checkError && shouldNotify;
-      console.log('📊 Should send notification for image (checked BEFORE insert):', shouldSendNotification);
 
       const { data: messageData, error: messageError } = await supabase
         .from('messages')
@@ -802,19 +804,37 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     setShowEmoticons(false);
 
     try {
-      // Check notification status BEFORE inserting message
-      const { data: shouldNotify, error: checkError } = await supabase
-        .rpc('should_send_message_notification', {
-          p_conversation_id: conversation.id,
-          p_sender_id: currentUserId
-        });
+      // Check if recipient has unread messages by comparing last_read_at timestamps
+      // We need to fetch the latest conversation data to check this
+      const { data: convData, error: convError } = await supabase
+        .from('conversations')
+        .select('participant_1_id, participant_2_id, participant_1_last_read_at, participant_2_last_read_at, last_message_at')
+        .eq('id', conversation.id)
+        .single();
 
-      if (checkError) {
-        console.error('Error checking notification status:', checkError);
+      if (convError) {
+        console.error('Error fetching conversation:', convError);
       }
 
-      const shouldSendNotification = !checkError && shouldNotify;
-      console.log('📊 Should send notification (checked BEFORE insert):', shouldSendNotification);
+      let shouldSendNotification = false;
+      if (convData) {
+        // Determine which participant is the recipient
+        const isP1Sender = convData.participant_1_id === currentUserId;
+        const recipientLastRead = isP1Sender
+          ? convData.participant_2_last_read_at
+          : convData.participant_1_last_read_at;
+        const lastMessageAt = convData.last_message_at;
+
+        // Send notification if recipient has read all messages (last_read_at >= last_message_at)
+        // This means they're caught up and this will be their first new unread message
+        shouldSendNotification = !lastMessageAt || new Date(recipientLastRead) >= new Date(lastMessageAt);
+
+        console.log('📊 Notification check:', {
+          recipientLastRead,
+          lastMessageAt,
+          shouldNotify: shouldSendNotification
+        });
+      }
 
       // Insert the message
       const { data: insertedMessage, error } = await supabase

@@ -36,11 +36,9 @@ export const useCamera = () => {
       
       const photo: Photo = await Camera.getPhoto({
         quality: 90,
-        allowEditing: true,
+        allowEditing: false,
         resultType: CameraResultType.DataUrl,
-        source: CameraSource.Camera, // Specifically use the camera
-        width: 300,
-        height: 300,
+        source: CameraSource.Camera,
         correctOrientation: true
       });
 
@@ -87,11 +85,9 @@ export const useCamera = () => {
       
       const photo: Photo = await Camera.getPhoto({
         quality: 90,
-        allowEditing: true,
+        allowEditing: false,
         resultType: CameraResultType.DataUrl,
-        source: CameraSource.Photos, // Specifically use the photo library
-        width: 300,
-        height: 300,
+        source: CameraSource.Photos,
         correctOrientation: true
       });
 
