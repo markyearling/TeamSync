@@ -458,7 +458,7 @@ Deno.serve(async (req: Request) => {
       // Deduplicate events based on the unique constraint fields
       const uniqueEvents = new Map();
       events.forEach(event => {
-        const key = `${event.platform}-${event.platform_team_id}-${event.start_time}-${event.end_time}`;
+        const key = `${event.platform}-${event.platform_team_id}-${event.external_id}`;
         if (!uniqueEvents.has(key)) {
           uniqueEvents.set(key, event);
         }
@@ -534,7 +534,7 @@ Deno.serve(async (req: Request) => {
           const { error: upsertError } = await supabaseClient
             .from('events')
             .upsert(event, {
-              onConflict: 'platform,platform_team_id,external_id',
+              onConflict: 'events_platform_external_id_unique',
               ignoreDuplicates: false
             });
 
