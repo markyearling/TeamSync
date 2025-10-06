@@ -273,8 +273,12 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     console.log('🔧 Setting up real-time subscription for conversation:', conversation.id);
 
     // Set up real-time subscription for messages in this conversation
+    // Using a unique channel name to avoid conflicts
+    const channelName = `chat:${conversation.id}:${Date.now()}`;
+    console.log('🔧 Creating channel:', channelName);
+
     subscriptionRef.current = supabase
-      .channel(`messages:conversation_id=eq.${conversation.id}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {
