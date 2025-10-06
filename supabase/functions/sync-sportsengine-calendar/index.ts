@@ -534,7 +534,7 @@ Deno.serve(async (req: Request) => {
           const { error: upsertError } = await supabaseClient
             .from('events')
             .upsert(event, {
-              onConflict: 'events_platform_external_id_unique',
+              onConflict: 'platform,platform_team_id,external_id',
               ignoreDuplicates: false
             });
 
