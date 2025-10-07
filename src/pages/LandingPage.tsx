@@ -116,9 +116,9 @@ const LandingPage: React.FC = () => {
                 <img
                   src="/famsink-new-logo.png"
                   alt="FamSink Logo"
-                  className="h-8 w-8 rounded-full object-cover"
+                  className="h-8 w-8 rounded-full object-cover flex-shrink-0"
                 />
-                <Link to="/" className="ml-3 text-2xl font-bold text-gray-900 hover:text-blue-600 transition-colors leading-none">
+                <Link to="/" className="ml-3 text-2xl font-bold text-gray-900 hover:text-blue-600 transition-colors flex items-center h-8">
                   FamSink
                 </Link>
               </div>
