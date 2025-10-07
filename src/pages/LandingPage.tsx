@@ -110,17 +110,19 @@ const LandingPage: React.FC = () => {
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[env(safe-area-inset-top)]">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
+          <div className="flex justify-between items-center py-4 h-16">
+            <div className="flex items-center space-x-8">
               <div className="flex items-center">
-                <img 
-                  src="/famsink-new-logo.png" 
-                  alt="FamSink Logo" 
+                <img
+                  src="/famsink-new-logo.png"
+                  alt="FamSink Logo"
                   className="h-8 w-8 rounded-full object-cover"
                 />
-                <span className="ml-3 text-2xl font-bold text-gray-900">FamSink</span>
+                <Link to="/" className="ml-3 text-2xl font-bold text-gray-900 hover:text-blue-600 transition-colors leading-none">
+                  FamSink
+                </Link>
               </div>
-              <nav className="hidden md:flex items-center space-x-8 ml-8">
+              <nav className="hidden md:flex items-center space-x-8">
                 <Link to="/features" className="text-gray-600 hover:text-gray-900 transition-colors">
                   Features
                 </Link>

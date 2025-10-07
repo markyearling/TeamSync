@@ -9,15 +9,15 @@ const PublicHeader: React.FC<PublicHeaderProps> = ({ showBackToHome = true }) =>
   return (
     <header className="bg-white shadow-sm border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-[env(safe-area-inset-top)]">
-        <div className="flex justify-between items-center py-4">
+        <div className="flex justify-between items-center py-4 h-16">
           <div className="flex items-center space-x-8">
             <div className="flex items-center">
-              <img 
-                src="/famsink-new-logo.png" 
-                alt="FamSink Logo" 
+              <img
+                src="/famsink-new-logo.png"
+                alt="FamSink Logo"
                 className="h-8 w-8 rounded-full object-cover"
               />
-              <Link to="/" className="ml-3 text-2xl font-bold text-gray-900 hover:text-blue-600 transition-colors">
+              <Link to="/" className="ml-3 text-2xl font-bold text-gray-900 hover:text-blue-600 transition-colors leading-none">
                 FamSink
               </Link>
             </div>
