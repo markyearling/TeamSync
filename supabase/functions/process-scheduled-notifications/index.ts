@@ -61,17 +61,42 @@ Deno.serve(async (req) => {
     for (const notification of notifications || []) {
       console.log(`Processing notification ID: ${notification.id} for user: ${notification.user_id}`);
       try {
-        // Get recipient's FCM token
+        // Get recipient's FCM token and notification preferences
         const { data: userSettings, error: settingsError } = await supabaseClient
           .from('user_settings')
-          .select('fcm_token')
+          .select('fcm_token, schedule_updates')
           .eq('user_id', notification.user_id)
           .single();
 
-        if (settingsError || !userSettings?.fcm_token) {
+        if (settingsError) {
+          console.warn(`Error fetching settings for user ${notification.user_id}:`, settingsError);
+          results.push({ id: notification.id, status: 'skipped', reason: 'Settings fetch error' });
+
+          // Mark as sent so we don't keep retrying
+          await supabaseClient
+            .from('scheduled_local_notifications')
+            .update({ status: 'sent', updated_at: new Date().toISOString() })
+            .eq('id', notification.id);
+          continue;
+        }
+
+        // Check if user has event notifications enabled
+        if (!userSettings?.schedule_updates) {
+          console.log(`User ${notification.user_id} has event notifications disabled. Skipping notification.`);
+          results.push({ id: notification.id, status: 'skipped', reason: 'Event notifications disabled by user' });
+
+          // Mark as sent since user doesn't want notifications
+          await supabaseClient
+            .from('scheduled_local_notifications')
+            .update({ status: 'sent', updated_at: new Date().toISOString() })
+            .eq('id', notification.id);
+          continue;
+        }
+
+        if (!userSettings?.fcm_token) {
           console.warn(`FCM token not found for user ${notification.user_id}. Skipping push notification.`);
           results.push({ id: notification.id, status: 'skipped', reason: 'FCM token not found' });
-          
+
           // Mark as sent if no FCM token, as we can't send it anyway
           await supabaseClient
             .from('scheduled_local_notifications')
