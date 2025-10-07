@@ -80,22 +80,24 @@ const MobileApps: React.FC = () => {
               </div>
               <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
                 FamSink Mobile Apps
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">
-                  Coming Soon
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-600">
+                  Now Available on iOS
                 </span>
               </h1>
               <p className="text-xl text-gray-600 max-w-3xl lg:max-w-none leading-relaxed mb-8">
-                Take your family's sports schedules with you everywhere. Our native mobile apps bring all the power 
-                of FamSink to your iPhone and Android device with features designed specifically for mobile.
+                Take your family's sports schedules with you everywhere. Download our native iOS app now,
+                with all the power of FamSink optimized for your iPhone and iPad. Android coming soon!
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Link
-                  to="/auth/signup"
+                <a
+                  href="https://apps.apple.com/us/app/famsink/id6747955517"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
                 >
-                  Get Early Access
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
+                  <Apple className="mr-2 h-5 w-5" />
+                  Download on App Store
+                </a>
               </div>
             </div>
             
@@ -107,9 +109,9 @@ const MobileApps: React.FC = () => {
                   alt="FamSink mobile app showing sports schedules on iPhone"
                   className="w-64 sm:w-80 md:w-96 lg:w-full max-w-md h-auto object-contain shadow-2xl rounded-3xl"
                 />
-                {/* Coming Soon Badge */}
-                <div className="absolute -top-4 -right-4 bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg transform rotate-12">
-                  Coming Soon!
+                {/* Available Now Badge */}
+                <div className="absolute -top-4 -right-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg transform rotate-12">
+                  Available Now!
                 </div>
               </div>
             </div>
@@ -155,45 +157,57 @@ const MobileApps: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              Download for iOS & Android
+              Download FamSink Today
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Our mobile apps are currently in development. Sign up now to be notified when they're available!
+              Available now on iOS with full mobile features. Android app coming soon!
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             {/* App Store Cards */}
             <div className="space-y-6">
               {/* iOS App Store */}
-              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 opacity-60">
+              <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-blue-200 hover:border-blue-300 transition-colors">
                 <div className="flex items-center mb-6">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-gray-800 to-gray-900 flex items-center justify-center mr-4">
                     <Apple className="h-8 w-8 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900">iOS App Store</h3>
-                    <p className="text-gray-600">Coming Soon for iPhone & iPad</p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-semibold text-gray-900">iOS App Store</h3>
+                      <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">
+                        LIVE
+                      </span>
+                    </div>
+                    <p className="text-green-600 font-medium">Available Now for iPhone & iPad</p>
                   </div>
                 </div>
-                <div className="bg-gray-100 rounded-xl p-6 text-center">
-                  <img 
-                    src="/ios-app-qr.png" 
-                    alt="iOS App Store QR Code"
-                    className="h-16 w-16 mx-auto mb-4 object-contain"
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8 text-center border border-blue-100">
+                  <p className="text-gray-700 font-semibold mb-4 text-lg">Scan to Download</p>
+                  <img
+                    src="/ios-app-qr.png"
+                    alt="Scan QR code to download FamSink from iOS App Store"
+                    className="w-48 h-48 mx-auto mb-4 object-contain"
                   />
-                  <p className="text-gray-500 font-medium">QR Code Available Soon</p>
-                  <p className="text-sm text-gray-400 mt-2">Scan to download from App Store</p>
+                  <p className="text-gray-600 text-sm">Point your iPhone camera at the QR code</p>
+                  <p className="text-gray-500 text-sm mt-1">to install FamSink instantly</p>
                 </div>
                 <div className="mt-6">
-                  <div className="bg-gray-100 rounded-lg px-4 py-3 text-center">
-                    <span className="text-gray-500 font-medium">Download from App Store</span>
-                  </div>
+                  <a
+                    href="https://apps.apple.com/us/app/famsink/id6747955517"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg px-6 py-4 text-center font-semibold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                  >
+                    <Apple className="inline-block h-5 w-5 mr-2 mb-1" />
+                    Download from App Store
+                  </a>
                 </div>
               </div>
 
               {/* Google Play Store */}
-              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-100 opacity-60">
+              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 opacity-60">
                 <div className="flex items-center mb-6">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center mr-4">
                     <Play className="h-8 w-8 text-white" />
@@ -203,18 +217,14 @@ const MobileApps: React.FC = () => {
                     <p className="text-gray-600">Coming Soon for Android</p>
                   </div>
                 </div>
-                <div className="bg-gray-100 rounded-xl p-6 text-center">
-                  <img 
-                    src="/android-app-qr.png" 
-                    alt="Google Play Store QR Code"
-                    className="h-16 w-16 mx-auto mb-4 object-contain"
-                  />
-                  <p className="text-gray-500 font-medium">QR Code Available Soon</p>
-                  <p className="text-sm text-gray-400 mt-2">Scan to download from Play Store</p>
+                <div className="bg-gray-100 rounded-xl p-8 text-center">
+                  <QrCode className="h-32 w-32 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-500 font-medium">In Development</p>
+                  <p className="text-sm text-gray-400 mt-2">Sign up to be notified when available</p>
                 </div>
                 <div className="mt-6">
-                  <div className="bg-gray-100 rounded-lg px-4 py-3 text-center">
-                    <span className="text-gray-500 font-medium">Get it on Google Play</span>
+                  <div className="bg-gray-200 rounded-lg px-6 py-4 text-center">
+                    <span className="text-gray-500 font-semibold">Coming Soon</span>
                   </div>
                 </div>
               </div>
@@ -223,7 +233,7 @@ const MobileApps: React.FC = () => {
             {/* Features List */}
             <div>
               <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                What to Expect
+                iOS App Features
               </h3>
               <div className="space-y-4 mb-8">
                 {appStoreFeatures.map((feature, index) => (
@@ -233,21 +243,28 @@ const MobileApps: React.FC = () => {
                   </div>
                 ))}
               </div>
-              
-              <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-                <h4 className="font-semibold text-blue-900 mb-3">Early Access Benefits</h4>
-                <ul className="space-y-2 text-blue-800 text-sm">
+
+              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-6 border border-green-200">
+                <h4 className="font-semibold text-green-900 mb-3 flex items-center">
+                  <Star className="h-5 w-5 text-green-600 mr-2" />
+                  Why Download Now
+                </h4>
+                <ul className="space-y-2 text-green-800 text-sm">
                   <li className="flex items-start">
-                    <Star className="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                    <span>Be among the first to experience FamSink mobile</span>
+                    <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <span>Access your family's schedule anywhere, anytime</span>
                   </li>
                   <li className="flex items-start">
-                    <Star className="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                    <span>Provide feedback that shapes the final app</span>
+                    <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <span>Get instant push notifications for schedule changes</span>
                   </li>
                   <li className="flex items-start">
-                    <Star className="h-4 w-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
-                    <span>Free access to all premium mobile features</span>
+                    <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <span>Native iOS performance with offline access</span>
+                  </li>
+                  <li className="flex items-start">
+                    <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                    <span>Free to use with all features included</span>
                   </li>
                 </ul>
               </div>
@@ -261,86 +278,96 @@ const MobileApps: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              Development Timeline
+              Platform Availability
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              We're working hard to bring FamSink to your mobile devices. Here's what to expect.
+              Track our progress bringing FamSink to all your devices
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xl font-bold mb-6">
                 ✓
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Phase 1: Web Platform</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Web Platform</h3>
               <p className="text-gray-600 leading-relaxed">
                 <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium mb-2">
-                  Completed
+                  Available Now
                 </span>
               </p>
               <p className="text-gray-600">
-                Full-featured web application with all core functionality including calendar management, 
+                Full-featured web application with all core functionality including calendar management,
                 platform integrations, and family sharing.
               </p>
             </div>
-            
+
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xl font-bold mb-6">
-                2
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xl font-bold mb-6">
+                ✓
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Phase 2: Mobile Apps</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">iOS App</h3>
               <p className="text-gray-600 leading-relaxed">
-                <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium mb-2">
-                  In Development
+                <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium mb-2">
+                  Available Now
                 </span>
               </p>
               <p className="text-gray-600">
-                Native iOS and Android apps with push notifications, offline access, and mobile-optimized features. 
-                Beta testing begins soon!
+                Native iOS app for iPhone and iPad with push notifications, offline access, and all web features
+                optimized for mobile.
               </p>
             </div>
-            
+
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-600 text-white text-xl font-bold mb-6">
-                3
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xl font-bold mb-6">
+                <Play className="h-8 w-8" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Phase 3: Advanced Features</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">Android App</h3>
               <p className="text-gray-600 leading-relaxed">
-                <span className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium mb-2">
-                  Planned
+                <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium mb-2">
+                  Coming Soon
                 </span>
               </p>
               <p className="text-gray-600">
-                Advanced analytics, team communication tools, carpool coordination, and other premium features 
-                based on user feedback.
+                Native Android app with all the same features as iOS. Sign up to be notified when it launches!
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Beta Signup */}
-      <section className="py-20 bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Download CTA */}
+      <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="bg-white rounded-3xl shadow-xl p-12 border border-gray-100">
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 mb-8">
-              <Bell className="h-10 w-10 text-white" />
+              <Apple className="h-10 w-10 text-white" />
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
-              Be the First to Know
+              Download FamSink for iOS Today
             </h2>
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              Sign up for FamSink today and we'll notify you the moment our mobile apps are available for download. 
-              Plus, you'll get early access to beta testing!
+              Get the full FamSink experience on your iPhone or iPad. Download now from the App Store
+              and start managing your family's sports schedules on the go!
             </p>
-            <Link
-              to="/auth/signup"
-              className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
-            >
-              Sign Up for Early Access
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a
+                href="https://apps.apple.com/us/app/famsink/id6747955517"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+              >
+                <Apple className="mr-2 h-5 w-5" />
+                Download on App Store
+              </a>
+              <Link
+                to="/auth/signup"
+                className="inline-flex items-center px-8 py-4 border-2 border-blue-600 text-lg font-medium rounded-lg text-blue-600 hover:bg-blue-50 transition-all"
+              >
+                Create Free Account
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Link>
+            </div>
             <p className="text-gray-500 text-sm mt-4">
               No credit card required • Free forever for core features
             </p>
@@ -439,20 +466,30 @@ const MobileApps: React.FC = () => {
           <div className="space-y-8">
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                When will the mobile apps be available?
+                Is the iOS app available now?
               </h3>
               <p className="text-gray-600">
-                We're currently in active development and expect to release beta versions within the next few months. 
-                Sign up for FamSink to be notified as soon as beta testing begins!
+                Yes! The FamSink iOS app is live on the App Store. Download it now for free and get the full
+                FamSink experience on your iPhone or iPad with push notifications and offline access.
               </p>
             </div>
-            
+
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                Will the mobile apps cost extra?
+                When will the Android app be available?
               </h3>
               <p className="text-gray-600">
-                No! Just like our web platform, the mobile apps will be completely free during our launch phase. 
+                We're actively developing the Android version and expect to launch it soon. Sign up for FamSink
+                to be notified the moment it becomes available on Google Play Store.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                Do the mobile apps cost extra?
+              </h3>
+              <p className="text-gray-600">
+                No! The iOS app is completely free to download and use, just like our web platform.
                 We want every family to have access to great sports schedule management tools.
               </p>
             </div>
@@ -469,11 +506,11 @@ const MobileApps: React.FC = () => {
             
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                Can I use FamSink without the mobile apps?
+                Can I use FamSink without the mobile app?
               </h3>
               <p className="text-gray-600">
-                Yes! Our web application is fully responsive and works great on mobile browsers. The native apps 
-                will provide additional features like push notifications and offline access, but the web app is complete on its own.
+                Yes! Our web application is fully responsive and works great on mobile browsers. The native iOS app
+                provides additional features like push notifications and offline access, but the web app is fully functional on its own.
               </p>
             </div>
           </div>
@@ -484,29 +521,32 @@ const MobileApps: React.FC = () => {
       <section className="py-20 bg-gradient-to-r from-blue-600 to-indigo-700">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
-            Start Using FamSink Today
+            Get Started with FamSink
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Don't wait for the mobile apps - start organizing your family's sports life right now with our 
-            full-featured web application. Mobile apps are just the cherry on top!
+            Available now on web and iOS. Start organizing your family's sports life today with our
+            full-featured platform. Download the iOS app or use our web application!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              to="/auth/signup"
+            <a
+              href="https://apps.apple.com/us/app/famsink/id6747955517"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg text-blue-600 bg-white hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
             >
-              Get Started Free
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Link>
+              <Apple className="mr-2 h-5 w-5" />
+              Download iOS App
+            </a>
             <Link
-              to="/auth/signin"
+              to="/auth/signup"
               className="inline-flex items-center px-8 py-4 border-2 border-white text-lg font-medium rounded-lg text-white hover:bg-white hover:text-blue-600 transition-all"
             >
-              Sign In
+              Sign Up Free
+              <ArrowRight className="ml-2 h-5 w-5" />
             </Link>
           </div>
           <p className="text-blue-200 text-sm mt-4">
-            Web app available now • Mobile apps coming soon
+            iOS app available now • Web app available • Android coming soon
           </p>
         </div>
       </section>
