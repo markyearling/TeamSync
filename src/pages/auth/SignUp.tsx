@@ -134,7 +134,7 @@ const SignUp: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <PublicHeader />
-      <div className="flex-1 flex flex-col py-12 sm:px-6 lg:px-8 pb-20">
+      <div className="flex-1 flex flex-col py-6 sm:py-12 sm:px-6 lg:px-8 pb-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Create your FamSink account</h2>
         <p className="mt-2 text-center text-sm text-gray-600">
@@ -147,6 +147,20 @@ const SignUp: React.FC = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          {/* Fixed height container for alerts to prevent layout shift */}
+          <div className="mb-4 min-h-0">
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                <div className="flex">
+                  <AlertCircle className="h-5 w-5 text-red-400" />
+                  <div className="ml-3">
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -242,17 +256,6 @@ const SignUp: React.FC = () => {
                 </div>
               </div>
             </div>
-
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-4">
-                <div className="flex">
-                  <AlertCircle className="h-5 w-5 text-red-400" />
-                  <div className="ml-3">
-                    <p className="text-sm text-red-700">{error}</p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             <div>
               <button
