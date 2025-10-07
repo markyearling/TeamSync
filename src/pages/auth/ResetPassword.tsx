@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../context/ThemeContext';
+import PublicHeader from '../../components/layout/PublicHeader';
 
 const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
@@ -161,12 +162,15 @@ const ResetPassword: React.FC = () => {
 
   if (initializing) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            <div className="text-center">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-              <p className="text-gray-600">Verifying your reset link...</p>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <PublicHeader />
+        <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+          <div className="sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+                <p className="text-gray-600">Verifying your reset link...</p>
+              </div>
             </div>
           </div>
         </div>
@@ -177,21 +181,24 @@ const ResetPassword: React.FC = () => {
   // Only show full-page error for session/link issues, not password validation
   if (error && !passwordValidationError && !initializing) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                <AlertCircle className="h-6 w-6 text-red-600" />
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <PublicHeader />
+        <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+          <div className="sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Reset Link Invalid</h2>
+                <p className="text-gray-600 mb-4">{error}</p>
+                <button
+                  onClick={() => navigate('/auth/forgot-password')}
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Request New Reset Link
+                </button>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Reset Link Invalid</h2>
-              <p className="text-gray-600 mb-4">{error}</p>
-              <button
-                onClick={() => navigate('/auth/forgot-password')}
-                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Request New Reset Link
-              </button>
             </div>
           </div>
         </div>
@@ -201,22 +208,25 @@ const ResetPassword: React.FC = () => {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
-                <CheckCircle className="h-6 w-6 text-green-600" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Password updated!</h2>
-              <p className="text-gray-600 mb-4">
-                Your password has been successfully updated.
-              </p>
-              <p className="text-sm text-gray-500">
-                Redirecting you to the sign in page...
-              </p>
-              <div className="mt-4">
-                <Loader2 className="h-6 w-6 animate-spin text-blue-600 mx-auto" />
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <PublicHeader />
+        <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+          <div className="sm:mx-auto sm:w-full sm:max-w-md">
+            <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Password updated!</h2>
+                <p className="text-gray-600 mb-4">
+                  Your password has been successfully updated.
+                </p>
+                <p className="text-sm text-gray-500">
+                  Redirecting you to the sign in page...
+                </p>
+                <div className="mt-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600 mx-auto" />
+                </div>
               </div>
             </div>
           </div>
@@ -226,17 +236,19 @@ const ResetPassword: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="text-center">
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Reset your password</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Enter your new password below
-          </p>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <PublicHeader />
+      <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="text-center">
+            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Reset your password</h2>
+            <p className="mt-2 text-sm text-gray-600">
+              Enter your new password below
+            </p>
+          </div>
         </div>
-      </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
@@ -344,6 +356,7 @@ const ResetPassword: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
         </div>
       </div>
     </div>

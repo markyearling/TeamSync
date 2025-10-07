@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../context/ThemeContext';
+import PublicHeader from '../../components/layout/PublicHeader';
 
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
@@ -131,7 +132,9 @@ const SignUp: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <PublicHeader />
+      <div className="flex-1 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Create your FamSink account</h2>
         <p className="mt-2 text-center text-sm text-gray-600">
@@ -269,6 +272,7 @@ const SignUp: React.FC = () => {
             </div>
           </form>
         </div>
+      </div>
       </div>
     </div>
   );
