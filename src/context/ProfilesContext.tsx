@@ -134,6 +134,60 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     }
   }, []);
 
+  const fetchEventCountsForProfiles = async (profileIds: string[]): Promise<Record<string, number>> => {
+    if (profileIds.length === 0) {
+      return {};
+    }
+
+    try {
+      // Calculate start and end of current week (Sunday to Saturday)
+      const now = new Date();
+      const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - dayOfWeek);
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7);
+      endOfWeek.setHours(0, 0, 0, 0);
+
+      console.log('📅 PROFILES: Fetching event counts for week:', {
+        startOfWeek: startOfWeek.toISOString(),
+        endOfWeek: endOfWeek.toISOString(),
+        profileIds
+      });
+
+      // Fetch events for this week for all profiles
+      const { data: events, error: eventsError } = await supabase
+        .from('events')
+        .select('profile_id')
+        .in('profile_id', profileIds)
+        .gte('start_time', startOfWeek.toISOString())
+        .lt('start_time', endOfWeek.toISOString());
+
+      if (eventsError) {
+        console.error('❌ PROFILES: Error fetching event counts:', eventsError);
+        return {};
+      }
+
+      console.log('📅 PROFILES: Found events for week:', events?.length || 0);
+
+      // Count events per profile
+      const counts: Record<string, number> = {};
+      profileIds.forEach(id => counts[id] = 0);
+
+      events?.forEach(event => {
+        counts[event.profile_id] = (counts[event.profile_id] || 0) + 1;
+      });
+
+      console.log('📊 PROFILES: Event counts by profile:', counts);
+      return counts;
+    } catch (err) {
+      console.error('💥 PROFILES: Error calculating event counts:', err);
+      return {};
+    }
+  };
+
   const fetchFriendshipCache = async (userId: string): Promise<FriendshipData[]> => {
     try {
       console.log('🤝 PROFILES: Fetching friendship cache for user:', userId);
@@ -209,7 +263,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
 
   const fetchOwnProfiles = async (userId: string) => {
     console.log('📋 PROFILES: Fetching own profiles for user:', userId);
-    
+
     const { data: profilesData, error: profilesError } = await supabase
       .from('profiles')
       .select(`
@@ -234,6 +288,10 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
 
     console.log('✅ PROFILES: Found own profiles:', profilesData?.length || 0);
 
+    // Fetch event counts for this week for each profile
+    const profileIds = profilesData?.map(p => p.id) || [];
+    const eventCounts = await fetchEventCountsForProfiles(profileIds);
+
     const formattedProfiles: Child[] = profilesData?.map(profile => ({
       id: profile.id,
       name: profile.name,
@@ -245,7 +303,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         name: sport.sport,
         color: sport.color
       })) || [],
-      eventCount: 0,
+      eventCount: eventCounts[profile.id] || 0,
       isOwnProfile: true
     })) || [];
 
@@ -256,15 +314,15 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
     try {
       console.log('👥 PROFILES: Fetching friends profiles for user:', userId);
       console.log('👥 PROFILES: Using fresh friendship data:', freshFriendshipData);
-      
+
       // Filter friendship data for administrator and viewer access
       const accessibleFriendships = freshFriendshipData.filter(f => {
         console.log(`👥 PROFILES: Checking friendship - User: ${f.friend_name}, Role: ${f.role}`);
         return f.role === 'administrator' || f.role === 'viewer';
       });
-      
+
       console.log('👥 PROFILES: Accessible friendships from fresh data:', accessibleFriendships);
-      
+
       // Log each accessible friendship's role for debugging
       accessibleFriendships.forEach(friendship => {
         console.log(`🔑 ACCESS DEBUG: user=${friendship.friend_name}, user_id=${friendship.friend_user_id}, role=${friendship.role}`);
@@ -306,12 +364,16 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       console.log('✅ PROFILES: Found friend profiles:', friendProfilesData?.length || 0);
       console.log('✅ PROFILES: Friend profiles data:', friendProfilesData);
 
+      // Fetch event counts for this week for each friend profile
+      const friendProfileIds = friendProfilesData?.map(p => p.id) || [];
+      const eventCounts = await fetchEventCountsForProfiles(friendProfileIds);
+
       const formattedFriendsProfiles: Child[] = friendProfilesData?.map(profile => {
         const friendship = accessibleFriendships.find(f => f.friend_user_id === profile.user_id);
-        
+
         // Log the profile and its assigned access role
         console.log(`👤 PROFILE DEBUG: profile_id=${profile.id}, user_id=${profile.user_id}, found_friendship=${!!friendship}, accessRole=${friendship?.role}`);
-        
+
         return {
           id: profile.id,
           name: profile.name,
@@ -324,7 +386,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
             name: sport.sport,
             color: sport.color
           })) || [],
-          eventCount: 0,
+          eventCount: eventCounts[profile.id] || 0,
           isOwnProfile: false,
           ownerName: friendship?.friend_name || 'Friend',
           ownerPhoto: undefined,
@@ -369,7 +431,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
 
       // Check if this is a friend's profile
       const isOwnProfile = profile.user_id === user.id;
-      
+
       // Log the profile data with user_id for debugging
       console.log('🔍 getProfile DEBUG:', {
         profileId: id,
@@ -377,7 +439,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         currentUserId: user.id,
         isOwnProfile
       });
-      
+
       let ownerName = undefined;
       let ownerPhoto = undefined;
       let accessRole = undefined;
@@ -385,20 +447,20 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       if (!isOwnProfile) {
         // Check if we have access to this profile through friendship cache
         const friendship = friendshipCache.find(f => f.friend_user_id === profile.user_id);
-        
+
         console.log('🔍 getProfile FRIENDSHIP DEBUG:', {
           friendship,
           friendshipCache,
           lookingForUserId: profile.user_id
         });
-        
+
         if (!friendship) {
           throw new Error('Access denied: No friendship found');
         }
-        
+
         ownerName = friendship.friend_name;
         accessRole = friendship.role;
-        
+
         console.log('🔍 getProfile ACCESS DEBUG:', {
           ownerName,
           accessRole,
@@ -406,6 +468,9 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         });
         // We can get owner photo from user_settings if needed
       }
+
+      // Fetch event count for this profile
+      const eventCounts = await fetchEventCountsForProfiles([profile.id]);
 
       return {
         id: profile.id,
@@ -419,7 +484,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
           name: sport.sport,
           color: sport.color
         })) || [],
-        eventCount: 0,
+        eventCount: eventCounts[profile.id] || 0,
         isOwnProfile,
         ownerName,
         ownerPhoto,
