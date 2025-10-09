@@ -80,6 +80,8 @@ const ErrorBoundary: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true);
 
   // Enhanced logging for protected route decisions
   useEffect(() => {
@@ -92,6 +94,47 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       timestamp: new Date().toISOString()
     });
   }, [user, loading, location.pathname]);
+
+  // Check onboarding status for dashboard and protected routes
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      if (!user || loading) {
+        setCheckingOnboarding(false);
+        return;
+      }
+
+      // Skip onboarding check for auth routes
+      const isAuthRoute = location.pathname.includes('/auth/reset-password') ||
+                          location.pathname.includes('/auth/callback') ||
+                          location.pathname.includes('/auth/onboarding');
+
+      if (isAuthRoute) {
+        setCheckingOnboarding(false);
+        return;
+      }
+
+      try {
+        const { data: settings } = await supabase
+          .from('user_settings')
+          .select('full_name, timezone')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (!settings?.full_name || !settings?.timezone) {
+          console.log('[ProtectedRoute] User has not completed onboarding, redirecting');
+          navigate('/auth/onboarding', { replace: true });
+        } else {
+          setCheckingOnboarding(false);
+        }
+      } catch (error) {
+        console.error('[ProtectedRoute] Error checking onboarding:', error);
+        setCheckingOnboarding(false);
+      }
+    };
+
+    checkOnboarding();
+  }, [user, loading, location.pathname, navigate]);
+
   // Log the current path and authentication state
   console.log(`[ProtectedRoute] Path: ${location.pathname}, User: ${user ? 'Authenticated' : 'Not authenticated'}, Loading: ${loading}`);
 
@@ -99,13 +142,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAuthRoute = location.pathname.includes('/auth/reset-password') ||
                       location.pathname.includes('/auth/callback') ||
                       location.pathname.includes('/auth/onboarding');
-  
+
   if (isAuthRoute) {
     console.log(`[ProtectedRoute] Auth route detected (${location.pathname}), bypassing protection`);
     return <>{children}</>;
   }
 
-  if (loading) {
+  if (loading || checkingOnboarding) {
     console.log('[ProtectedRoute] Still loading, showing spinner');
     return <LoadingSpinner />;
   }

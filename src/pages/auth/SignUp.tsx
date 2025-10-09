@@ -16,15 +16,8 @@ const SignUp: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        navigate('/auth/onboarding');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+  // Removed auth state change listener that was causing premature redirect
+  // Users will be directed to signin after successful signup
 
   const validatePassword = (pwd: string): string | null => {
     if (pwd.length < 8) {
@@ -118,10 +111,10 @@ const SignUp: React.FC = () => {
       }
 
       // Success - redirect to sign in with message
-      navigate('/auth/signin', { 
-        state: { 
-          message: 'Account created successfully! Please check your email to confirm your account.' 
-        } 
+      navigate('/auth/signin', {
+        state: {
+          message: 'Account created successfully! Please sign in to continue.'
+        }
       });
     } catch (err) {
       console.error('Error signing up:', err);

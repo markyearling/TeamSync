@@ -40,21 +40,40 @@ const SignIn: React.FC = () => {
       window.history.replaceState({}, document.title);
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
         // Check if we're in the reset password flow
         const currentPath = window.location.pathname;
         const currentUrl = window.location.href;
-        
+
         // Don't navigate away if we're in the reset password flow
-        if (currentPath.includes('/auth/reset-password') || 
-            currentUrl.includes('type=recovery') || 
+        if (currentPath.includes('/auth/reset-password') ||
+            currentUrl.includes('type=recovery') ||
             currentUrl.includes('access_token=')) {
           console.log('In password reset flow, not navigating to dashboard');
           return;
         }
-        
-        navigate('/dashboard');
+
+        // Check if user has completed onboarding
+        try {
+          const { data: settings } = await supabase
+            .from('user_settings')
+            .select('full_name, timezone')
+            .eq('user_id', session.user.id)
+            .maybeSingle();
+
+          if (!settings?.full_name || !settings?.timezone) {
+            // User hasn't completed onboarding
+            navigate('/auth/onboarding');
+          } else {
+            // User has completed onboarding
+            navigate('/dashboard');
+          }
+        } catch (error) {
+          console.error('Error checking onboarding status:', error);
+          // Default to dashboard on error
+          navigate('/dashboard');
+        }
       }
       setError(null);
     });
