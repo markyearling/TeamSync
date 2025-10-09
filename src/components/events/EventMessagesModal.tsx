@@ -49,6 +49,32 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
   const { isNative } = useCapacitor();
   const { takePhoto, selectFromGallery } = useCamera();
 
+  // Helper function to make URLs clickable
+  const linkifyText = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    const parts = text.split(urlRegex);
+
+    return parts.map((part, index) => {
+      if (part.match(urlRegex)) {
+        return (
+          <a
+            key={index}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-500 hover:text-blue-600 underline"
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+          >
+            {part}
+          </a>
+        );
+      }
+      return <span key={index}>{part}</span>;
+    });
+  };
+
   // Helper function to fetch sender info (with caching)
   const getSenderInfo = async (senderId: string) => {
     if (sendersCache.current.has(senderId)) {
@@ -604,7 +630,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
                         </div>
                       )}
                       {message.content.trim() !== ' ' && (
-                        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                        <p className="text-sm whitespace-pre-wrap break-words">{linkifyText(message.content)}</p>
                       )}
                     </div>
                     <div className={`mt-1 text-xs text-gray-500 dark:text-gray-400 ${
@@ -695,23 +721,31 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
       {/* Image Viewing Lightbox */}
       {viewingImage && (
         <div
-          className="fixed inset-0 z-[1000] bg-black bg-opacity-90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[1000] bg-black bg-opacity-90 flex items-center justify-center"
+          style={{
+            paddingTop: isNative ? 'env(safe-area-inset-top)' : '1rem',
+            paddingBottom: isNative ? 'env(safe-area-inset-bottom)' : '1rem',
+            paddingLeft: isNative ? 'env(safe-area-inset-left)' : '1rem',
+            paddingRight: isNative ? 'env(safe-area-inset-right)' : '1rem',
+          }}
           onClick={() => setViewingImage(null)}
         >
-          <div className="relative max-w-4xl max-h-full">
-            <button
-              onClick={() => setViewingImage(null)}
-              className="absolute -top-10 right-0 text-white hover:text-gray-300"
-            >
-              <X className="h-8 w-8" />
-            </button>
-            <img
-              src={viewingImage}
-              alt="Full size"
-              className="max-w-full max-h-[90vh] object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
+          <button
+            onClick={() => setViewingImage(null)}
+            className="absolute text-white hover:text-gray-300 z-10 bg-black bg-opacity-50 rounded-full p-2"
+            style={{
+              top: isNative ? 'calc(env(safe-area-inset-top) + 1rem)' : '1rem',
+              right: isNative ? 'calc(env(safe-area-inset-right) + 1rem)' : '1rem',
+            }}
+          >
+            <X className="h-8 w-8" />
+          </button>
+          <img
+            src={viewingImage}
+            alt="Full size"
+            className="max-w-full max-h-full object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
       )}
 
