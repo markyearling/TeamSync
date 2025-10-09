@@ -111,7 +111,7 @@ const EditTeamNameModal: React.FC<EditTeamNameModalProps> = ({
 
 const SportsEngineConnection: React.FC = () => {
   const navigate = useNavigate();
-  const { profiles } = useProfiles();
+  const { profiles, friendsProfiles } = useProfiles();
   const [teams, setTeams] = useState<SportsEngineTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [icsUrl, setIcsUrl] = useState('');
@@ -137,11 +137,29 @@ const SportsEngineConnection: React.FC = () => {
       if (userError) throw userError;
       if (!user) return;
 
+      // Get user IDs where we have administrator access (friends we can manage)
+      const { data: adminFriendships, error: friendshipsError } = await supabase
+        .from('friendships')
+        .select('user_id')
+        .eq('friend_id', user.id)
+        .eq('role', 'administrator');
+
+      if (friendshipsError) {
+        console.error('Error fetching administrator friendships:', friendshipsError);
+      }
+
+      // Build list of user IDs to fetch (current user + friends with admin access)
+      const userIdsToFetch = [user.id];
+      if (adminFriendships && adminFriendships.length > 0) {
+        const friendUserIds = adminFriendships.map(f => f.user_id);
+        userIdsToFetch.push(...friendUserIds);
+      }
+
       const { data: teamsData, error: teamsError } = await supabase
         .from('platform_teams')
         .select('*')
         .eq('platform', 'SportsEngine')
-        .eq('user_id', user.id)
+        .in('user_id', userIdsToFetch)
         .order('created_at', { ascending: false });
 
       if (teamsError) throw teamsError;
@@ -787,9 +805,9 @@ const SportsEngineConnection: React.FC = () => {
                 Select which children's profiles this team calendar should be associated with. Events will be automatically synced for mapped profiles.
               </p>
 
-              {profiles && profiles.length > 0 ? (
+              {([...profiles, ...friendsProfiles].length > 0) ? (
                 <div className="space-y-3">
-                  {profiles.map(profile => (
+                  {[...profiles, ...friendsProfiles].map(profile => (
                     <label
                       key={profile.id}
                       className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -812,7 +830,14 @@ const SportsEngineConnection: React.FC = () => {
                           {profile.name.charAt(0)}
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">{profile.name}</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
+                            {profile.name}
+                            {profile.ownerName && (
+                              <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                                ({profile.ownerName}'s profile)
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       {selectedProfiles.includes(profile.id) && (

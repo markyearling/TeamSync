@@ -36,10 +36,34 @@ const PlaymetricsConnection: React.FC = () => {
 
   const fetchTeams = async () => {
     try {
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
+      // Get user IDs where we have administrator access (friends we can manage)
+      const { data: adminFriendships, error: friendshipsError } = await supabase
+        .from('friendships')
+        .select('user_id')
+        .eq('friend_id', user.id)
+        .eq('role', 'administrator');
+
+      if (friendshipsError) {
+        console.error('Error fetching administrator friendships:', friendshipsError);
+      }
+
+      // Build list of user IDs to fetch (current user + friends with admin access)
+      const userIdsToFetch = [user.id];
+      if (adminFriendships && adminFriendships.length > 0) {
+        const friendUserIds = adminFriendships.map(f => f.user_id);
+        userIdsToFetch.push(...friendUserIds);
+      }
+
       const { data, error } = await supabase
         .from('platform_teams')
         .select('*')
         .eq('platform', 'Playmetrics')
+        .in('user_id', userIdsToFetch)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
