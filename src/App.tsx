@@ -97,9 +97,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   // Check onboarding status for dashboard and protected routes
   useEffect(() => {
+    let mounted = true;
+
     const checkOnboarding = async () => {
       if (!user || loading) {
-        setCheckingOnboarding(false);
+        if (mounted) setCheckingOnboarding(false);
         return;
       }
 
@@ -109,30 +111,49 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
                           location.pathname.includes('/auth/onboarding');
 
       if (isAuthRoute) {
-        setCheckingOnboarding(false);
+        if (mounted) setCheckingOnboarding(false);
         return;
       }
 
+      // Add a small delay to allow database updates to propagate
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (!mounted) return;
+
       try {
-        const { data: settings } = await supabase
+        const { data: settings, error } = await supabase
           .from('user_settings')
           .select('full_name, timezone')
           .eq('user_id', user.id)
           .maybeSingle();
 
+        if (!mounted) return;
+
+        if (error) {
+          console.error('[ProtectedRoute] Error fetching onboarding status:', error);
+          setCheckingOnboarding(false);
+          return;
+        }
+
         if (!settings?.full_name || !settings?.timezone) {
           console.log('[ProtectedRoute] User has not completed onboarding, redirecting');
+          console.log('[ProtectedRoute] Settings:', settings);
           navigate('/auth/onboarding', { replace: true });
         } else {
+          console.log('[ProtectedRoute] User has completed onboarding');
           setCheckingOnboarding(false);
         }
       } catch (error) {
         console.error('[ProtectedRoute] Error checking onboarding:', error);
-        setCheckingOnboarding(false);
+        if (mounted) setCheckingOnboarding(false);
       }
     };
 
     checkOnboarding();
+
+    return () => {
+      mounted = false;
+    };
   }, [user, loading, location.pathname, navigate]);
 
   // Log the current path and authentication state

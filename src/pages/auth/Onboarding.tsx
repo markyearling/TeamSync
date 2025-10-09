@@ -82,7 +82,19 @@ const Onboarding: React.FC = () => {
 
       if (updateError) throw updateError;
 
-      navigate('/dashboard');
+      // Verify the update was successful before navigating
+      const { data: verifyData } = await supabase
+        .from('user_settings')
+        .select('full_name, timezone')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (verifyData?.full_name && verifyData?.timezone) {
+        console.log('Onboarding completed successfully, navigating to dashboard');
+        navigate('/dashboard', { replace: true });
+      } else {
+        throw new Error('Failed to save onboarding data');
+      }
     } catch (err) {
       console.error('Error completing onboarding:', err);
       setError(err instanceof Error ? err.message : 'An error occurred during setup');
