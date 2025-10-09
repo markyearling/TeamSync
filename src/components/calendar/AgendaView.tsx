@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Event } from '../../types';
 import { Calendar, MapPin, Clock } from 'lucide-react';
-import EventModal from '../events/EventModal';
 import { DateTime } from 'luxon';
 
 interface AgendaViewProps {
@@ -12,7 +11,6 @@ interface AgendaViewProps {
 }
 
 const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezone = 'UTC', onEventClick }) => {
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   
   // Get the start of the month using Luxon with proper timezone handling
   const startOfMonthLuxon = DateTime.fromJSDate(currentDate).setZone(userTimezone).startOf('month');
@@ -84,10 +82,10 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
               
               <div className="space-y-3">
                 {eventsByDate[dateKey].map((event, index) => (
-                  <div 
+                  <div
                     key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}-${index}`}
                     className="bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
-                    onClick={() => setSelectedEvent(event)}
+                    onClick={() => onEventClick?.(event)}
                   >
                     <div className="flex border-l-4 h-full" style={{ borderColor: event.color }}>
                       <div className="p-3 flex-1">
