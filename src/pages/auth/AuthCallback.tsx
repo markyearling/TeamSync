@@ -15,20 +15,22 @@ const AuthCallback = () => {
         console.log('[AuthCallback] Full URL:', window.location.href);
 
         const url = new URL(window.location.href);
-        
+
         // Check for parameters in both query string and hash fragment
         const codeFromQuery = url.searchParams.get('code');
         const typeFromQuery = url.searchParams.get('type');
         const accessTokenFromQuery = url.searchParams.get('access_token');
         const refreshTokenFromQuery = url.searchParams.get('refresh_token');
-        
-        let codeFromHash, typeFromHash, accessTokenFromHash, refreshTokenFromHash;
+        const tokenFromQuery = url.searchParams.get('token');
+
+        let codeFromHash, typeFromHash, accessTokenFromHash, refreshTokenFromHash, tokenFromHash;
         if (url.hash) {
           const hashParams = new URLSearchParams(url.hash.substring(1));
           codeFromHash = hashParams.get('code');
           typeFromHash = hashParams.get('type');
           accessTokenFromHash = hashParams.get('access_token');
           refreshTokenFromHash = hashParams.get('refresh_token');
+          tokenFromHash = hashParams.get('token');
         }
 
         // Determine which parameters to use (prefer query string over hash)
@@ -36,18 +38,20 @@ const AuthCallback = () => {
         const type = typeFromQuery || typeFromHash;
         const accessToken = accessTokenFromQuery || accessTokenFromHash;
         const refreshToken = refreshTokenFromQuery || refreshTokenFromHash;
-        
+        const token = tokenFromQuery || tokenFromHash;
+
         // Check for custom flow parameter to identify password recovery
         const flowFromQuery = url.searchParams.get('flow');
         const flowFromHash = url.hash ? new URLSearchParams(url.hash.substring(1)).get('flow') : null;
         const flow = flowFromQuery || flowFromHash;
-        
+
         const isRecoveryFlow = flow === 'recovery' || type === 'recovery';
 
         console.log('[AuthCallback] Parameters found:', {
           code: code ? 'present' : 'missing',
           type,
           flow,
+          token: token ? 'present' : 'missing',
           accessToken: accessToken ? 'present' : 'missing',
           refreshToken: refreshToken ? 'present' : 'missing',
           isRecoveryFlow
@@ -55,17 +59,42 @@ const AuthCallback = () => {
 
         let sessionEstablished = false;
 
+        // Handle password recovery with token (legacy flow from email)
+        if (isRecoveryFlow && token && type === 'recovery') {
+          console.log('[AuthCallback] Found recovery token, verifying OTP');
+          try {
+            const { data, error } = await supabase.auth.verifyOtp({
+              token_hash: token,
+              type: 'recovery'
+            });
+
+            if (error) {
+              console.error('[AuthCallback] Error verifying recovery token:', error);
+              throw error;
+            }
+
+            if (data?.session) {
+              console.log('[AuthCallback] Successfully verified recovery token');
+              sessionEstablished = true;
+            } else {
+              console.log('[AuthCallback] No session returned from recovery token verification');
+            }
+          } catch (recoveryError) {
+            console.error('[AuthCallback] Recovery token verification failed:', recoveryError);
+            throw recoveryError;
+          }
+        }
         // Try to establish session based on available parameters
-        if (code) {
+        else if (code) {
           console.log('[AuthCallback] Found code, exchanging for session');
           try {
             const { data, error } = await supabase.auth.exchangeCodeForSession(code);
-            
+
             if (error) {
               console.error('[AuthCallback] Error exchanging code:', error);
               throw error;
             }
-            
+
             if (data?.session) {
               console.log('[AuthCallback] Successfully exchanged code for session');
               sessionEstablished = true;
