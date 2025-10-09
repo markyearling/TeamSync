@@ -79,17 +79,36 @@ const Connections: React.FC = () => {
   const fetchConnectedPlatforms = async () => {
     try {
       setLoading(true);
-      
+
       // Get the current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
       if (!user) return;
-      
-      // Get all platform teams for the current user
+
+      // Get user IDs where we have administrator access (friends we can manage)
+      const { data: adminFriendships, error: friendshipsError } = await supabase
+        .from('friendships')
+        .select('user_id')
+        .eq('friend_id', user.id)
+        .eq('role', 'administrator');
+
+      if (friendshipsError) {
+        console.error('Error fetching administrator friendships:', friendshipsError);
+      }
+
+      // Build list of user IDs to fetch (current user + friends with admin access)
+      const userIdsToFetch = [user.id];
+      if (adminFriendships && adminFriendships.length > 0) {
+        const friendUserIds = adminFriendships.map(f => f.user_id);
+        userIdsToFetch.push(...friendUserIds);
+        console.log(`Found ${friendUserIds.length} friends where user has administrator access`);
+      }
+
+      // Get all platform teams for the current user and friends with admin access
       const { data: teamsData, error: teamsError } = await supabase
         .from('platform_teams')
-        .select('platform, team_name, sync_status, last_synced')
-        .eq('user_id', user.id)
+        .select('platform, team_name, sync_status, last_synced, user_id')
+        .in('user_id', userIdsToFetch)
         .order('created_at', { ascending: false });
 
       if (teamsError) throw teamsError;

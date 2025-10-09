@@ -383,15 +383,34 @@ const Dashboard: React.FC = () => {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
       if (!user) return;
-      
-      // Get all platform teams for the current user
+
+      // Get user IDs where we have administrator access (friends we can manage)
+      const { data: adminFriendships, error: friendshipsError } = await supabase
+        .from('friendships')
+        .select('user_id')
+        .eq('friend_id', user.id)
+        .eq('role', 'administrator');
+
+      if (friendshipsError) {
+        console.error('Error fetching administrator friendships:', friendshipsError);
+      }
+
+      // Build list of user IDs to sync (current user + friends with admin access)
+      const userIdsToSync = [user.id];
+      if (adminFriendships && adminFriendships.length > 0) {
+        const friendUserIds = adminFriendships.map(f => f.user_id);
+        userIdsToSync.push(...friendUserIds);
+        console.log(`Found ${friendUserIds.length} friends where user has administrator access`);
+      }
+
+      // Get all platform teams for the current user and friends with admin access
       const { data: teamsData, error: teamsError } = await supabase
         .from('platform_teams')
         .select('*')
-        .eq('user_id', user.id);
-        
+        .in('user_id', userIdsToSync);
+
       if (teamsError) throw teamsError;
-      
+
       if (!teamsData || teamsData.length === 0) {
         console.log('No platform teams found to sync');
         return;
@@ -828,7 +847,7 @@ const Dashboard: React.FC = () => {
             year: 'numeric'
             })}
           </div>
-          {lastRefreshedDate && (
+          {(connectedPlatforms.length > 0 || friendsEvents.length > 0) && (
             <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 flex items-center">
               <span>Last refreshed: {lastRefreshedDate ? formatLastRefreshed() : 'Never' }</span>
               {!isNative && (
