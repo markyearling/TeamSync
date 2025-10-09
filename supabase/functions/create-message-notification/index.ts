@@ -104,25 +104,23 @@ Deno.serve(async (req) => {
     const senderName = senderSettings?.full_name || 'Someone';
     console.log('Sender name determined:', senderName);
 
-    // Get recipient's FCM token for push notification
-    console.log('Fetching recipient FCM token for:', recipientId);
-    const { data: recipientSettings, error: recipientError } = await supabaseClient
-      .from('user_settings')
-      .select('fcm_token')
-      .eq('user_id', recipientId)
-      .single();
+    // Get all recipient's FCM tokens for push notification (multi-device support)
+    console.log('Fetching all devices for recipient:', recipientId);
+    const { data: recipientDevices, error: devicesError } = await supabaseClient
+      .rpc('get_user_fcm_tokens', { p_user_id: recipientId });
 
-    if (recipientError) {
-      console.error('Error fetching recipient info:', recipientError);
+    if (devicesError) {
+      console.error('Error fetching recipient devices:', devicesError);
     }
 
-    const recipientFcmToken = recipientSettings?.fcm_token;
-    console.log('Recipient FCM token status:', recipientFcmToken ? 'Present' : 'Not found');
+    const hasDevices = recipientDevices && recipientDevices.length > 0;
+    console.log('Recipient devices status:', hasDevices ? `${recipientDevices.length} device(s) found` : 'No devices found');
 
-    // Detailed logging for debugging
-    if (recipientFcmToken) {
-      console.log(`[Message Notif] Recipient FCM token (first 20 chars): ${recipientFcmToken.substring(0, 20)}...`);
-      console.log(`[Message Notif] FCM Token length: ${recipientFcmToken.length}`);
+    if (hasDevices) {
+      console.log(`[Message Notif] Found ${recipientDevices.length} device(s) for recipient ${recipientId}`);
+      recipientDevices.forEach((device, index) => {
+        console.log(`[Message Notif] Device ${index + 1}: ${device.device_name || device.device_id} (${device.platform})`);
+      });
     }
 
     // Check if recipient is actively viewing this conversation
@@ -179,69 +177,81 @@ Deno.serve(async (req) => {
     if (notificationError) throw notificationError;
     console.log('Database notification created successfully:', notification.id);
 
-    // Send push notification if recipient has FCM token
-    if (recipientFcmToken) {
-      console.log('Sending push notification to recipient...');
-      try {
-        const fcmResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-fcm-notification`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': req.headers.get('Authorization') || '', // Forward the auth header
-          },
-          body: JSON.stringify({
-            fcmToken: recipientFcmToken,
-            title: 'New Message',
-            body: `${senderName}: ${content.length > 50 ? content.substring(0, 50) + '...' : content}`,
-            data: {
-              type: 'message',
-              message_id,
-              conversation_id,
-              sender_id,
-              sender_name: senderName,
-              notification_id: notification.id
+    // Send push notification to all recipient devices
+    let pushNotificationsSent = 0;
+    if (hasDevices) {
+      console.log('Sending push notifications to all recipient devices...');
+
+      for (const device of recipientDevices) {
+        try {
+          console.log(`[Message Notif] Sending to device: ${device.device_name || device.device_id} (${device.platform})`);
+
+          const fcmResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-fcm-notification`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': req.headers.get('Authorization') || '',
+            },
+            body: JSON.stringify({
+              fcmToken: device.fcm_token,
+              title: 'New Message',
+              body: `${senderName}: ${content.length > 50 ? content.substring(0, 50) + '...' : content}`,
+              data: {
+                type: 'message',
+                message_id,
+                conversation_id,
+                sender_id,
+                sender_name: senderName,
+                notification_id: notification.id,
+                device_id: device.device_id
+              }
+            })
+          });
+
+          console.log(`[Message Notif] FCM Response Status for ${device.device_name}:`, fcmResponse.status);
+          const fcmResponseBody = await fcmResponse.text();
+
+          if (!fcmResponse.ok) {
+            let fcmError;
+            try {
+              fcmError = JSON.parse(fcmResponseBody);
+            } catch (parseError) {
+              fcmError = { error: 'Could not parse FCM error response', body: fcmResponseBody };
             }
-          })
-        });
+            console.error(`Failed to send push notification to device ${device.device_name}:`, fcmError);
+          } else {
+            let fcmResult;
+            try {
+              fcmResult = JSON.parse(fcmResponseBody);
+            } catch (parseError) {
+              fcmResult = { message: 'FCM response could not be parsed', body: fcmResponseBody };
+            }
+            console.log(`Push notification sent successfully to device ${device.device_name}:`, fcmResult);
+            pushNotificationsSent++;
 
-        // Detailed logging for FCM response
-        console.log('[Message Notif] FCM Push Notification Response Status:', fcmResponse.status);
-        const fcmResponseBody = await fcmResponse.text(); // Read response body once
-        console.log('[Message Notif] FCM Push Notification Response Body:', fcmResponseBody);
-
-        if (!fcmResponse.ok) {
-          // Use the already read fcmResponseBody
-          let fcmError;
-          try {
-            fcmError = JSON.parse(fcmResponseBody);
-          } catch (parseError) {
-            fcmError = { error: 'Could not parse FCM error response', body: fcmResponseBody };
+            // Update device last_active timestamp
+            await supabaseClient
+              .rpc('update_device_last_active', {
+                p_device_id: device.device_id,
+                p_user_id: recipientId
+              });
           }
-          console.error('Failed to send push notification:', fcmError);
-          // Don't throw here - database notification was successful
-        } else {
-          // Use the already read fcmResponseBody
-          let fcmResult;
-          try {
-            fcmResult = JSON.parse(fcmResponseBody);
-          } catch (parseError) {
-            fcmResult = { message: 'FCM response could not be parsed', body: fcmResponseBody };
-          }
-          console.log('Push notification sent successfully:', fcmResult);
+        } catch (fcmError) {
+          console.error(`Exception sending push notification to device ${device.device_name}:`, fcmError);
         }
-      } catch (fcmError) {
-        console.error('Exception while sending push notification:', fcmError);
-        // Don't throw here - database notification was successful
       }
+
+      console.log(`Push notifications sent to ${pushNotificationsSent}/${recipientDevices.length} device(s)`);
     } else {
-      console.log('No FCM token found for recipient, skipping push notification');
+      console.log('No devices found for recipient, skipping push notifications');
     }
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         notification,
-        pushNotificationSent: !!recipientFcmToken
+        pushNotificationsSent,
+        totalDevices: recipientDevices?.length || 0
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

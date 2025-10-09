@@ -1,4 +1,5 @@
 import { create, getNumericDate } from 'https://deno.land/x/djwt@v2.8/mod.ts';
+import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -262,6 +263,42 @@ Deno.serve(async (req) => {
         statusText: response.statusText,
         error: errorData
       });
+
+      // Check if the error is due to invalid/expired token
+      const errorCode = errorData?.error?.details?.[0]?.errorCode || errorData?.error?.code;
+      const isInvalidToken = errorCode === 'UNREGISTERED' ||
+                            errorCode === 'INVALID_ARGUMENT' ||
+                            response.status === 404;
+
+      if (isInvalidToken) {
+        console.log('[FCM Cleanup] Detected invalid/expired token, removing from database...');
+        console.log(`[FCM Cleanup] Token to remove (first 20 chars): ${fcmToken.substring(0, 20)}...`);
+
+        // Initialize Supabase client for cleanup
+        const supabaseCleanup = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+          {
+            auth: {
+              persistSession: false,
+            }
+          }
+        );
+
+        try {
+          // Remove the invalid token from user_devices table
+          const { error: cleanupError } = await supabaseCleanup
+            .rpc('remove_invalid_device_token', { p_fcm_token: fcmToken });
+
+          if (cleanupError) {
+            console.error('[FCM Cleanup] Error removing invalid token:', cleanupError);
+          } else {
+            console.log('[FCM Cleanup] Successfully removed invalid/expired device token from database');
+          }
+        } catch (cleanupException) {
+          console.error('[FCM Cleanup] Exception while cleaning up invalid token:', cleanupException);
+        }
+      }
 
       throw new Error(`FCM send failed: ${response.status} ${response.statusText} - ${JSON.stringify(errorData)}`);
     }

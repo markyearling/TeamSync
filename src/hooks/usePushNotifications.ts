@@ -1,15 +1,14 @@
-//import { useEffect, useState } from 'react';
-//import { useCallback } from 'react';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { Device } from '@capacitor/device';
 import { User } from '@supabase/supabase-js';
-import { 
-  PushNotifications, 
-  PushNotificationSchema, 
+import {
+  PushNotifications,
+  PushNotificationSchema,
   ActionPerformed,
   Token
 } from '@capacitor/push-notifications';
-import { 
+import {
   LocalNotifications,
   LocalNotificationSchema
 } from '@capacitor/local-notifications';
@@ -24,44 +23,90 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
   const [isRegistered, setIsRegistered] = useState(false);
   const isInitializedRef = useRef(false);
 
-  // Function to save FCM token to Supabase
+  // Function to get or generate a unique device ID
+  const getDeviceId = useCallback(async (): Promise<string> => {
+    try {
+      console.log('[getDeviceId] Getting device identifier...');
+      const deviceInfo = await Device.getId();
+      console.log('[getDeviceId] Device UUID:', deviceInfo.identifier);
+      return deviceInfo.identifier;
+    } catch (error) {
+      console.error('[getDeviceId] Error getting device ID, generating fallback:', error);
+      // Fallback: generate a stable ID based on platform and store in localStorage
+      const storageKey = 'famsink_device_id';
+      let deviceId = localStorage.getItem(storageKey);
+      if (!deviceId) {
+        deviceId = `device_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+        localStorage.setItem(storageKey, deviceId);
+        console.log('[getDeviceId] Generated and stored fallback device ID:', deviceId);
+      } else {
+        console.log('[getDeviceId] Retrieved fallback device ID from storage:', deviceId);
+      }
+      return deviceId;
+    }
+  }, []);
+
+  // Function to save FCM token to Supabase user_devices table (multi-device support)
   const saveFCMTokenToSupabase = useCallback(async (tokenToSave: string, authenticatedUser: User) => {
     try {
-      console.log('[saveFCMTokenToSupabase] Starting FCM token save process...');
+      console.log('[saveFCMTokenToSupabase] Starting FCM token save process (multi-device)...');
       console.log('[saveFCMTokenToSupabase] Token to save (preview):', tokenToSave.substring(0, 20) + '...');
       console.log('[saveFCMTokenToSupabase] Authenticated user ID:', authenticatedUser.id);
       console.log('[saveFCMTokenToSupabase] User email:', authenticatedUser.email);
-      console.log('[saveFCMTokenToSupabase] Saving FCM token for user:', authenticatedUser.id);
-      
-      // First check if we already have this token stored
-      console.log('[saveFCMTokenToSupabase] Checking existing token in database...');
-      const { data: existingSettings, error: fetchError } = await supabase
-        .from('user_settings')
+
+      // Get device information
+      const deviceId = await getDeviceId();
+      const deviceInfo = await Device.getInfo();
+      const platform = Capacitor.getPlatform() as 'ios' | 'android';
+
+      // Create a user-friendly device name
+      const deviceName = `${deviceInfo.manufacturer || ''} ${deviceInfo.model || platform}`.trim();
+
+      console.log('[saveFCMTokenToSupabase] Device information:', {
+        deviceId: deviceId.substring(0, 20) + '...',
+        platform,
+        deviceName,
+        model: deviceInfo.model,
+        osVersion: deviceInfo.osVersion
+      });
+
+      // Check if this device already exists with the same token
+      console.log('[saveFCMTokenToSupabase] Checking existing device in database...');
+      const { data: existingDevice, error: fetchError } = await supabase
+        .from('user_devices')
         .select('fcm_token')
         .eq('user_id', authenticatedUser.id)
-        .single();
-      
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "not found" error
-        console.error('[saveFCMTokenToSupabase] Error fetching existing settings:', fetchError);
+        .eq('device_id', deviceId)
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('[saveFCMTokenToSupabase] Error fetching existing device:', fetchError);
       }
-      
+
       // Only update if the token is different from what's already stored
-      if (existingSettings?.fcm_token === tokenToSave) {
+      if (existingDevice?.fcm_token === tokenToSave) {
         console.log('[saveFCMTokenToSupabase] FCM token already matches database, skipping update.');
         return;
       }
-      
-      console.log('[saveFCMTokenToSupabase] Attempting upsert to user_settings table...');
+
+      console.log('[saveFCMTokenToSupabase] Attempting upsert to user_devices table...');
       const { error } = await supabase
-        .from('user_settings')
+        .from('user_devices')
         .upsert({
           user_id: authenticatedUser.id,
+          device_id: deviceId,
+          device_name: deviceName,
+          platform: platform,
+          device_model: deviceInfo.model || null,
+          os_version: deviceInfo.osVersion || null,
           fcm_token: tokenToSave,
+          last_active: new Date().toISOString(),
           updated_at: new Date().toISOString()
-        }, { 
-          onConflict: 'user_id' 
+        }, {
+          onConflict: 'user_id,device_id',
+          ignoreDuplicates: false
         });
-      
+
       if (error) {
         console.error('[saveFCMTokenToSupabase] *** UPSERT ERROR ***');
         console.error('[saveFCMTokenToSupabase] Error saving FCM token to Supabase:', error);
@@ -74,23 +119,26 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
         });
       } else {
         console.log('[saveFCMTokenToSupabase] *** UPSERT SUCCESS ***');
-        console.log('[saveFCMTokenToSupabase] FCM token saved to Supabase successfully');
-        console.log('[saveFCMTokenToSupabase] Supabase upsert successful.');
-        
+        console.log('[saveFCMTokenToSupabase] FCM token saved to user_devices table successfully');
+        console.log('[saveFCMTokenToSupabase] Device registered for multi-device notifications');
+
         // Verify the token was saved by fetching it back
         console.log('[saveFCMTokenToSupabase] Verifying token was saved...');
         const { data: verifyData, error: verifyError } = await supabase
-          .from('user_settings')
-          .select('fcm_token')
+          .from('user_devices')
+          .select('fcm_token, device_name, platform')
           .eq('user_id', authenticatedUser.id)
-          .single();
-        
+          .eq('device_id', deviceId)
+          .maybeSingle();
+
         if (verifyError) {
           console.error('[saveFCMTokenToSupabase] Error verifying saved token:', verifyError);
         } else {
           console.log('[saveFCMTokenToSupabase] Token verification result:', {
             tokenSaved: !!verifyData?.fcm_token,
-            tokenMatches: verifyData?.fcm_token === tokenToSave
+            tokenMatches: verifyData?.fcm_token === tokenToSave,
+            deviceName: verifyData?.device_name,
+            platform: verifyData?.platform
           });
         }
       }
@@ -103,7 +151,7 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
         stack: error instanceof Error ? error.stack : 'No stack'
       });
     }
-  }, []);
+  }, [getDeviceId]);
 
   useEffect(() => {
     console.log('=== usePushNotifications useEffect (initialization) starting ===');

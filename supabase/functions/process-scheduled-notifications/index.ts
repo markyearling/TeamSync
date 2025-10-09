@@ -61,12 +61,12 @@ Deno.serve(async (req) => {
     for (const notification of notifications || []) {
       console.log(`Processing notification ID: ${notification.id} for user: ${notification.user_id}`);
       try {
-        // Get recipient's FCM token and notification preferences
+        // Get recipient's notification preferences
         const { data: userSettings, error: settingsError } = await supabaseClient
           .from('user_settings')
-          .select('fcm_token, schedule_updates')
+          .select('schedule_updates')
           .eq('user_id', notification.user_id)
-          .single();
+          .maybeSingle();
 
         if (settingsError) {
           console.warn(`Error fetching settings for user ${notification.user_id}:`, settingsError);
@@ -93,11 +93,16 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        if (!userSettings?.fcm_token) {
-          console.warn(`FCM token not found for user ${notification.user_id}. Skipping push notification.`);
-          results.push({ id: notification.id, status: 'skipped', reason: 'FCM token not found' });
+        // Get all FCM tokens for this user across all their devices
+        console.log(`Fetching all devices for user ${notification.user_id}...`);
+        const { data: userDevices, error: devicesError } = await supabaseClient
+          .rpc('get_user_fcm_tokens', { p_user_id: notification.user_id });
 
-          // Mark as sent if no FCM token, as we can't send it anyway
+        if (devicesError) {
+          console.error(`Error fetching devices for user ${notification.user_id}:`, devicesError);
+          results.push({ id: notification.id, status: 'skipped', reason: 'Devices fetch error' });
+
+          // Mark as sent so we don't keep retrying
           await supabaseClient
             .from('scheduled_local_notifications')
             .update({ status: 'sent', updated_at: new Date().toISOString() })
@@ -105,59 +110,91 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const recipientFcmToken = userSettings.fcm_token;
+        if (!userDevices || userDevices.length === 0) {
+          console.warn(`No FCM tokens found for user ${notification.user_id}. Skipping push notification.`);
+          results.push({ id: notification.id, status: 'skipped', reason: 'No FCM tokens found' });
 
-        // Detailed logging for debugging
-        console.log(`[Scheduled Notif] Recipient FCM token (first 20 chars): ${recipientFcmToken.substring(0, 20)}...`);
-        console.log(`[Scheduled Notif] FCM Token length: ${recipientFcmToken.length}`);
-
-        // Send FCM push notification
-        console.log(`Sending FCM notification for scheduled reminder to user ${notification.user_id}...`);
-        const fcmResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-fcm-notification`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            // No Authorization header needed here as this is a service-to-service call
-            // and send-fcm-notification uses a service role key internally.
-          },
-          body: JSON.stringify({
-            fcmToken: recipientFcmToken,
-            title: notification.title,
-            body: notification.body,
-            data: {
-              type: 'event_reminder',
-              event_id: notification.event_id,
-              notification_id: notification.id,
-            }
-          })
-        });
-
-        // Detailed logging for FCM response
-        console.log('[Scheduled Notif] FCM Push Notification Response Status:', fcmResponse.status);
-        const fcmResponseBody = await fcmResponse.text(); // Read response body once
-        console.log('[Scheduled Notif] FCM Push Notification Response Body:', fcmResponseBody);
-
-        if (!fcmResponse.ok) {
-          // Use the already read fcmResponseBody
-          let fcmError;
-          try {
-            fcmError = JSON.parse(fcmResponseBody);
-          } catch (parseError) {
-            fcmError = { error: 'Could not parse FCM error response', body: fcmResponseBody };
-          }
-          console.error('Failed to send FCM notification:', fcmError);
-          throw new Error(`FCM send failed: ${fcmResponse.status} ${fcmResponse.statusText}`);
+          // Mark as sent if no FCM tokens, as we can't send it anyway
+          await supabaseClient
+            .from('scheduled_local_notifications')
+            .update({ status: 'sent', updated_at: new Date().toISOString() })
+            .eq('id', notification.id);
+          continue;
         }
 
-        console.log('FCM notification sent successfully.');
+        console.log(`Found ${userDevices.length} device(s) for user ${notification.user_id}`);
+
+        // Send FCM push notification to all user devices
+        let sentCount = 0;
+        let failedCount = 0;
+
+        for (const device of userDevices) {
+          try {
+            console.log(`[Scheduled Notif] Sending to device: ${device.device_name || device.device_id} (${device.platform})`);
+            console.log(`[Scheduled Notif] FCM token (first 20 chars): ${device.fcm_token.substring(0, 20)}...`);
+            console.log(`[Scheduled Notif] FCM Token length: ${device.fcm_token.length}`);
+
+            const fcmResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-fcm-notification`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                fcmToken: device.fcm_token,
+                title: notification.title,
+                body: notification.body,
+                data: {
+                  type: 'event_reminder',
+                  event_id: notification.event_id,
+                  notification_id: notification.id,
+                  device_id: device.device_id
+                }
+              })
+            });
+
+            console.log(`[Scheduled Notif] FCM Response Status for ${device.device_name}:`, fcmResponse.status);
+            const fcmResponseBody = await fcmResponse.text();
+
+            if (!fcmResponse.ok) {
+              let fcmError;
+              try {
+                fcmError = JSON.parse(fcmResponseBody);
+              } catch (parseError) {
+                fcmError = { error: 'Could not parse FCM error response', body: fcmResponseBody };
+              }
+              console.error(`Failed to send FCM notification to device ${device.device_name}:`, fcmError);
+              failedCount++;
+            } else {
+              console.log(`FCM notification sent successfully to device ${device.device_name}`);
+              sentCount++;
+
+              // Update device last_active timestamp
+              await supabaseClient
+                .rpc('update_device_last_active', {
+                  p_device_id: device.device_id,
+                  p_user_id: notification.user_id
+                });
+            }
+          } catch (deviceError) {
+            console.error(`Exception sending to device ${device.device_name}:`, deviceError);
+            failedCount++;
+          }
+        }
+
+        console.log(`Notification sent to ${sentCount}/${userDevices.length} devices (${failedCount} failed)`);
 
         // Update notification status to 'sent'
         await supabaseClient
           .from('scheduled_local_notifications')
           .update({ status: 'sent', updated_at: new Date().toISOString() })
           .eq('id', notification.id);
-        
-        results.push({ id: notification.id, status: 'sent' });
+
+        results.push({
+          id: notification.id,
+          status: 'sent',
+          devicesReached: sentCount,
+          devicesFailed: failedCount
+        });
 
       } catch (processError) {
         console.error(`Error processing notification ${notification.id}:`, processError);
