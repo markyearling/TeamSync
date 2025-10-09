@@ -418,6 +418,7 @@ const Settings: React.FC = () => {
                 </div>
               </div>
 
+              {/* Hidden for now - Additional Email Addresses section
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Additional Email Addresses</h3>
                 <div className="space-y-2">
@@ -454,6 +455,7 @@ const Settings: React.FC = () => {
                   </div>
                 </div>
               </div>
+              */}
 
               <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                 <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Timezone Settings</h3>

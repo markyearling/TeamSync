@@ -19,7 +19,7 @@ const SignUp: React.FC = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') {
-        navigate('/settings');
+        navigate('/auth/onboarding');
       }
     });
 

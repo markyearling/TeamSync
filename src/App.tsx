@@ -23,6 +23,7 @@ import SignUp from './pages/auth/SignUp';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import AuthCallback from './pages/auth/AuthCallback';
+import Onboarding from './pages/auth/Onboarding';
 import TestEmail from './pages/TestEmail';
 import Help from './pages/Help';
 import PrivacyPolicy from './pages/PrivacyPolicy';
@@ -94,9 +95,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Log the current path and authentication state
   console.log(`[ProtectedRoute] Path: ${location.pathname}, User: ${user ? 'Authenticated' : 'Not authenticated'}, Loading: ${loading}`);
 
-  // Special case for reset password and auth callback routes
-  const isAuthRoute = location.pathname.includes('/auth/reset-password') || 
-                      location.pathname.includes('/auth/callback');
+  // Special case for reset password, auth callback, and onboarding routes
+  const isAuthRoute = location.pathname.includes('/auth/reset-password') ||
+                      location.pathname.includes('/auth/callback') ||
+                      location.pathname.includes('/auth/onboarding');
   
   if (isAuthRoute) {
     console.log(`[ProtectedRoute] Auth route detected (${location.pathname}), bypassing protection`);
@@ -263,6 +265,11 @@ const AppContent: React.FC<AppContentProps> = ({ fcmToken, fcmRegistered }) => {
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/reset-password" element={<ResetPassword />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/auth/onboarding" element={
+        <ProtectedRoute>
+          <Onboarding />
+        </ProtectedRoute>
+      } />
       
       {/* Special routes */}
       <Route path="/test-email" element={<TestEmail />} />

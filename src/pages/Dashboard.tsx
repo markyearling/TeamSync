@@ -22,7 +22,7 @@ const MIN_REFRESH_INTERVAL = 5000;
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { profiles, friendsProfiles } = useProfiles();
+  const { profiles, friendsProfiles, fetchAllProfiles } = useProfiles();
   const [events, setEvents] = useState<Event[]>([]);
   const [friendsEvents, setFriendsEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -593,7 +593,8 @@ const Dashboard: React.FC = () => {
       // Refresh data after sync
       await fetchOwnEvents();
       await fetchFriendsEvents();
-      
+      await fetchAllProfiles(); // Refresh profiles to pick up any changes in access
+
       // Update last refreshed time in state and database
       await updateLastRefreshTime();
       
