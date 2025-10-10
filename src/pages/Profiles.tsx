@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, X, Upload, Crown } from 'lucide-react';
+import { Plus, X, Upload, Crown, Eye, Users } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useProfiles } from '../context/ProfilesContext';
 import { supabase } from '../lib/supabase';
@@ -152,106 +152,93 @@ const Profiles: React.FC = () => {
           <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
             Your Children {friendsProfiles.length > 0 && `& Administrator Access (${friendsProfiles.length})`}
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {allProfiles.map(child => (
-              <div 
-                key={child.id} 
-                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden ${
-                  !child.isOwnProfile ? 'border-l-4 border-yellow-500 dark:border-yellow-600' : ''
-                }`}
+              <div
+                key={child.id}
+                onClick={() => handleViewProfile(child.id)}
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
               >
-                <div className="p-6">
-                  <div className="flex items-center mb-4">
-                    <div className="h-12 w-12 rounded-full overflow-hidden flex items-center justify-center relative">
-                      {child.photo_url ? (
-                        <img 
-                          src={child.photo_url} 
-                          alt={child.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className="h-full w-full flex items-center justify-center text-white text-xl font-bold"
-                          style={{ backgroundColor: child.color }}
-                        >
-                          {child.name.charAt(0)}
-                        </div>
-                      )}
-                      {!child.isOwnProfile && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full flex items-center justify-center">
-                          <Crown className="h-2.5 w-2.5 text-white" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white">{child.name}</h3>
-                      {!child.isOwnProfile && (
-                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">
-                          {child.ownerName}'s child
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sports</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {child.sports.map((sport, index) => (
-                          <span
-                            key={index}
-                            className="px-3 py-1 rounded-full text-sm"
-                            style={{ 
-                              backgroundColor: sport.color + '20',
-                              color: sport.color
-                            }}
+                <div className="p-4">
+                  {/* Photo and Access Icon */}
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="relative">
+                      <div className="h-16 w-16 rounded-full overflow-hidden flex items-center justify-center shadow-sm">
+                        {child.photo_url ? (
+                          <img
+                            src={child.photo_url}
+                            alt={child.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className="h-full w-full flex items-center justify-center text-white text-2xl font-bold"
+                            style={{ backgroundColor: child.color }}
                           >
-                            {sport.name}
-                          </span>
-                        ))}
+                            {child.name.charAt(0)}
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Activity Summary</h4>
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        <p>{child.eventCount} events this week</p>
-                      </div>
-                    </div>
-
+                    {/* Access Role Icon */}
                     {!child.isOwnProfile && (
-                      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                        <div className="flex items-center text-yellow-800 dark:text-yellow-200">
-                          {child.accessRole === 'administrator' ? (
-                            <>
-                              <Crown className="h-4 w-4 mr-2" />
-                              <span className="text-xs font-medium">Administrator Access</span>
-                            </>
-                          ) : (
-                            <>
-                              <Crown className="h-4 w-4 mr-2" />
-                              <span className="text-xs font-medium">Viewer Access</span>
-                            </>
-                          )}
-                        </div>
-                        <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                          {child.accessRole === 'administrator'
-                            ? 'You can view and manage all aspects of this profile'
-                            : 'You can view but not edit this profile'}
-                        </p>
+                      <div className="flex-shrink-0" title={child.accessRole === 'administrator' ? 'Administrator' : child.accessRole === 'viewer' ? 'Viewer' : 'Friend'}>
+                        {child.accessRole === 'administrator' ? (
+                          <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-lg">
+                            <Crown className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                          </div>
+                        ) : child.accessRole === 'viewer' ? (
+                          <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
+                            <Eye className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                          </div>
+                        ) : (
+                          <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
+                            <Users className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                          </div>
+                        )}
                       </div>
                     )}
+                  </div>
 
-                    <button
-                      onClick={() => handleViewProfile(child.id)}
-                      className={`w-full mt-4 px-4 py-2 text-white rounded-md hover:opacity-90 ${
-                        child.isOwnProfile 
-                          ? 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800' 
-                          : 'bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-700 dark:hover:bg-yellow-800'
-                      }`}
-                    >
-                      Manage Profile
-                    </button>
+                  {/* Name and Owner */}
+                  <div className="mb-3">
+                    <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate">
+                      {child.name}
+                    </h3>
+                    {!child.isOwnProfile && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {child.ownerName}'s profile
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Sports Badges */}
+                  {child.sports.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {child.sports.slice(0, 3).map((sport, index) => (
+                        <span
+                          key={index}
+                          className="px-2 py-1 rounded-md text-xs font-medium"
+                          style={{
+                            backgroundColor: sport.color + '15',
+                            color: sport.color
+                          }}
+                        >
+                          {sport.name}
+                        </span>
+                      ))}
+                      {child.sports.length > 3 && (
+                        <span className="px-2 py-1 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                          +{child.sports.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Event Count */}
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    {child.eventCount} events this week
                   </div>
                 </div>
               </div>

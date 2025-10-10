@@ -637,47 +637,65 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Touch event handlers for pull-to-refresh
+  // Touch event handlers for pull-to-refresh (Facebook-style)
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!isNative || selectedEvent) return;
-    
-    // Only start pull if we're at the top of the page
-    if (window.scrollY === 0) {
+    if (!isNative || selectedEvent || isRefreshing) return;
+
+    // Only start pull if we're at the very top of the page
+    const scrollContainer = document.querySelector('.space-y-6.overflow-y-auto');
+    const isAtTop = scrollContainer ? scrollContainer.scrollTop === 0 : window.scrollY === 0;
+
+    if (isAtTop) {
       setTouchStartY(e.touches[0].clientY);
-      setIsPulling(true);
     }
   };
-  
+
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isPulling || isRefreshing || !isNative || selectedEvent) return;
-    
+    if (!isNative || selectedEvent || isRefreshing || touchStartY === 0) return;
+
     const touchY = e.touches[0].clientY;
     const distance = touchY - touchStartY;
-    
-    // Only allow pulling down, not up
-    if (distance > 0) {
-      // Apply resistance to make it harder to pull as you go further
-      const pullWithResistance = Math.min(distance * 0.4, 100);
+
+    // Check if still at top
+    const scrollContainer = document.querySelector('.space-y-6.overflow-y-auto');
+    const isAtTop = scrollContainer ? scrollContainer.scrollTop === 0 : window.scrollY === 0;
+
+    // Only allow pulling down when at top
+    if (distance > 0 && isAtTop) {
+      if (!isPulling && distance > 10) {
+        setIsPulling(true);
+      }
+
+      // Apply more resistance (Facebook-style) - harder to pull
+      const pullWithResistance = Math.min(distance * 0.3, 80);
       setPullDistance(pullWithResistance);
-      
+
       // Prevent default scrolling behavior when pulling
-      if (distance > 10) {
+      if (distance > 20) {
         e.preventDefault();
       }
+    } else if (distance <= 0) {
+      // User is scrolling up, cancel the pull
+      setIsPulling(false);
+      setPullDistance(0);
+      setTouchStartY(0);
     }
   };
-  
+
   const handleTouchEnd = () => {
-    if (!isPulling || isRefreshing || !isNative || selectedEvent) return;
-    
-    // If pulled far enough, trigger refresh
-    if (pullDistance > 60) {
+    if (!isNative || selectedEvent || !isPulling) return;
+
+    // Require a significant pull (80px worth of resistance = ~270px actual pull)
+    // This matches Facebook's behavior of requiring a substantial pull
+    if (pullDistance >= 70) {
       syncAllPlatformEvents();
     } else {
-      // Reset pull state
+      // Reset pull state with animation
       setIsPulling(false);
       setPullDistance(0);
     }
+
+    setTouchStartY(0);
   };
 
   // Combine all events for display
@@ -733,23 +751,34 @@ const Dashboard: React.FC = () => {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       >
-      {/* Pull to refresh indicator */}
-      {isPulling && pullDistance > 0 && (
+      {/* Professional pull-to-refresh indicator */}
+      {(isPulling || isRefreshing) && (
         <div
-          className="absolute left-0 right-0 flex justify-center items-end z-10 pointer-events-none"
+          className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200"
           style={{
-            top: 'calc(64px + env(safe-area-inset-top, 0px))',
-            height: `${pullDistance}px`,
-            transition: isRefreshing ? 'height 0.2s ease-out' : 'none'
+            height: isRefreshing ? '48px' : isPulling ? `${Math.min(pullDistance, 48)}px` : '0px',
+            opacity: isRefreshing ? 1 : isPulling ? (pullDistance / 80) : 0
           }}
         >
-          <div className={`rounded-full p-3 bg-white dark:bg-gray-800 shadow-lg ${isRefreshing ? 'animate-spin' : ''} mb-2`}>
-            <RefreshCw
-              className="h-6 w-6 text-blue-600 dark:text-blue-400"
-              style={{
-                transform: isRefreshing ? 'none' : `rotate(${pullDistance * 3}deg)`
-              }}
-            />
+          <div className="flex items-center justify-center h-full">
+            {isRefreshing ? (
+              <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span className="text-sm font-medium">Refreshing...</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-500">
+                <RefreshCw
+                  className="h-4 w-4 transition-transform duration-100"
+                  style={{
+                    transform: `rotate(${Math.min(pullDistance * 4, 360)}deg)`
+                  }}
+                />
+                <span className="text-sm">
+                  {pullDistance >= 70 ? 'Release to refresh' : 'Pull to refresh'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
