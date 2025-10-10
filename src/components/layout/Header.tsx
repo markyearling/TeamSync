@@ -675,7 +675,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
   return (
     <>
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative z-10">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-16 items-center justify-between pt-[env(safe-area-inset-top)]">
             <div className="flex items-center space-x-3">
