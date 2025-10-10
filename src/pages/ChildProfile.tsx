@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import AddEventModal from '../components/events/AddEventModal';
 import EventModal from '../components/events/EventModal';
-import { Filter, Calendar, Calendar as CalendarIcon, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users, ChevronLeft, ChevronRight, Crown, Eye } from 'lucide-react';
+import { Filter, Calendar, Calendar as CalendarIcon, LayoutList, Plus, Share2, MapPin, Clock, Pencil, Trash2, AlertTriangle, X, Upload, Users, ChevronLeft, ChevronRight, ShieldCheck, Eye } from 'lucide-react';
 import { useProfiles } from '../context/ProfilesContext';
 import { Child, Event } from '../types';
 import { supabase } from '../lib/supabase';
@@ -505,9 +505,14 @@ const ChildProfile: React.FC = () => {
                   {child.name.charAt(0)}
                 </div>
               )}
-              {isFriendProfile && (
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center">
-                  <Crown className="h-3 w-3 text-white" />
+              {isFriendProfile && child.accessRole === 'administrator' && (
+                <div className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+                  <ShieldCheck className="h-3 w-3 text-white" />
+                </div>
+              )}
+              {isFriendProfile && child.accessRole === 'viewer' && (
+                <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                  <Eye className="h-3 w-3 text-white" />
                 </div>
               )}
             </div>
@@ -515,9 +520,20 @@ const ChildProfile: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{child.name}</h1>
                 {isFriendProfile && (
-                  <span className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs px-2 py-1 rounded-full font-medium">
-                    {child.ownerName}'s child {child.accessRole === 'administrator' ? '(Admin)' : '(Viewer)'}
-                  </span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
+                      {child.ownerName}'s child
+                    </span>
+                    {child.accessRole === 'administrator' ? (
+                      <div className="bg-red-100 dark:bg-red-900/30 p-1.5 rounded-lg" title="Administrator">
+                        <ShieldCheck className="h-4 w-4 text-red-600 dark:text-red-400" />
+                      </div>
+                    ) : (
+                      <div className="bg-blue-100 dark:bg-blue-900/30 p-1.5 rounded-lg" title="Viewer">
+                        <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
               {child.date_of_birth && (
@@ -539,28 +555,6 @@ const ChildProfile: React.FC = () => {
                   </span>
                 ))}
               </div>
-              {isFriendProfile && (
-                <div className="mt-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-2">
-                  <div className="flex items-center text-yellow-800 dark:text-yellow-200">
-                    {child.accessRole === 'administrator' ? (
-                      <>
-                        <Crown className="h-4 w-4 mr-2" />
-                        <span className="text-xs font-medium">Administrator Access</span>
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="h-4 w-4 mr-2" />
-                        <span className="text-xs font-medium">Viewer Access</span>
-                      </>
-                    )}
-                  </div>
-                  <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                    {child.accessRole === 'administrator' 
-                      ? 'You have full management access to this profile' 
-                      : 'You can view but not edit this profile'}
-                  </p>
-                </div>
-              )}
             </div>
           </div>
           <div className="flex flex-wrap justify-end gap-2">
@@ -1080,28 +1074,6 @@ const ChildProfile: React.FC = () => {
                   ></textarea>
                 </div>
 
-                {isFriendProfile && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                    <div className="flex items-center text-yellow-800 dark:text-yellow-200 mb-2">
-                      {child.accessRole === 'administrator' ? (
-                        <>
-                          <Crown className="h-5 w-5 mr-2" />
-                          <span className="font-medium">Administrator Access</span>
-                        </>
-                      ) : (
-                        <>
-                          <Eye className="h-5 w-5 mr-2" />
-                          <span className="font-medium">Viewer Access</span>
-                        </>
-                      )}
-                    </div>
-                    <p className="text-sm text-yellow-700 dark:text-yellow-300">
-                      {child.accessRole === 'administrator'
-                        ? `You are editing ${child.ownerName}'s child profile. Any changes you make will be visible to them.`
-                        : `You can view but not edit ${child.ownerName}'s child profile.`}
-                    </p>
-                  </div>
-                )}
               </div>
 
               <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">

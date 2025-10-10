@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, X, Upload, Crown, Eye, Users } from 'lucide-react';
+import { Plus, X, Upload, ShieldCheck, Eye, Users } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useProfiles } from '../context/ProfilesContext';
 import { supabase } from '../lib/supabase';
@@ -185,12 +185,12 @@ const Profiles: React.FC = () => {
                     {!child.isOwnProfile && (
                       <div className="flex-shrink-0" title={child.accessRole === 'administrator' ? 'Administrator' : child.accessRole === 'viewer' ? 'Viewer' : 'Friend'}>
                         {child.accessRole === 'administrator' ? (
-                          <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-lg">
-                            <Crown className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                          <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-lg">
+                            <ShieldCheck className="h-4 w-4 text-red-600 dark:text-red-400" />
                           </div>
                         ) : child.accessRole === 'viewer' ? (
-                          <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
-                            <Eye className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                          <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
+                            <Eye className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                           </div>
                         ) : (
                           <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
