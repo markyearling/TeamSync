@@ -675,7 +675,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
   return (
     <>
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-20">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-16 items-center justify-between pt-[env(safe-area-inset-top)]">
             <div className="flex items-center space-x-3">
@@ -806,6 +806,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 {notificationsOpen && (
                   isNative ? (
                     <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-800" style={{
+                      isolation: 'isolate',
                       top: 'env(safe-area-inset-top, 0px)',
                       bottom: 'env(safe-area-inset-bottom, 0px)',
                       left: 'env(safe-area-inset-left, 0px)',
@@ -847,7 +848,8 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 {friendsOpen && (
                   isNative ? (
                     <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-800" style={{
-                      top: 'env(safe-area-inset-top, 0px)', 
+                      isolation: 'isolate',
+                      top: 'env(safe-area-inset-top, 0px)',
                       bottom: 'env(safe-area-inset-bottom, 0px)',
                       left: 'env(safe-area-inset-left, 0px)',
                       right: 'env(safe-area-inset-right, 0px)'

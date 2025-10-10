@@ -107,8 +107,8 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
 
   // Determine if we should use full-screen modal on mobile
   const containerClasses = isNative
-    ? "fixed inset-0 z-[999] bg-white dark:bg-gray-800"
-    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[999] p-4";
+    ? "fixed inset-0 z-[9999] bg-white dark:bg-gray-800"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4";
 
   const modalContentClasses = isNative
     ? "flex flex-col h-full w-full overflow-hidden"
@@ -521,9 +521,10 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
   };
 
   return (
-    <div 
+    <div
       className={containerClasses}
       style={isNative ? {
+        isolation: 'isolate',
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingLeft: 'env(safe-area-inset-left)',

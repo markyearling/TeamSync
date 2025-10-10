@@ -116,17 +116,18 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
   // Determine modal styling based on whether we're on mobile or desktop
   const modalContainerClasses = isNative
-    ? "fixed inset-0 z-[999] flex flex-col bg-white dark:bg-gray-800 overflow-hidden"
-    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[999]";
+    ? "fixed inset-0 z-[9999] flex flex-col bg-white dark:bg-gray-800 overflow-hidden"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]";
 
   const modalContentClasses = isNative
     ? "flex flex-col h-full w-full overflow-hidden"
     : "bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col";
 
   return (
-    <div 
+    <div
       className={modalContainerClasses}
-      style={{ 
+      style={{
+        isolation: 'isolate',
         paddingTop: isNative ? 'env(safe-area-inset-top)' : undefined,
         paddingBottom: isNative ? 'env(safe-area-inset-bottom)' : undefined,
         paddingLeft: isNative ? 'env(safe-area-inset-left)' : undefined,
