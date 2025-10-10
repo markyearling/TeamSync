@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { testSupabaseConnection } from '../../lib/testConnection';
@@ -17,6 +17,9 @@ const SignIn: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const { isAuthPage } = useTheme();
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const checkConnection = async () => {
@@ -81,6 +84,18 @@ const SignIn: React.FC = () => {
     return () => subscription.unsubscribe();
   }, [navigate, returnTo, location.state]);
 
+  const handleInputFocus = (element: HTMLElement | null) => {
+    if (!element) return;
+
+    setTimeout(() => {
+      element.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+        inline: 'nearest'
+      });
+    }, 300);
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -103,7 +118,7 @@ const SignIn: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <PublicHeader />
-      <div className="flex-1 flex flex-col py-6 sm:py-12 sm:px-6 lg:px-8 pb-20">
+      <div className="flex-1 flex flex-col py-3 sm:py-12 sm:px-6 lg:px-8 pb-32">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to FamSink</h2>
         <p className="mt-2 text-center text-sm text-gray-600">
@@ -170,6 +185,7 @@ const SignIn: React.FC = () => {
                   <Mail className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
+                  ref={emailInputRef}
                   id="email"
                   name="email"
                   type="email"
@@ -177,6 +193,7 @@ const SignIn: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onFocus={() => handleInputFocus(emailInputRef.current)}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Enter your email"
                 />
@@ -192,6 +209,7 @@ const SignIn: React.FC = () => {
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
+                  ref={passwordInputRef}
                   id="password"
                   name="password"
                   type="password"
@@ -199,6 +217,7 @@ const SignIn: React.FC = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  onFocus={() => handleInputFocus(passwordInputRef.current)}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Enter your password"
                 />
@@ -227,6 +246,7 @@ const SignIn: React.FC = () => {
 
             <div>
               <button
+                ref={submitButtonRef}
                 type="submit"
                 disabled={loading}
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
