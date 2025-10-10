@@ -116,8 +116,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
   // Determine modal styling based on whether we're on mobile or desktop
   const modalContainerClasses = isNative
-    ? "fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-800 overflow-hidden"
-    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+    ? "fixed inset-0 z-[100] flex flex-col bg-white dark:bg-gray-800 overflow-hidden"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]";
 
   const modalContentClasses = isNative
     ? "flex flex-col h-full w-full overflow-hidden"

@@ -198,8 +198,8 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
   // Determine modal styling based on whether we're on mobile or desktop
   const modalContainerClasses = isNative
-    ? "fixed inset-0 z-50 bg-white dark:bg-gray-800"
-    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+    ? "fixed inset-0 z-[100] bg-white dark:bg-gray-800"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100]";
 
   const modalContentClasses = isNative
     ? "flex flex-col h-full w-full overflow-hidden bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"

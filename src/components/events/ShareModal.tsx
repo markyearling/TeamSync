@@ -103,7 +103,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ event, isOpen, onClose }) => {
 
   if (shareSuccess) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[110]">
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
           <div className="text-center">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900 mb-4">
@@ -120,7 +120,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ event, isOpen, onClose }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[110]">
       <div 
         ref={modalRef}
         className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4"
