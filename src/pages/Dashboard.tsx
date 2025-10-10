@@ -741,8 +741,10 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  // Check if user is new (no profiles and no platform connections)
-  const isNewUser = profiles.length === 0 && connectedPlatforms.length === 0 && friendsProfiles.length === 0;
+  // Check quick start step visibility
+  const hasProfiles = profiles.length > 0 || friendsProfiles.length > 0;
+  const hasEvents = events.length > 0 || friendsEvents.length > 0;
+  const showQuickStart = !hasProfiles || !hasEvents;
 
   return (
     <div>
@@ -783,79 +785,100 @@ const Dashboard: React.FC = () => {
         </div>
       )}
       
-      {/* Welcome Message for New Users */}
-      {isNewUser && (
+      {/* Quick Start Guide */}
+      {showQuickStart && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
           <div className="px-6 py-8">
             <div className="text-center mb-6">
-              <h2 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">Welcome to FamSink!</h2>
+              <h2 className="text-3xl font-bold mb-2 text-gray-900 dark:text-white">
+                {!hasProfiles ? 'Welcome to FamSink!' : 'Quick Start'}
+              </h2>
               <p className="text-gray-600 dark:text-gray-400 text-lg">
-                Let's get you started with these simple steps
+                {!hasProfiles
+                  ? "Let's get you started with these simple steps"
+                  : "Complete these steps to get the most out of FamSink"}
               </p>
             </div>
 
             <div className="space-y-4">
-              {/* Step 1 */}
-              <div className="flex items-start space-x-4 bg-gradient-to-br from-violet-50 to-violet-100/50 dark:from-violet-900/20 dark:to-violet-800/10 rounded-lg p-5 border border-violet-200 dark:border-violet-800">
-                <div className="flex-shrink-0 w-10 h-10 bg-violet-600 dark:bg-violet-500 rounded-full flex items-center justify-center font-bold text-white shadow-md">
-                  1
+              {/* Step 1: Create Profiles (only show if no profiles exist) */}
+              {!hasProfiles && (
+                <div className="flex items-start space-x-4 bg-gradient-to-br from-violet-50 to-violet-100/50 dark:from-violet-900/20 dark:to-violet-800/10 rounded-lg p-5 border border-violet-200 dark:border-violet-800">
+                  <div className="flex-shrink-0 w-10 h-10 bg-violet-600 dark:bg-violet-500 rounded-full flex items-center justify-center font-bold text-white shadow-md">
+                    1
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg mb-2 flex items-center text-gray-900 dark:text-white">
+                      <UserPlus className="h-5 w-5 mr-2 text-violet-600 dark:text-violet-400" />
+                      Create Child Profiles
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
+                      Add profiles for your children, yourself, or your family group. These profiles will organize all your activities.
+                    </p>
+                    <button
+                      onClick={() => navigate('/profiles')}
+                      className="inline-flex items-center px-4 py-2 bg-violet-600 dark:bg-violet-500 text-white rounded-md hover:bg-violet-700 dark:hover:bg-violet-600 font-medium text-sm transition-colors shadow-sm"
+                    >
+                      Create Your First Profile
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-2 flex items-center text-gray-900 dark:text-white">
-                    <UserPlus className="h-5 w-5 mr-2 text-violet-600 dark:text-violet-400" />
-                    Create Child Profiles
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
-                    Add profiles for your children, yourself, or your family group. These profiles will organize all your activities.
-                  </p>
-                  <button
-                    onClick={() => navigate('/profiles')}
-                    className="inline-flex items-center px-4 py-2 bg-violet-600 dark:bg-violet-500 text-white rounded-md hover:bg-violet-700 dark:hover:bg-violet-600 font-medium text-sm transition-colors shadow-sm"
-                  >
-                    Create Your First Profile
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+              )}
 
-              {/* Step 2 */}
-              <div className="flex items-start space-x-4 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10 rounded-lg p-5 border border-amber-200 dark:border-amber-800">
-                <div className="flex-shrink-0 w-10 h-10 bg-amber-600 dark:bg-amber-500 rounded-full flex items-center justify-center font-bold text-white shadow-md">
-                  2
+              {/* Step 2: Connect Apps (only show if no events exist) */}
+              {!hasEvents && (
+                <div className="flex items-start space-x-4 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10 rounded-lg p-5 border border-amber-200 dark:border-amber-800">
+                  <div className="flex-shrink-0 w-10 h-10 bg-amber-600 dark:bg-amber-500 rounded-full flex items-center justify-center font-bold text-white shadow-md">
+                    {!hasProfiles ? '2' : '1'}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg mb-2 flex items-center text-gray-900 dark:text-white">
+                      <LinkIcon className="h-5 w-5 mr-2 text-amber-600 dark:text-amber-400" />
+                      Connect Sports Apps or Add Events
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
+                      Link your TeamSnap, SportsEngine, GameChanger, or Playmetrics accounts to automatically sync schedules, or manually add events to your calendar.
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => navigate('/connections')}
+                        className="inline-flex items-center px-4 py-2 bg-amber-600 dark:bg-amber-500 text-white rounded-md hover:bg-amber-700 dark:hover:bg-amber-600 font-medium text-sm transition-colors shadow-sm"
+                      >
+                        Connect Sports Apps
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </button>
+                      {hasProfiles && (
+                        <button
+                          onClick={() => navigate(`/profiles/${profiles[0]?.id}`)}
+                          className="inline-flex items-center px-4 py-2 bg-white dark:bg-gray-700 text-amber-600 dark:text-amber-400 border border-amber-600 dark:border-amber-500 rounded-md hover:bg-amber-50 dark:hover:bg-gray-600 font-medium text-sm transition-colors"
+                        >
+                          Add Manual Event
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-2 flex items-center text-gray-900 dark:text-white">
-                    <LinkIcon className="h-5 w-5 mr-2 text-amber-600 dark:text-amber-400" />
-                    Connect Sports Apps
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
-                    Link your TeamSnap, SportsEngine, GameChanger, or Playmetrics accounts to automatically sync schedules.
-                  </p>
-                  <button
-                    onClick={() => navigate('/connections')}
-                    className="inline-flex items-center px-4 py-2 bg-amber-600 dark:bg-amber-500 text-white rounded-md hover:bg-amber-700 dark:hover:bg-amber-600 font-medium text-sm transition-colors shadow-sm"
-                  >
-                    Connect Sports Apps
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </button>
-                </div>
-              </div>
+              )}
 
-              {/* Step 3 */}
-              <div className="flex items-start space-x-4 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 rounded-lg p-5 border border-emerald-200 dark:border-emerald-800">
-                <div className="flex-shrink-0 w-10 h-10 bg-emerald-600 dark:bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white shadow-md">
-                  3
+              {/* Step 3: Map Teams (only show if no events exist and has profiles) */}
+              {!hasEvents && hasProfiles && connectedPlatforms.length > 0 && (
+                <div className="flex items-start space-x-4 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/10 rounded-lg p-5 border border-emerald-200 dark:border-emerald-800">
+                  <div className="flex-shrink-0 w-10 h-10 bg-emerald-600 dark:bg-emerald-500 rounded-full flex items-center justify-center font-bold text-white shadow-md">
+                    2
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg mb-2 flex items-center text-gray-900 dark:text-white">
+                      <MapPin className="h-5 w-5 mr-2 text-emerald-600 dark:text-emerald-400" />
+                      Map Teams to Profiles
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">
+                      You've connected your sports apps! Now visit each child profile to link their teams. This ensures events appear in the right place.
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-lg mb-2 flex items-center text-gray-900 dark:text-white">
-                    <MapPin className="h-5 w-5 mr-2 text-emerald-600 dark:text-emerald-400" />
-                    Map Teams to Profiles
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Once you've connected your sports apps, visit each child profile to link their teams. This ensures events appear in the right place!
-                  </p>
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, X, Upload, ShieldCheck, Eye, Users } from 'lucide-react';
+import { Plus, X, Upload, ShieldCheck, Eye, Users, ChevronRight } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useProfiles } from '../context/ProfilesContext';
 import { supabase } from '../lib/supabase';
@@ -236,9 +236,10 @@ const Profiles: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Event Count */}
-                  <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {child.eventCount} events this week
+                  {/* Event Count and Arrow */}
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>{child.eventCount} events this week</span>
+                    <ChevronRight className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   </div>
                 </div>
               </div>
