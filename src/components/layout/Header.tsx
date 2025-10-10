@@ -675,7 +675,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
   return (
     <>
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative z-20">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative z-10">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex min-h-16 items-center justify-between pt-[env(safe-area-inset-top)]">
             <div className="flex items-center space-x-3">
@@ -713,7 +713,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
               {/* Search Results Dropdown */}
               {showSearchResults && searchResults.length > 0 && (
-                <div className="absolute right-0 mt-2 w-full sm:w-96 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto">
+                <div className="absolute right-0 mt-2 w-full sm:w-96 bg-white dark:bg-gray-800 rounded-md shadow-lg z-30 border border-gray-200 dark:border-gray-700 max-h-96 overflow-y-auto">
                   <div className="py-2 px-3 border-b border-gray-200 dark:border-gray-700">
                     <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       Search Results ({searchResults.length})
@@ -765,7 +765,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
               {/* No Results Message */}
               {showSearchResults && searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
-                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg z-20 border border-gray-200 dark:border-gray-700">
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-md shadow-lg z-30 border border-gray-200 dark:border-gray-700">
                   <div className="p-4 text-center">
                     <Search className="h-6 w-6 text-gray-400 dark:text-gray-500 mx-auto mb-2" />
                     <p className="text-sm text-gray-500 dark:text-gray-400">No events found</p>
@@ -805,20 +805,20 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
                 {notificationsOpen && (
                   isNative ? (
-                    <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-800" style={{
+                    <div className="fixed inset-0 z-30 bg-white dark:bg-gray-800" style={{
                       isolation: 'isolate',
                       top: 'env(safe-area-inset-top, 0px)',
                       bottom: 'env(safe-area-inset-bottom, 0px)',
                       left: 'env(safe-area-inset-left, 0px)',
                       right: 'env(safe-area-inset-right, 0px)'
                     }}>
-                      <NotificationCenter 
-                        onClose={() => setNotificationsOpen(false)} 
+                      <NotificationCenter
+                        onClose={() => setNotificationsOpen(false)}
                         onOpenChat={handleOpenChatFromNotification}
                       />
                     </div>
                   ) : (
-                    <div className="absolute right-0 mt-2 w-full md:w-96 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-[60]">
+                    <div className="absolute right-0 mt-2 w-full md:w-96 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-30">
                       <NotificationCenter 
                         onClose={() => setNotificationsOpen(false)} 
                         onOpenChat={handleOpenChatFromNotification}
@@ -847,7 +847,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
                 {friendsOpen && (
                   isNative ? (
-                    <div className="fixed inset-0 z-[60] bg-white dark:bg-gray-800" style={{
+                    <div className="fixed inset-0 z-30 bg-white dark:bg-gray-800" style={{
                       isolation: 'isolate',
                       top: 'env(safe-area-inset-top, 0px)',
                       bottom: 'env(safe-area-inset-bottom, 0px)',
@@ -866,7 +866,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                       />
                     </div>
                   ) : (
-                    <div className="absolute right-0 mt-2 w-full md:w-80 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-[60]">
+                    <div className="absolute right-0 mt-2 w-full md:w-80 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-30">
                       <FriendsListModal
                         friends={friends}
                         filteredFriends={filteredFriends}
