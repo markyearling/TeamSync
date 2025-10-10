@@ -84,16 +84,22 @@ const SignIn: React.FC = () => {
     return () => subscription.unsubscribe();
   }, [navigate, returnTo, location.state]);
 
-  const handleInputFocus = (element: HTMLElement | null) => {
-    if (!element) return;
+  const handleInputFocus = (inputRef: React.RefObject<HTMLInputElement>) => {
+    if (!inputRef.current) return;
 
     setTimeout(() => {
-      element.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-        inline: 'nearest'
+      const element = inputRef.current;
+      if (!element) return;
+
+      const rect = element.getBoundingClientRect();
+      const absoluteTop = window.pageYOffset + rect.top;
+      const middle = absoluteTop - (window.innerHeight / 3);
+
+      window.scrollTo({
+        top: middle,
+        behavior: 'smooth'
       });
-    }, 300);
+    }, 100);
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -116,9 +122,9 @@ const SignIn: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col overflow-y-auto">
       <PublicHeader />
-      <div className="flex-1 flex flex-col py-3 sm:py-12 sm:px-6 lg:px-8 pb-32">
+      <div className="flex-1 flex flex-col py-3 sm:py-12 sm:px-6 lg:px-8 pb-96 md:pb-32">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to FamSink</h2>
         <p className="mt-2 text-center text-sm text-gray-600">
@@ -193,7 +199,7 @@ const SignIn: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  onFocus={() => handleInputFocus(emailInputRef.current)}
+                  onFocus={() => handleInputFocus(emailInputRef)}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Enter your email"
                 />
@@ -217,7 +223,7 @@ const SignIn: React.FC = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => handleInputFocus(passwordInputRef.current)}
+                  onFocus={() => handleInputFocus(passwordInputRef)}
                   className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Enter your password"
                 />

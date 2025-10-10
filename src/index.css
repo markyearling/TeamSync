@@ -41,6 +41,30 @@ html, body {
     padding-left: 1rem;
     padding-right: 1rem;
   }
+
+  /* Enable scrolling when keyboard is open */
+  html {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body {
+    position: relative;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #root {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure inputs are visible above keyboard */
+  input:focus,
+  textarea:focus {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 /* Animated hero background */

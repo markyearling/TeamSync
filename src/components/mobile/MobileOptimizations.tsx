@@ -31,7 +31,7 @@ const MobileOptimizations: React.FC<MobileOptimizationsProps> = ({ children }) =
       // Set viewport meta tag with viewport-fit=cover for iOS safe areas
       const viewport = document.querySelector('meta[name=viewport]');
       if (viewport) {
-        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, viewport-fit=cover');
       }
 
       // Handle touch events for better mobile experience
