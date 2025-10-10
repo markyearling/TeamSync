@@ -87,7 +87,20 @@ const MobileOptimizations: React.FC<MobileOptimizationsProps> = ({ children }) =
         .mobile-app .fixed {
           position: fixed !important;
         }
-        
+
+        /* Ensure modals always overlay header */
+        .mobile-app header {
+          position: relative !important;
+          z-index: 20 !important;
+        }
+
+        /* High z-index modals should always be on top */
+        .mobile-app [class*="z-[9999]"],
+        .mobile-app [class*="z-\\[9999\\]"] {
+          z-index: 9999 !important;
+          isolation: isolate !important;
+        }
+
         /* Ensure proper safe area insets */
         .mobile-app .safe-area-top {
           padding-top: var(--safe-area-inset-top);

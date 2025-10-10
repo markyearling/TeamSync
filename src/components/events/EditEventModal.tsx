@@ -128,10 +128,18 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       className={modalContainerClasses}
       style={{
         isolation: 'isolate',
+        position: 'fixed',
+        zIndex: 9999,
         paddingTop: isNative ? 'env(safe-area-inset-top)' : undefined,
         paddingBottom: isNative ? 'env(safe-area-inset-bottom)' : undefined,
         paddingLeft: isNative ? 'env(safe-area-inset-left)' : undefined,
         paddingRight: isNative ? 'env(safe-area-inset-right)' : undefined,
+        ...(isNative && {
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0
+        })
       }}
     >
       <div 

@@ -122,17 +122,21 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   return (
     <div
       className={modalContainerClasses}
-      style={
-        isNative
-        ? {
-            isolation: 'isolate',
-            paddingTop: 'env(safe-area-inset-top)',
-            paddingBottom: 'env(safe-area-inset-bottom)',
-            paddingLeft: 'env(safe-area-inset-left)',
-            paddingRight: 'env(safe-area-inset-right)',
-          }
-        : undefined
-      }
+      style={{
+        isolation: 'isolate',
+        position: 'fixed',
+        zIndex: 9999,
+        ...(isNative && {
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)',
+        })
+      }}
     >
       <div 
         ref={modalRef}
