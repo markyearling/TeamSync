@@ -1060,12 +1060,11 @@ const ChatModal: React.FC<ChatModalProps> = ({ friend, onClose }) => {
     <div
       className={containerClasses}
       style={isNative ? {
-        isolation: 'isolate',
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)'
-      } : { isolation: 'isolate' }}
+      } : undefined}
     >
       <div
         ref={modalRef}

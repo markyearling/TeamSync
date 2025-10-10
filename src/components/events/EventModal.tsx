@@ -209,17 +209,12 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     <>
       <div
         className={modalContainerClasses}
-        style={{
-          isolation: 'isolate',
-          position: 'fixed',
-          zIndex: 9999,
-          ...(isNative && {
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0
-          })
-        }}
+        style={isNative ? {
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0
+        } : undefined}
       >
         <div
           ref={modalRef}
