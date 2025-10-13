@@ -30,6 +30,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import MobileOptimizations from './components/mobile/MobileOptimizations';
 import AuthAwarePageWrapper from './components/layout/AuthAwarePageWrapper';
 import { AppProvider } from './context/AppContext';
+import { ModalProvider } from './context/ModalContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProfilesProvider } from './context/ProfilesContext';
 import { useAuth } from './hooks/useAuth';
@@ -438,20 +439,21 @@ export default function App() {
     console.log('User:', user ? 'Present' : 'Not present');
     console.log('Auth Loading:', loading);
   }, [fcmToken, fcmRegistered, isNative]);
-
   return (
     <ErrorBoundary>
       <div className="min-h-screen min-w-full bg-gray-50 dark:bg-gray-900">
         <Router>
           <ThemeProvider>
             <AppProvider>
-              <ProfilesProvider>
-                <MobileOptimizations>
-                  <Suspense fallback={<LoadingSpinner />}>
-                    <AppContent fcmToken={fcmToken} fcmRegistered={fcmRegistered} />
-                  </Suspense>
-                </MobileOptimizations>
-              </ProfilesProvider>
+              <ModalProvider>
+                <ProfilesProvider>
+                  <MobileOptimizations>
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <AppContent fcmToken={fcmToken} fcmRegistered={fcmRegistered} />
+                    </Suspense>
+                  </MobileOptimizations>
+                </ProfilesProvider>
+              </ModalProvider>
             </AppProvider>
           </ThemeProvider>
         </Router>

@@ -9,6 +9,7 @@ import EventMessagesModal from './EventMessagesModal';
 import ShareModal from './ShareModal';
 import { DateTime } from 'luxon';
 import { useCapacitor } from '../../hooks/useCapacitor';
+import ModalPortal from '../ModalPortal';
 
 interface EventModalProps {
   event: Event;
@@ -198,15 +199,15 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
   // Determine modal styling based on whether we're on mobile or desktop
   const modalContainerClasses = isNative
-    ? "fixed inset-0 z-[200] bg-white dark:bg-gray-800"
-    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[200]";
+    ? "fixed inset-0 bg-white dark:bg-gray-800"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center";
 
   const modalContentClasses = isNative
-    ? "flex flex-col h-full w-full overflow-hidden bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] transform translate-z-0"
-    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col transform translate-z-0";
+    ? "flex flex-col h-full w-full overflow-hidden bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col";
 
   return (
-    <>
+    <ModalPortal>
       <div
         className={modalContainerClasses}
         style={isNative ? {
@@ -438,7 +439,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
           onClose={() => setShowMessagesModal(false)}
         />
       )}
-    </>
+    </ModalPortal>
   );
 };
 

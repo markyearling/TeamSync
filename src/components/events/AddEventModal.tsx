@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { Autocomplete } from '@react-google-maps/api';
 import { useCapacitor } from '../../hooks/useCapacitor';
 import { availableSports, getSportDetails } from '../../utils/sports';
+import ModalPortal from '../ModalPortal';
 
 interface AddEventModalProps {
   profileId: string;
@@ -118,10 +119,10 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   const modalContentClasses = isNative
     ? "flex flex-col h-full w-full overflow-hidden"
     : "bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col";
-
   return (
-    <div
-      className={modalContainerClasses}
+    <ModalPortal>
+      <div
+        className={modalContainerClasses}
       style={isNative ? {
         top: 0,
         left: 0,
@@ -343,7 +344,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
 };
 

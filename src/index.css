@@ -35,6 +35,30 @@ html, body {
   padding: 0;
 }
 
+/* BULLETPROOF MODAL ROOT STYLING */
+#modal-root {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647; /* Maximum possible z-index */
+  pointer-events: none; /* Allow clicks through when empty */
+  isolation: isolate; /* Create new stacking context */
+}
+
+#modal-root > * {
+  pointer-events: all; /* Re-enable clicks for modal content */
+}
+
+/* NUCLEAR OPTION: Force header removal when modals are open */
+body.modal-open header {
+  display: none !important;
+  position: absolute !important;
+  z-index: -9999 !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateX(-100vw) !important; /* Move it off screen */
+}
+
 /* Improve mobile responsiveness */
 @media (max-width: 640px) {
   .container {
@@ -64,6 +88,14 @@ html, body {
   textarea:focus {
     position: relative;
     z-index: 1;
+  }
+  
+  /* Extra enforcement on mobile */
+  body.modal-open header {
+    display: none !important;
+    height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
   }
 }
 
@@ -100,27 +132,4 @@ html, body {
 /* Force GPU acceleration for proper stacking context */
 .translate-z-0 {
   transform: translateZ(0);
-}
-
-/* Mobile-specific fixes for header and modal stacking */
-@media (max-width: 1024px) {
-  /* Ensure modals create proper stacking context on mobile */
-  [class*="z-[2"] {
-    isolation: isolate;
-    transform: translateZ(0);
-  }
-
-  /* Ensure header stays below modals when hidden */
-  header.hidden {
-    display: none !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    opacity: 0 !important;
-  }
-
-  header.invisible {
-    visibility: hidden !important;
-    pointer-events: none !important;
-    opacity: 0 !important;
-  }
 }

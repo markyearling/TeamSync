@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { Autocomplete } from '@react-google-maps/api';
 import { Event } from '../../types';
 import { useCapacitor } from '../../hooks/useCapacitor';
+import ModalPortal from '../ModalPortal';
 import { availableSports, getSportDetails } from '../../utils/sports';
 
 interface EditEventModalProps {
@@ -122,9 +123,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   const modalContentClasses = isNative
     ? "flex flex-col h-full w-full overflow-hidden transform translate-z-0"
     : "bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col transform translate-z-0";
-
   return (
-    <div
+    <ModalPortal>
+      <div
       className={modalContainerClasses}
       style={isNative ? {
         paddingTop: 'env(safe-area-inset-top)',
@@ -372,8 +373,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+      </div>
+    </ModalPortal>
   );
-};
+}
 
 export default EditEventModal;

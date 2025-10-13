@@ -3,6 +3,7 @@ import { X, Send, MessageCircle, User, Loader2, Camera, Image as ImageIcon } fro
 import { supabase } from '../../lib/supabase';
 import { Event } from '../../types';
 import { useCapacitor } from '../../hooks/useCapacitor';
+import ModalPortal from '../ModalPortal';
 import { useCamera } from '../../hooks/useCamera';
 import { Keyboard } from '@capacitor/keyboard';
 import { uploadEventMessageImage, uploadEventMessageImageFromFile, deleteEventMessageImage } from '../../utils/imageUpload';
@@ -519,8 +520,8 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
       });
     }
   };
-
   return (
+    <ModalPortal>
     <div
       className={containerClasses}
       style={isNative ? {
@@ -789,7 +790,8 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
         </div>
       )}
     </div>
+    </ModalPortal>
   );
-};
 
+};
 export default EventMessagesModal;
