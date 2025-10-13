@@ -91,3 +91,36 @@ html, body {
   writing-mode: vertical-lr;
   text-orientation: mixed;
 }
+
+/* Ensure proper z-index stacking for modals */
+.transform {
+  transform: translateZ(0);
+}
+
+/* Force GPU acceleration for proper stacking context */
+.translate-z-0 {
+  transform: translateZ(0);
+}
+
+/* Mobile-specific fixes for header and modal stacking */
+@media (max-width: 1024px) {
+  /* Ensure modals create proper stacking context on mobile */
+  [class*="z-[2"] {
+    isolation: isolate;
+    transform: translateZ(0);
+  }
+
+  /* Ensure header stays below modals when hidden */
+  header.hidden {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+  }
+
+  header.invisible {
+    visibility: hidden !important;
+    pointer-events: none !important;
+    opacity: 0 !important;
+  }
+}

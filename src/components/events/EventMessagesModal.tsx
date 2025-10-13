@@ -107,12 +107,12 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
 
   // Determine if we should use full-screen modal on mobile
   const containerClasses = isNative
-    ? "fixed inset-0 z-[100] bg-white dark:bg-gray-800"
-    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4";
+    ? "fixed inset-0 z-[220] bg-white dark:bg-gray-800"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[220] p-4";
 
   const modalContentClasses = isNative
-    ? "flex flex-col h-full w-full overflow-hidden"
-    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl h-full max-h-[90vh] overflow-hidden flex flex-col";
+    ? "flex flex-col h-full w-full overflow-hidden transform translate-z-0"
+    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl h-full max-h-[90vh] overflow-hidden flex flex-col transform translate-z-0";
 
   // Handle keyboard height adjustments for mobile
   useEffect(() => {
@@ -725,7 +725,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
       {/* Image Viewing Lightbox */}
       {viewingImage && (
         <div
-          className="fixed inset-0 z-[120] bg-black bg-opacity-90 flex items-center justify-center"
+          className="fixed inset-0 z-[230] bg-black bg-opacity-90 flex items-center justify-center"
           style={{
             paddingTop: isNative ? 'env(safe-area-inset-top)' : '1rem',
             paddingBottom: isNative ? 'env(safe-area-inset-bottom)' : '1rem',
@@ -755,7 +755,7 @@ const EventMessagesModal: React.FC<EventMessagesModalProps> = ({ event, onClose 
 
       {/* Mobile Image Options Modal */}
       {showImageOptions && isNative && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-[120]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-[230]">
           <div className="bg-white dark:bg-gray-800 rounded-t-lg w-full max-w-md p-6 space-y-4">
             <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center">
               Add Image
