@@ -746,6 +746,18 @@ const Dashboard: React.FC = () => {
   const hasEvents = events.length > 0 || friendsEvents.length > 0;
   const showQuickStart = !hasProfiles || !hasEvents;
 
+  // Show loading spinner while initial data is being fetched
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center space-y-4">
+          <RefreshCw className="h-12 w-12 animate-spin text-blue-600 dark:text-blue-400" />
+          <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="space-y-6 overflow-y-auto"
