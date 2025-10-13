@@ -32,6 +32,7 @@ const Dashboard: React.FC = () => {
   const [isPulling, setIsPulling] = useState(false);
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [lastRefreshedDate, setLastRefreshedDate] = useState<Date | null>(null);
   const [lastRefreshInProgress, setLastRefreshInProgress] = useState(false);
   const [touchStartY, setTouchStartY] = useState(0);
@@ -343,6 +344,11 @@ const Dashboard: React.FC = () => {
           setOnboardingComplete(isOnboardingComplete);
           setLoading(false);
         }
+        
+        // Delay the appearance of the onboarding section
+        setTimeout(() => {
+          setShowOnboarding(true);
+        }, 2000); // Adjust the delay as needed (in milliseconds)
       }
     };
 
@@ -794,7 +800,7 @@ const Dashboard: React.FC = () => {
       )}
       
       {/* Quick Start Guide */}
-      {showQuickStart && (
+      {showQuickStart && showOnboarding && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-2 border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
           <div className="px-6 py-8">
             <div className="text-center mb-6">
