@@ -118,17 +118,31 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
                         
                         <h4 className="text-base font-medium text-gray-900 dark:text-white">{event.title}</h4>
                         
-                        <div className="mt-2 flex flex-col sm:flex-row sm:space-x-4">
+                        <div className="mt-2 flex flex-col space-y-1">
                           <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                             <Clock className="h-4 w-4 mr-1" />
                             {formatTime(event.startTime)} - {formatTime(event.endTime)}
                           </div>
-                          
+
                           {event.location && (
-                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1 sm:mt-0">
-                              <MapPin className="h-4 w-4 mr-1" />
-                              {event.location_name || event.location}
-                            </div>
+                            <>
+                              {event.location_name ? (
+                                <>
+                                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                                    <MapPin className="h-4 w-4 mr-1" />
+                                    {event.location_name}
+                                  </div>
+                                  <div className="flex items-center ml-5 text-xs text-gray-400 dark:text-gray-500">
+                                    {event.location}
+                                  </div>
+                                </>
+                              ) : (
+                                <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                                  <MapPin className="h-4 w-4 mr-1" />
+                                  {event.location}
+                                </div>
+                              )}
+                            </>
                           )}
                         </div>
                         

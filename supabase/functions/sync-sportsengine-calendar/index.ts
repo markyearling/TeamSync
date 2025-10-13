@@ -24,7 +24,7 @@ const getSportDetails = (sportName: string) => {
     'Unknown': '#64748B',
     'Other': '#64748B'
   };
-  
+
   return {
     name: sportName,
     color: sportColors[sportName] || '#64748B'
@@ -36,6 +36,12 @@ const corsHeaders = { // Define globally
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
+
+interface ICSRequestBody {
+  icsUrl: string;
+  teamId: string;
+  profileId?: string;
+}
 
 // This function is executed at the very top level.
 console.log("sync-sportsengine-calendar: Function file loaded.");
@@ -50,7 +56,7 @@ Deno.serve(async (req: Request) => {
   }
 
   let body: ICSRequestBody | null = null; // Declare body outside try block
-  
+
   try {
     // Get request body
     body = await req.json(); // Assign to the outer-scoped variable
@@ -96,12 +102,12 @@ Deno.serve(async (req: Request) => {
     try {
       const jCalData = ICAL.parse(icsData);
       const comp = new ICAL.Component(jCalData);
-      
+
       // Extract calendar name from X-WR-CALNAME property or use a fallback
-      let calendarName = comp.getFirstPropertyValue('x-wr-calname') || 
+      let calendarName = comp.getFirstPropertyValue('x-wr-calname') ||
                         comp.getFirstPropertyValue('name') ||
                         comp.getFirstPropertyValue('summary');
-      
+
       // If no calendar name found, try to extract from the first event
       if (!calendarName) {
         const vevents = comp.getAllSubcomponents('vevent');
@@ -110,18 +116,18 @@ Deno.serve(async (req: Request) => {
           // Try to extract team name from event summary or location
           const summary = firstEvent.summary || '';
           const location = firstEvent.location || '';
-          
+
           // Look for common team name patterns
-          const teamMatch = summary.match(/vs\s+(.+?)(?:\s|$)/i) || 
+          const teamMatch = summary.match(/vs\s+(.+?)(?:\s|$)/i) ||
                            summary.match(/(.+?)\s+vs/i) ||
                            location.match(/(.+?)\s+(?:field|court|gym)/i);
-          
+
           if (teamMatch) {
             calendarName = teamMatch[1].trim();
           }
         }
       }
-      
+
       // Clean up the calendar name
       if (calendarName) {
         calendarName = calendarName
@@ -129,7 +135,7 @@ Deno.serve(async (req: Request) => {
           .replace(/schedule/i, '')
           .trim();
       }
-      
+
       // Fallback to URL-based name if still no name found
       if (!calendarName) {
         // Extract team ID from URL, handling both .ics and non-ics URLs
@@ -142,9 +148,9 @@ Deno.serve(async (req: Request) => {
         }
         calendarName = `SportsEngine Team ${teamIdFromUrl}`;
       }
-      
+
       console.log('Extracted calendar name:', calendarName);
-      
+
       const vevents = comp.getAllSubcomponents('vevent');
       console.log('Successfully parsed ICS data, found events:', vevents.length);
 
@@ -181,9 +187,9 @@ Deno.serve(async (req: Request) => {
       if (!profileId) {
         console.log('No profile ID provided, returning team info only');
         return new Response(
-          JSON.stringify({ 
-            success: true, 
-            message: 'Team calendar synced successfully', 
+          JSON.stringify({
+            success: true,
+            message: 'Team calendar synced successfully',
             eventCount: vevents.length,
             teamName: calendarName
           }),
@@ -200,7 +206,7 @@ Deno.serve(async (req: Request) => {
         .select('sport, sport_color')
         .eq('id', teamId)
         .single();
-        
+
       const sport = teamData?.sport || 'Unknown';
       const sportColor = teamData?.sport_color || getSportDetails(sport).color;
 
@@ -215,7 +221,7 @@ Deno.serve(async (req: Request) => {
           .select('user_id')
           .eq('id', profileId)
           .single();
-        
+
         if (profileFetchError) {
           console.warn(`[SportsEngine Sync] Error fetching user_id for profile ${profileId}:`, profileFetchError.message);
           console.log('[SportsEngine Sync] Using default timezone UTC due to profile fetch error');
@@ -230,9 +236,9 @@ Deno.serve(async (req: Request) => {
           console.log(`[SportsEngine Sync] Calling RPC 'get_user_timezone' with p_user_id: ${profileUserId}`); // Added logging
           try {
             const { data: timezoneResult, error: rpcError } = await supabaseClient.rpc('get_user_timezone', {
-              p_user_id: profileUserId 
+              p_user_id: profileUserId
             });
-          
+
             if (rpcError) {
               console.warn(`[SportsEngine Sync] Error calling get_user_timezone RPC for user ${profileUserId}:`, rpcError.message);
               console.log('[SportsEngine Sync] Using default timezone UTC due to RPC error');
@@ -260,13 +266,13 @@ Deno.serve(async (req: Request) => {
           const event = new ICAL.Event(vevent);
           const startDate = event.startDate.toJSDate();
           const endDate = event.endDate.toJSDate();
-          
+
           // Check if dates are valid
           if (isNaN(startDate.getTime())) {
             console.warn('Skipping event with invalid start date:', event.summary);
             return false;
           }
-          
+
           return true;
         } catch (error) {
           console.warn('Skipping event due to parsing error:', error);
@@ -274,32 +280,32 @@ Deno.serve(async (req: Request) => {
         }
       }).map(vevent => {
         const event = new ICAL.Event(vevent);
-        
+
         // Extract event type and opponent from summary
         let eventType = "Event";
         let opponent = null;
         const summary = event.summary || '';
-        
+
         // Check for game vs opponent pattern
         const vsPattern = /\b(vs\.?|versus)\s+([^,]+)/i;
         const vsMatch = summary.match(vsPattern);
-        
+
         // Check for "at" pattern (e.g., "Team at Opponent")
         const atPattern = /\b([^@]+?)\s+at\s+([^,]+)/i;
         const atMatch = summary.match(atPattern);
-        
+
         // Check for home/away pattern (e.g., "Team (Home) vs Opponent")
         const homeAwayPattern = /\((?:home|away)\)\s*(?:vs\.?|versus)\s+([^,]+)/i;
         const homeAwayMatch = summary.match(homeAwayPattern);
-        
+
         // Determine if it's a game and extract opponent
-        if (summary.toLowerCase().includes('game') || 
-            vsMatch || 
-            atMatch || 
+        if (summary.toLowerCase().includes('game') ||
+            vsMatch ||
+            atMatch ||
             homeAwayMatch ||
             summary.toLowerCase().includes('match')) {
           eventType = 'Game';
-          
+
           if (vsMatch) {
             opponent = vsMatch[2].trim();
           } else if (atMatch) {
@@ -315,13 +321,13 @@ Deno.serve(async (req: Request) => {
         } else if (summary.toLowerCase().includes('scrimmage')) {
           eventType = 'Scrimmage';
         }
-        
+
         // Create a more detailed title
         let title = eventType;
         if (eventType === 'Game' && opponent) {
           title = `Game vs ${opponent}`;
         }
-        
+
         // Create a more detailed description
         let description = event.description || '';
         if (summary && !description.includes(summary)) {
@@ -331,55 +337,61 @@ Deno.serve(async (req: Request) => {
             description = summary;
           }
         }
-        
+
         // If opponent found but not in description, add it
         if (opponent && !description.toLowerCase().includes('opponent') && !description.includes(opponent)) {
-          description = description 
+          description = description
             ? `${description}\n\nOpponent: ${opponent}`
             : `Opponent: ${opponent}`;
         }
-        
+
         // Extract location name from location string
         const rawLocation = event.location || '';
         let locationName = '';
-        let locationAddress = rawLocation;
+        const locationAddress = rawLocation;
 
-        if (rawLocation) {
-          // Pattern 1: "Venue Name, Street Address, City, State" - extract first part before comma
-          if (rawLocation.includes(',')) {
-            const parts = rawLocation.split(',').map(p => p.trim());
-            const firstPart = parts[0];
+        console.log(`[Location Parsing] Raw location from ICS: "${rawLocation}"`);
 
-            // Check if first part looks like a street address (starts with number)
-            // If so, use full address as name, otherwise use first part as venue name
-            if (/^\d+\s/.test(firstPart)) {
-              // Starts with a number, likely a street address with no venue name
-              locationName = rawLocation;
-            } else {
-              // First part doesn't start with number, likely a venue name
-              locationName = firstPart;
-            }
+        if (rawLocation && rawLocation.includes(',')) {
+          // Split by comma to check the first part
+          const parts = rawLocation.split(',').map(p => p.trim());
+          const firstPart = parts[0];
+
+          console.log(`[Location Parsing] First part before comma: "${firstPart}"`);
+
+          // Helper function to check if string contains both letters and digits
+          const hasLettersAndDigits = (str: string) => {
+            const hasLetters = /[a-zA-Z]/.test(str);
+            const hasDigits = /\d/.test(str);
+            return hasLetters && hasDigits;
+          };
+
+          // Check if first part is an address:
+          // 1. Starts with a digit (e.g., "1325 North Theis Lane")
+          // 2. Contains both letters and digits (e.g., "N23W2341 Main St")
+          const startsWithDigit = /^\d/.test(firstPart);
+          const isAlphanumeric = hasLettersAndDigits(firstPart);
+
+          if (startsWithDigit || isAlphanumeric) {
+            // This is an address, no venue name to extract
+            locationName = '';
+            console.log(`[Location Parsing] Detected as address (starts with digit: ${startsWithDigit}, alphanumeric: ${isAlphanumeric}), no venue name extracted`);
+          } else {
+            // First part is purely alphabetic (or has spaces), likely a venue name
+            locationName = firstPart;
+            console.log(`[Location Parsing] Extracted venue name: "${locationName}"`);
           }
-          // Pattern 2: "Venue Name (Address)" or "Venue Name at Address"
-          else if (rawLocation.includes('(') || rawLocation.toLowerCase().includes(' at ')) {
-            const venueMatch = rawLocation.match(/^([^(]+?)(?:\s*\(|(?:\s+at\s+))/i);
-            if (venueMatch) {
-              locationName = venueMatch[1].trim();
-            } else {
-              locationName = rawLocation;
-            }
-          }
-          // Pattern 3: Simple address or venue name without special characters
-          else {
-            locationName = rawLocation;
-          }
+        } else {
+          // No comma means we can't determine structure, don't extract venue name
+          locationName = '';
+          console.log(`[Location Parsing] No comma found, cannot determine structure, no venue name extracted`);
         }
 
-        console.log(`Location extracted - Full: "${locationAddress}", Name: "${locationName}"`);
-        
+        console.log(`[Location Parsing] Final result - Full location: "${locationAddress}", Venue name: "${locationName || 'none'}"`);
+
         // Improved timezone handling
         console.log(`Processing event: ${title}`);
-        
+
         // Extract date/time components directly from ical.js objects
         const startYear = event.startDate.year;
         const startMonth = event.startDate.month;
@@ -387,22 +399,22 @@ Deno.serve(async (req: Request) => {
         const startHour = event.startDate.hour;
         const startMinute = event.startDate.minute;
         const startSecond = event.startDate.second;
-        
+
         const endYear = event.endDate.year;
         const endMonth = event.endDate.month;
         const endDay = event.endDate.day;
         const endHour = event.endDate.hour;
         const endMinute = event.endDate.minute;
         const endSecond = event.endDate.second;
-        
+
         console.log(`Event date components:
           Start: ${startYear}-${startMonth}-${startDay} ${startHour}:${startMinute}:${startSecond}
           End: ${endYear}-${endMonth}-${endDay} ${endHour}:${endMinute}:${endSecond}
           Timezone: ${event.startDate.timezone || 'floating'}
           IsFloating: ${event.startDate.isFloating}`);
-        
+
         let startDateTime, endDateTime;
-        
+
         // Robust timezone handling based on ical.js properties
         if (event.startDate.timezone === 'Z') {
           // This is explicitly UTC
@@ -432,32 +444,32 @@ Deno.serve(async (req: Request) => {
             { zone: userTimezone }
           );
         }
-        
+
         // If end date components are invalid, default to 1 hour after start
         if (!endDateTime.isValid) {
           console.warn(`Invalid end date for event: ${title}, defaulting to 1 hour after start`);
           endDateTime = startDateTime.plus({ hours: 1 });
         }
-        
+
         // Validate Luxon DateTime objects
         if (!startDateTime.isValid) {
           console.error(`Invalid Luxon start DateTime for event: ${title}`, startDateTime.invalidReason);
           throw new Error(`Invalid start date-time for event: ${title}`);
         }
-        
+
         if (!endDateTime.isValid) {
           console.error(`Invalid Luxon end DateTime for event: ${title}`, endDateTime.invalidReason);
           throw new Error(`Invalid end date-time for event: ${title}`);
         }
-        
+
         // Convert to UTC for storage
         const startTimeUTC = startDateTime.toUTC().toISO();
         const endTimeUTC = endDateTime.toUTC().toISO();
-        
+
         console.log(`Converted times:
           Start: ${startDateTime.toString()} -> UTC: ${startTimeUTC}
           End: ${endDateTime.toString()} -> UTC: ${endTimeUTC}`);
-        
+
         return {
           external_id: event.uid || `${event.summary}-${startTimeUTC}`, // Use iCal UID or fallback
           title: title,
@@ -465,7 +477,7 @@ Deno.serve(async (req: Request) => {
           start_time: startTimeUTC,
           end_time: endTimeUTC,
           location: locationAddress,
-          location_name: locationName,
+          location_name: locationName || null, // Store null if no venue name extracted
           sport: sport,
           color: sportColor, // Use custom color or default
           platform: 'SportsEngine',
@@ -573,9 +585,9 @@ Deno.serve(async (req: Request) => {
       }
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Calendar synced successfully', 
+        JSON.stringify({
+          success: true,
+          message: 'Calendar synced successfully',
           eventCount: deduplicatedEvents.length,
           teamName: calendarName
         }),
@@ -600,7 +612,7 @@ Deno.serve(async (req: Request) => {
     try {
       // Access teamId directly from the 'body' variable if it was successfully parsed
       const currentTeamId = body?.teamId;
-      
+
       if (currentTeamId) {
         const supabaseClient = createClient(
           Deno.env.get('SUPABASE_URL') ?? '',

@@ -129,7 +129,9 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = '
                     {duration > 0.75 && event.location && (
                       <div className="text-gray-600 dark:text-gray-300 text-xs mt-1 flex items-center">
                         <MapPin className="h-3 w-3 mr-1" />
-                        <span className="truncate">{event.location_name || event.location}</span>
+                        <span className="truncate" title={event.location}>
+                          {event.location_name || event.location}
+                        </span>
                       </div>
                     )}
                     {duration > 1.5 && (

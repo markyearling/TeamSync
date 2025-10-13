@@ -29,38 +29,27 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
       return null; // No location to display
     }
 
-    const firstPartOfLocation = event.location.split(',')[0].trim();
-
-    // If location_name matches the first part of the full location, display only the full location
-    if (event.location_name && event.location_name === firstPartOfLocation) {
+    // If location_name exists, show venue name with full address below
+    // Otherwise, just show the full location
+    if (event.location_name) {
+      return (
+        <>
+          <div className="flex items-center">
+            <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
+            <span>{event.location_name}</span>
+          </div>
+          <div className="flex items-center ml-5">
+            <span className="text-xs text-gray-400 dark:text-gray-500">{event.location}</span>
+          </div>
+        </>
+      );
+    } else {
+      // No venue name, just show full location
       return (
         <div className="flex items-center">
           <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
           <span>{event.location}</span>
         </div>
-      );
-    } else {
-      // Otherwise, display location_name (if available) and then the full location
-      return (
-        <>
-          {event.location_name && (
-            <div className="flex items-center">
-              <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
-              <span>{event.location_name}</span>
-            </div>
-          )}
-          {event.location_name && (
-            <div className="flex items-center ml-5">
-              <span className="text-xs text-gray-400 dark:text-gray-500">{event.location}</span>
-            </div>
-          )}
-          {!event.location_name && (
-            <div className="flex items-center">
-              <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
-              <span>{event.location}</span>
-            </div>
-          )}
-        </>
       );
     }
   };
