@@ -340,19 +340,42 @@ Deno.serve(async (req: Request) => {
         }
         
         // Extract location name from location string
-        let locationName = event.location || '';
-        let locationAddress = event.location || '';
+        const rawLocation = event.location || '';
+        let locationName = '';
+        let locationAddress = rawLocation;
 
-        // Heuristic: if location contains a comma, assume part before is name
-        if (locationName.includes(',')) {
-          const parts = locationName.split(',');
-          locationName = parts[0].trim();
-          locationAddress = event.location; // Keep full original location as address
-        } else {
-          // If no comma, name is the same as the full location
-          locationName = event.location || '';
-          locationAddress = event.location || '';
+        if (rawLocation) {
+          // Pattern 1: "Venue Name, Street Address, City, State" - extract first part before comma
+          if (rawLocation.includes(',')) {
+            const parts = rawLocation.split(',').map(p => p.trim());
+            const firstPart = parts[0];
+
+            // Check if first part looks like a street address (starts with number)
+            // If so, use full address as name, otherwise use first part as venue name
+            if (/^\d+\s/.test(firstPart)) {
+              // Starts with a number, likely a street address with no venue name
+              locationName = rawLocation;
+            } else {
+              // First part doesn't start with number, likely a venue name
+              locationName = firstPart;
+            }
+          }
+          // Pattern 2: "Venue Name (Address)" or "Venue Name at Address"
+          else if (rawLocation.includes('(') || rawLocation.toLowerCase().includes(' at ')) {
+            const venueMatch = rawLocation.match(/^([^(]+?)(?:\s*\(|(?:\s+at\s+))/i);
+            if (venueMatch) {
+              locationName = venueMatch[1].trim();
+            } else {
+              locationName = rawLocation;
+            }
+          }
+          // Pattern 3: Simple address or venue name without special characters
+          else {
+            locationName = rawLocation;
+          }
         }
+
+        console.log(`Location extracted - Full: "${locationAddress}", Name: "${locationName}"`);
         
         // Improved timezone handling
         console.log(`Processing event: ${title}`);
