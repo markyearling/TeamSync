@@ -26,6 +26,7 @@ const Dashboard: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [friendsEvents, setFriendsEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [onboardingComplete, setOnboardingComplete] = useState<boolean | null>(null);
   const [connectedPlatforms, setConnectedPlatforms] = useState<Platform[]>([]);
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
   const [isPulling, setIsPulling] = useState(false);
@@ -310,7 +311,7 @@ const Dashboard: React.FC = () => {
   // Main effect - only runs when dependencies actually change
   useEffect(() => {
     let isMounted = true;
-    
+
     // Fetch last refresh time when component mounts
     fetchLastRefreshTime();
 
@@ -335,13 +336,18 @@ const Dashboard: React.FC = () => {
         });
       } finally {
         if (isMounted) {
+          const hasProfiles = profiles.length > 0 || friendsProfiles.length > 0;
+          const hasEvents = events.length > 0 || friendsEvents.length > 0;
+          const isOnboardingComplete = hasProfiles && hasEvents;
+
+          setOnboardingComplete(isOnboardingComplete);
           setLoading(false);
         }
       }
     };
 
     fetchAllData();
-    
+
     // Set up interval to update the "time ago" display
     const intervalId = setInterval(() => {
       if (lastRefreshedDate) {
@@ -354,7 +360,7 @@ const Dashboard: React.FC = () => {
       isMounted = false;
       clearInterval(intervalId);
     };
-  }, [fetchOwnEvents, fetchFriendsEvents, friendsProfiles, fetchLastRefreshTime]); // Re-run when friendsProfiles changes
+  }, [fetchOwnEvents, fetchFriendsEvents, friendsProfiles, fetchLastRefreshTime, profiles, events, friendsEvents]); // Re-run when friendsProfiles changes
 
   // Function to sync all platform events
   const syncAllPlatformEvents = async () => {
@@ -733,21 +739,7 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  // Check quick start step visibility
-  const hasProfiles = profiles.length > 0 || friendsProfiles.length > 0;
-  const hasEvents = events.length > 0 || friendsEvents.length > 0;
-  const showQuickStart = !hasProfiles || !hasEvents;
-
-  // Show loading spinner while initial data is being fetched
-  if (loading) {
+  if (loading || onboardingComplete === null) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center space-y-4">
@@ -757,6 +749,10 @@ const Dashboard: React.FC = () => {
       </div>
     );
   }
+
+  const hasProfiles = profiles.length > 0 || friendsProfiles.length > 0;
+  const hasEvents = events.length > 0 || friendsEvents.length > 0;
+  const showQuickStart = !onboardingComplete;
 
   return (
     <div>
