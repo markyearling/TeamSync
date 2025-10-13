@@ -88,12 +88,6 @@ const MobileOptimizations: React.FC<MobileOptimizationsProps> = ({ children }) =
           position: fixed !important;
         }
 
-        /* Ensure modals always overlay header */
-        .mobile-app header {
-          position: relative !important;
-          z-index: 20 !important;
-        }
-
         /* High z-index modals should always be on top */
         .mobile-app [class*="z-[9999]"],
         .mobile-app [class*="z-\\[9999\\]"] {

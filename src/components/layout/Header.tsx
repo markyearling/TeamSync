@@ -806,7 +806,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 {notificationsOpen && (
                   isNative ? (
                     <div className="fixed inset-0 z-30 bg-white dark:bg-gray-800" style={{
-                      isolation: 'isolate',
                       top: 'env(safe-area-inset-top, 0px)',
                       bottom: 'env(safe-area-inset-bottom, 0px)',
                       left: 'env(safe-area-inset-left, 0px)',
@@ -848,7 +847,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 {friendsOpen && (
                   isNative ? (
                     <div className="fixed inset-0 z-30 bg-white dark:bg-gray-800" style={{
-                      isolation: 'isolate',
                       top: 'env(safe-area-inset-top, 0px)',
                       bottom: 'env(safe-area-inset-bottom, 0px)',
                       left: 'env(safe-area-inset-left, 0px)',
