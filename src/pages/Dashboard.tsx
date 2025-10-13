@@ -309,12 +309,15 @@ const Dashboard: React.FC = () => {
     }
   }, [fetchOwnEvents, fetchFriendsEvents]);
 
+  // Mount-only fetch of last refresh time
+  useEffect(() => {
+    fetchLastRefreshTime();
+    // fetchLastRefreshTime is stable (useCallback with [])
+  }, [fetchLastRefreshTime]);
+
   // Main effect - only runs when dependencies actually change
   useEffect(() => {
     let isMounted = true;
-
-    // Fetch last refresh time when component mounts
-    fetchLastRefreshTime();
 
     const fetchAllData = async () => {
       try {
@@ -354,19 +357,10 @@ const Dashboard: React.FC = () => {
 
     fetchAllData();
 
-    // Set up interval to update the "time ago" display
-    const intervalId = setInterval(() => {
-      if (lastRefreshedDate) {
-        // Force re-render to update the "time ago" display
-        setLastRefreshedDate(new Date(lastRefreshedDate));
-      }
-    }, 60000); // Update every minute
-
     return () => {
       isMounted = false;
-      clearInterval(intervalId);
     };
-  }, [fetchOwnEvents, fetchFriendsEvents, friendsProfiles, fetchLastRefreshTime, profiles, events, friendsEvents]); // Re-run when friendsProfiles changes
+  }, [fetchOwnEvents, fetchFriendsEvents, friendsProfiles, profiles, events, friendsEvents]); // Re-run when friendsProfiles changes
 
   // Function to sync all platform events
   const syncAllPlatformEvents = async () => {
