@@ -352,7 +352,12 @@ Deno.serve(async (req: Request) => {
 
         console.log(`[Location Parsing] Raw location from ICS: "${rawLocation}"`);
 
-        if (rawLocation && rawLocation.includes(',')) {
+        // Prioritize TITLE if available
+        const titleValue = event.getProperty('title')?.getFirstValue();
+        if (titleValue) {
+          locationName = String(titleValue);
+          console.log(`[Location Parsing] Extracted location name from TITLE: "${locationName}"`);
+        } else if (rawLocation && rawLocation.includes(',')) {
           // Split by comma to check the first part
           const parts = rawLocation.split(',').map(p => p.trim());
           const firstPart = parts[0];
