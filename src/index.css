@@ -133,3 +133,10 @@ body.modal-open header {
 .translate-z-0 {
   transform: translateZ(0);
 }
+
+/* Google Maps Autocomplete Dropdown - Must appear above all modals */
+.pac-container {
+  z-index: 2147483648 !important; /* Above modal-root */
+  pointer-events: all !important;
+  position: fixed !important;
+}
