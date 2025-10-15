@@ -1,4 +1,4 @@
-package com.teamsync.app;
+package com.yearling.famsink;
 
 import com.getcapacitor.BridgeActivity;
 

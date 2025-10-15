@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "93819412115",
+    "project_id": "famsink-fd857",
+    "storage_bucket": "famsink-fd857.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:93819412115:android:84bfe22c10924424dff766",
+        "android_client_info": {
+          "package_name": "com.yearling.famsink"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBseEmu5nWCkRj96JC83_00wc5yaFwIboo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
