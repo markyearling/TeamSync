@@ -1,12 +1,15 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace "com.teamsync.app"
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    namespace "com.yearling.famsink"
+    //compileSdkVersion rootProject.ext.compileSdkVersion
+    compileSdkVersion 35
     defaultConfig {
-        applicationId "com.teamsync.app"
-        minSdkVersion rootProject.ext.minSdkVersion
-        targetSdkVersion rootProject.ext.targetSdkVersion
+        applicationId "com.yearling.famsink"
+        //minSdkVersion rootProject.ext.minSdkVersion
+        minSdkVersion 35
+        //targetSdkVersion rootProject.ext.targetSdkVersion
+        targetSdkVersion 35
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -49,6 +52,6 @@ try {
     if (servicesJSON.text) {
         apply plugin: 'com.google.gms.google-services'
     }
-} catch(Exception e) {
+} catch (ignored) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
