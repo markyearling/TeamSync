@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { geocodeAddress } from '../_shared/geocoding.ts';
+import { geocodeAddress } from './_shared/geocoding.ts';
 
 // This function is executed at the very top level.
 console.log("sync-teamsnap-calendar: Function file loaded.");
