@@ -276,51 +276,54 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <div className="space-y-4">
-              <div className="flex items-center justify-between text-gray-600 dark:text-gray-300">
-                <div className="flex items-center">
-                  <Calendar className="h-5 w-5 mr-3" />
-                  <span>
-                    {formatDate(event.startTime)}
-                  </span>
+              <div className="flex items-start justify-between">
+                <div className="flex-1 space-y-4">
+                  <div className="flex items-center text-gray-600 dark:text-gray-300">
+                    <Calendar className="h-5 w-5 mr-3" />
+                    <span>
+                      {formatDate(event.startTime)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center text-gray-600 dark:text-gray-300">
+                    <Clock className="h-5 w-5 mr-3" />
+                    <span>
+                      {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center text-gray-600 dark:text-gray-300">
+                    <User className="h-5 w-5 mr-3" />
+                    <span className="mr-3">{event.child.name}</span>
+                    {event.sportIcon && (
+                      <FontAwesomeIcon
+                        icon={event.sportIcon}
+                        className="h-5 w-5 mr-2"
+                        style={{ color: event.color }}
+                      />
+                    )}
+                    <span
+                      className="text-sm font-medium"
+                      style={{ color: event.color }}
+                    >
+                      {event.sport}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
+
+                <div className="flex-shrink-0 ml-4">
                   {event.child.photo_url ? (
                     <img
                       src={event.child.photo_url}
                       alt={event.child.name}
-                      className="h-8 w-8 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                      className="h-24 w-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
                     />
                   ) : (
-                    <div className="h-8 w-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-600">
-                      <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    <div className="h-24 w-24 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-600">
+                      <User className="h-12 w-12 text-gray-500 dark:text-gray-400" />
                     </div>
                   )}
-                  {event.sportIcon && (
-                    <FontAwesomeIcon
-                      icon={event.sportIcon}
-                      className="h-5 w-5 mr-2"
-                      style={{ color: event.color }}
-                    />
-                  )}
-                  <span
-                    className="text-sm font-medium"
-                    style={{ color: event.color }}
-                  >
-                    {event.sport}
-                  </span>
                 </div>
-              </div>
-
-              <div className="flex items-center text-gray-600 dark:text-gray-300">
-                <Clock className="h-5 w-5 mr-3" />
-                <span>
-                  {formatTime(event.startTime)} - {formatTime(event.endTime)}
-                </span>
-              </div>
-
-              <div className="flex items-center text-gray-600 dark:text-gray-300">
-                <User className="h-5 w-5 mr-3" />
-                <span>{event.child.name}</span>
               </div>
 
               {event.location && (
