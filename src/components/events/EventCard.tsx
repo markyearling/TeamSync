@@ -98,10 +98,10 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
               <img
                 src={event.child.photo_url}
                 alt={event.child.name}
-                className="h-20 w-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                className="h-16 w-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
               />
             ) : (
-              <div className="h-20 w-20 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-600">
+              <div className="h-16 w-16 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-600">
                 <User className="h-10 w-10 text-gray-500 dark:text-gray-400" />
               </div>
             )}
