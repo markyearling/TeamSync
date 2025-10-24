@@ -108,7 +108,18 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
               {displayLocation()}
             </div>
           </div>
-          <div className="flex-shrink-0 self-center">
+          <div className="flex-shrink-0 self-center flex flex-col items-center space-y-2">
+            {event.child.photo_url ? (
+              <img
+                src={event.child.photo_url}
+                alt={event.child.name}
+                className="h-10 w-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+              />
+            ) : (
+              <div className="h-10 w-10 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-600">
+                <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+              </div>
+            )}
             <div
               className="h-8 w-8 rounded flex items-center justify-center"
               style={{ backgroundColor: event.platformColor + '20', color: event.platformColor }}

@@ -283,15 +283,26 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                     {formatDate(event.startTime)}
                   </span>
                 </div>
-                <div className="flex items-center">
+                <div className="flex items-center space-x-2">
+                  {event.child.photo_url ? (
+                    <img
+                      src={event.child.photo_url}
+                      alt={event.child.name}
+                      className="h-8 w-8 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-600">
+                      <User className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                    </div>
+                  )}
                   {event.sportIcon && (
-                    <FontAwesomeIcon 
-                      icon={event.sportIcon} 
+                    <FontAwesomeIcon
+                      icon={event.sportIcon}
                       className="h-5 w-5 mr-2"
                       style={{ color: event.color }}
                     />
                   )}
-                  <span 
+                  <span
                     className="text-sm font-medium"
                     style={{ color: event.color }}
                   >
