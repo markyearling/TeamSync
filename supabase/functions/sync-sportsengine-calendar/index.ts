@@ -1,6 +1,7 @@
 import ICAL from 'npm:ical.js@1.5.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { DateTime } from 'npm:luxon@3.4.4';
+import { geocodeAddress } from '../_shared/geocoding.ts';
 
 const getSportDetails = (sportName: string) => {
   const sportColors: Record<string, string> = {
@@ -339,20 +340,8 @@ Deno.serve(async (req: Request) => {
             : `Opponent: ${opponent}`;
         }
         
-        // Extract location name from location string
-        let locationName = event.location || '';
-        let locationAddress = event.location || '';
-
-        // Heuristic: if location contains a comma, assume part before is name
-        if (locationName.includes(',')) {
-          const parts = locationName.split(',');
-          locationName = parts[0].trim();
-          locationAddress = event.location; // Keep full original location as address
-        } else {
-          // If no comma, name is the same as the full location
-          locationName = event.location || '';
-          locationAddress = event.location || '';
-        }
+        // Extract location address
+        const locationAddress = event.location || '';
         
         // Improved timezone handling
         console.log(`Processing event: ${title}`);
@@ -442,7 +431,6 @@ Deno.serve(async (req: Request) => {
           start_time: startTimeUTC,
           end_time: endTimeUTC,
           location: locationAddress,
-          location_name: locationName,
           sport: sport,
           color: sportColor, // Use custom color or default
           platform: 'SportsEngine',
@@ -455,9 +443,29 @@ Deno.serve(async (req: Request) => {
 
       console.log('Transformed events:', events.length);
 
+      const googleMapsApiKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+
+      // Enrich events with location names using geocoding
+      const enrichedEvents = await Promise.all(events.map(async (event) => {
+        if (event.location && googleMapsApiKey) {
+          try {
+            const geocodeResult = await geocodeAddress(event.location, googleMapsApiKey, supabaseClient);
+            if (geocodeResult.locationName) {
+              console.log(`[SportsEngine] Geocoded: ${event.location} -> ${geocodeResult.locationName}`);
+              return { ...event, location_name: geocodeResult.locationName };
+            }
+          } catch (error) {
+            console.warn(`[SportsEngine] Geocoding failed for: ${event.location}`, error);
+          }
+        }
+        return event;
+      }));
+
+      console.log('Enriched events with location names:', enrichedEvents.length);
+
       // Deduplicate events based on the unique constraint fields
       const uniqueEvents = new Map();
-      events.forEach(event => {
+      enrichedEvents.forEach(event => {
         const key = `${event.platform}-${event.platform_team_id}-${event.external_id}`;
         if (!uniqueEvents.has(key)) {
           uniqueEvents.set(key, event);
@@ -465,7 +473,7 @@ Deno.serve(async (req: Request) => {
       });
 
       const deduplicatedEvents = Array.from(uniqueEvents.values());
-      console.log('Deduplicated events:', deduplicatedEvents.length, 'from original:', events.length);
+      console.log('Deduplicated events:', deduplicatedEvents.length, 'from original:', enrichedEvents.length);
 
       // Get external IDs of events from API
       const apiEventIds = deduplicatedEvents.map(e => e.external_id);
