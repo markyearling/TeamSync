@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { Autocomplete } from '@react-google-maps/api';
 import { useCapacitor } from '../../hooks/useCapacitor';
 import { availableSports, getSportDetails } from '../../utils/sports';
+import { getLocationNameFromPlace, geocodeAddress } from '../../utils/geocoding';
 import ModalPortal from '../ModalPortal';
 
 interface AddEventModalProps {
@@ -33,6 +34,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     time: '',
     duration: '60', // Default duration in minutes
     location: '',
+    locationName: '',
     visibility: 'public' as 'public' | 'private', // Default to public
     sport: sports[0]?.name || 'Other'
   });
@@ -72,9 +74,11 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   const onPlaceSelected = () => {
     const place = autocompleteRef.current?.getPlace();
     if (place?.formatted_address) {
+      const locationName = getLocationNameFromPlace(place);
       setFormData(prev => ({
         ...prev,
-        location: place.formatted_address
+        location: place.formatted_address,
+        locationName: locationName || ''
       }));
     }
   };
@@ -87,6 +91,21 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
       const endDateTime = new Date(startDateTime.getTime() + parseInt(formData.duration) * 60000);
       const sportDetails = getSportDetails(formData.sport);
 
+      let locationName = formData.locationName;
+
+      if (formData.location && !locationName && mapsLoaded) {
+        console.log('[AddEvent] No location name, attempting geocode for:', formData.location);
+        try {
+          const geocodeResult = await geocodeAddress(formData.location);
+          if (geocodeResult.locationName) {
+            locationName = geocodeResult.locationName;
+            console.log('[AddEvent] Geocoded location name:', locationName);
+          }
+        } catch (geocodeError) {
+          console.warn('[AddEvent] Geocoding failed, continuing without location name:', geocodeError);
+        }
+      }
+
       const { error } = await supabase
         .from('events')
         .insert({
@@ -96,6 +115,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
           location: formData.location,
+          location_name: locationName || null,
           sport: formData.sport,
           color: sportDetails.color,
           visibility: formData.visibility

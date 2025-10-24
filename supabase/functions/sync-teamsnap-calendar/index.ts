@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { geocodeAddress } from '../_shared/geocoding.ts';
 
 // This function is executed at the very top level.
 console.log("sync-teamsnap-calendar: Function file loaded.");
@@ -195,10 +196,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
       events = teamEvents.data;
     }
 
-    console.log(`Found ${events.length} events from TeamSnap API`); // Added logging
+    console.log(`Found ${events.length} events from TeamSnap API`);
+
+    const googleMapsApiKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
 
     // Transform TeamSnap events for database storage
-    const eventsToUpsert = events.filter(event => event.start_date && event.id).map(event => {
+    const eventsToUpsert = await Promise.all(events.filter(event => event.start_date && event.id).map(async event => {
       // Format the title based on event type and is_game flag
       let title = 'TeamSnap Event';
 
@@ -221,22 +224,38 @@ Deno.serve(async (req: Request): Promise<Response> => {
         description = event.notes;
       }
 
+      const locationAddress = event.location_name || '';
+      let locationName: string | null = null;
+
+      if (locationAddress && googleMapsApiKey) {
+        try {
+          const geocodeResult = await geocodeAddress(locationAddress, googleMapsApiKey, supabaseClient);
+          locationName = geocodeResult.locationName;
+          if (locationName) {
+            console.log(`[TeamSnap] Geocoded location: ${locationAddress} -> ${locationName}`);
+          }
+        } catch (error) {
+          console.warn(`[TeamSnap] Geocoding failed for: ${locationAddress}`, error);
+        }
+      }
+
       return {
-        external_id: String(event.id), // TeamSnap event ID
+        external_id: String(event.id),
         title: title,
         description: description,
         start_time: event.start_date,
         end_time: event.end_date || event.start_date,
-        location: event.location_name || '',
+        location: locationAddress,
+        location_name: locationName,
         sport: platformTeam.sport || 'Unknown',
-        color: platformTeam.sport_color || '#F97316', // TeamSnap orange
+        color: platformTeam.sport_color || '#F97316',
         platform: 'TeamSnap',
         platform_color: '#F97316',
         platform_team_id: teamId,
         profile_id: profileId,
         visibility: 'public'
       };
-    });
+    }));
 
     console.log(`Transformed ${eventsToUpsert.length} valid events for database upsert`);
 

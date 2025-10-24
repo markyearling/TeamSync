@@ -7,6 +7,7 @@ import { Event } from '../../types';
 import { useCapacitor } from '../../hooks/useCapacitor';
 import ModalPortal from '../ModalPortal';
 import { availableSports, getSportDetails } from '../../utils/sports';
+import { getLocationNameFromPlace, geocodeAddress } from '../../utils/geocoding';
 
 interface EditEventModalProps {
   event: Event;
@@ -32,6 +33,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     time: event.startTime.toTimeString().slice(0, 5),
     duration: Math.round((event.endTime.getTime() - event.startTime.getTime()) / 60000).toString(),
     location: event.location || '',
+    locationName: event.location_name || '',
     visibility: (event.visibility || 'public') as 'public' | 'private',
     sport: event.sport || 'Other'
   });
@@ -73,9 +75,11 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   const onPlaceSelected = () => {
     const place = autocompleteRef.current?.getPlace();
     if (place?.formatted_address) {
+      const locationName = getLocationNameFromPlace(place);
       setFormData(prev => ({
         ...prev,
-        location: place.formatted_address
+        location: place.formatted_address,
+        locationName: locationName || ''
       }));
     }
   };
@@ -90,6 +94,21 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       const endDateTime = new Date(startDateTime.getTime() + parseInt(formData.duration) * 60000);
       const sportDetails = getSportDetails(formData.sport);
 
+      let locationName = formData.locationName;
+
+      if (formData.location !== event.location && formData.location && !locationName && mapsLoaded) {
+        console.log('[EditEvent] Location changed, no location name, attempting geocode for:', formData.location);
+        try {
+          const geocodeResult = await geocodeAddress(formData.location);
+          if (geocodeResult.locationName) {
+            locationName = geocodeResult.locationName;
+            console.log('[EditEvent] Geocoded location name:', locationName);
+          }
+        } catch (geocodeError) {
+          console.warn('[EditEvent] Geocoding failed, continuing without location name:', geocodeError);
+        }
+      }
+
       const { error: updateError } = await supabase
         .from('events')
         .update({
@@ -98,6 +117,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
           start_time: startDateTime.toISOString(),
           end_time: endDateTime.toISOString(),
           location: formData.location,
+          location_name: locationName || null,
           sport: formData.sport,
           color: sportDetails.color,
           visibility: formData.visibility

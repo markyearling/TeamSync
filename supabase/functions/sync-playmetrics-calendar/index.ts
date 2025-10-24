@@ -1,6 +1,7 @@
 import ICAL from 'npm:ical.js@1.5.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { DateTime } from 'npm:luxon@3.4.4';
+import { geocodeAddress } from '../_shared/geocoding.ts';
 
 const getSportDetails = (sportName: string) => {
   const sportColors: Record<string, string> = {
@@ -423,9 +424,26 @@ Deno.serve(async (req: Request) => {
 
       console.log('Transformed events:', events.length);
 
+      const googleMapsApiKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+
+      const enrichedEvents = await Promise.all(events.map(async (event) => {
+        if (event.location && googleMapsApiKey) {
+          try {
+            const geocodeResult = await geocodeAddress(event.location, googleMapsApiKey, supabaseClient);
+            if (geocodeResult.locationName) {
+              console.log(`[Playmetrics] Geocoded: ${event.location} -> ${geocodeResult.locationName}`);
+              return { ...event, location_name: geocodeResult.locationName };
+            }
+          } catch (error) {
+            console.warn(`[Playmetrics] Geocoding failed for: ${event.location}`, error);
+          }
+        }
+        return event;
+      }));
+
       // Deduplicate events based on the unique constraint fields
       const uniqueEvents = new Map();
-      events.forEach(event => {
+      enrichedEvents.forEach(event => {
         const key = `${event.platform}-${event.platform_team_id}-${event.external_id}`;
         if (!uniqueEvents.has(key)) {
           uniqueEvents.set(key, event);
