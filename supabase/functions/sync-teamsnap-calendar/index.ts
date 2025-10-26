@@ -200,6 +200,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     const googleMapsApiKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
 
+    // Fetch existing events with location data for comparison
+    const { data: existingEventsData } = await supabaseClient
+      .from('events')
+      .select('id, external_id, location, location_name')
+      .eq('platform_team_id', teamId)
+      .eq('platform', 'TeamSnap')
+      .not('external_id', 'is', null);
+
+    // Create map of external_id -> existing event data
+    const existingEventsDataMap = new Map(
+      existingEventsData?.map(e => [e.external_id, e]) || []
+    );
+
     // Transform TeamSnap events for database storage
     const eventsToUpsert = await Promise.all(events.filter(event => event.start_date && event.id).map(async event => {
       // Format the title based on event type and is_game flag
@@ -227,7 +240,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const locationAddress = event.location_name || '';
       let locationName: string | null = null;
 
-      if (locationAddress && googleMapsApiKey) {
+      // Check if this event already exists in the database
+      const existingEvent = existingEventsDataMap.get(String(event.id));
+      const locationChanged = !existingEvent || existingEvent.location !== locationAddress;
+      const needsGeocode = locationAddress && (!existingEvent?.location_name || locationChanged);
+
+      if (needsGeocode && googleMapsApiKey) {
         try {
           const geocodeResult = await geocodeAddress(locationAddress, googleMapsApiKey, supabaseClient);
           locationName = geocodeResult.locationName;
@@ -237,6 +255,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
         } catch (error) {
           console.warn(`[TeamSnap] Geocoding failed for: ${locationAddress}`, error);
         }
+      } else if (existingEvent?.location_name && !locationChanged) {
+        // Preserve existing location_name if location hasn't changed
+        locationName = existingEvent.location_name;
+        console.log(`[TeamSnap] Preserving existing location_name: ${locationName}`);
       }
 
       return {
@@ -311,17 +333,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
     if (eventsToUpsert.length > 0) {
       console.log('Upserting TeamSnap events...');
 
-      // First, fetch existing events to get their IDs
-      const { data: existingEventsForUpsert } = await supabaseClient
-        .from('events')
-        .select('id, external_id, platform, platform_team_id')
-        .eq('platform_team_id', teamId)
-        .eq('platform', 'TeamSnap')
-        .in('external_id', eventsToUpsert.map(e => e.external_id));
-
-      // Create a map of external_id -> event_id for quick lookup
+      // Create a map of external_id -> event_id for quick lookup (reuse existing data)
       const existingEventsMap = new Map(
-        existingEventsForUpsert?.map(e => [e.external_id, e.id]) || []
+        existingEventsData?.map(e => [e.external_id, e.id]) || []
       );
 
       // Add existing event IDs to the upsert payload to preserve them

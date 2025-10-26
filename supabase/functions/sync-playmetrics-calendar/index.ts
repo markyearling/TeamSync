@@ -426,8 +426,25 @@ Deno.serve(async (req: Request) => {
 
       const googleMapsApiKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
 
+      // Fetch existing events with location data for comparison
+      const { data: existingEventsData } = await supabaseClient
+        .from('events')
+        .select('id, external_id, location, location_name')
+        .eq('platform_team_id', teamId)
+        .eq('platform', 'Playmetrics')
+        .not('external_id', 'is', null);
+
+      // Create map of external_id -> existing event data
+      const existingEventsDataMap = new Map(
+        existingEventsData?.map(e => [e.external_id, e]) || []
+      );
+
       const enrichedEvents = await Promise.all(events.map(async (event) => {
-        if (event.location && googleMapsApiKey) {
+        const existingEvent = existingEventsDataMap.get(event.external_id);
+        const locationChanged = !existingEvent || existingEvent.location !== event.location;
+        const needsGeocode = event.location && (!existingEvent?.location_name || locationChanged);
+
+        if (needsGeocode && googleMapsApiKey) {
           try {
             const geocodeResult = await geocodeAddress(event.location, googleMapsApiKey, supabaseClient);
             if (geocodeResult.locationName) {
@@ -437,6 +454,10 @@ Deno.serve(async (req: Request) => {
           } catch (error) {
             console.warn(`[Playmetrics] Geocoding failed for: ${event.location}`, error);
           }
+        } else if (existingEvent?.location_name && !locationChanged) {
+          // Preserve existing location_name if location hasn't changed
+          console.log(`[Playmetrics] Preserving existing location_name: ${existingEvent.location_name}`);
+          return { ...event, location_name: existingEvent.location_name };
         }
         return event;
       }));
@@ -455,14 +476,8 @@ Deno.serve(async (req: Request) => {
 
       const apiEventIds = deduplicatedEvents.map(e => e.external_id);
       if (apiEventIds.length > 0) {
-        const { data: existingEvents } = await supabaseClient
-          .from('events')
-          .select('id, external_id')
-          .eq('platform_team_id', teamId)
-          .eq('platform', 'Playmetrics')
-          .not('external_id', 'is', null);
-        if (existingEvents && existingEvents.length > 0) {
-          const eventsToDelete = existingEvents.filter(e => !apiEventIds.includes(e.external_id)).map(e => e.id);
+        if (existingEventsData && existingEventsData.length > 0) {
+          const eventsToDelete = existingEventsData.filter(e => !apiEventIds.includes(e.external_id)).map(e => e.id);
           if (eventsToDelete.length > 0) {
             await supabaseClient.from('events').delete().in('id', eventsToDelete);
           }
@@ -470,13 +485,8 @@ Deno.serve(async (req: Request) => {
       }
 
       if (deduplicatedEvents.length > 0) {
-        const { data: existingEventsForUpsert } = await supabaseClient
-          .from('events')
-          .select('id, external_id')
-          .eq('platform_team_id', teamId)
-          .eq('platform', 'Playmetrics')
-          .in('external_id', deduplicatedEvents.map(e => e.external_id));
-        const existingEventsMap = new Map(existingEventsForUpsert?.map(e => [e.external_id, e.id]) || []);
+        // Create a map of external_id -> event_id for quick lookup (reuse existing data)
+        const existingEventsMap = new Map(existingEventsData?.map(e => [e.external_id, e.id]) || []);
         const eventsWithIds = deduplicatedEvents.map(event => ({...event, ...(existingEventsMap.has(event.external_id) ? { id: existingEventsMap.get(event.external_id) } : {})}));
         for (const event of eventsWithIds) {
           const { error: upsertError } = await supabaseClient.from('events').upsert(event, {onConflict: 'platform,platform_team_id,external_id', ignoreDuplicates: false});

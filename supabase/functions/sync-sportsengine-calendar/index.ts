@@ -445,9 +445,26 @@ Deno.serve(async (req: Request) => {
 
       const googleMapsApiKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
 
+      // Fetch existing events with location data for comparison
+      const { data: existingEventsData } = await supabaseClient
+        .from('events')
+        .select('id, external_id, location, location_name')
+        .eq('platform_team_id', teamId)
+        .eq('platform', 'SportsEngine')
+        .not('external_id', 'is', null);
+
+      // Create map of external_id -> existing event data
+      const existingEventsDataMap = new Map(
+        existingEventsData?.map(e => [e.external_id, e]) || []
+      );
+
       // Enrich events with location names using geocoding
       const enrichedEvents = await Promise.all(events.map(async (event) => {
-        if (event.location && googleMapsApiKey) {
+        const existingEvent = existingEventsDataMap.get(event.external_id);
+        const locationChanged = !existingEvent || existingEvent.location !== event.location;
+        const needsGeocode = event.location && (!existingEvent?.location_name || locationChanged);
+
+        if (needsGeocode && googleMapsApiKey) {
           try {
             const geocodeResult = await geocodeAddress(event.location, googleMapsApiKey, supabaseClient);
             if (geocodeResult.locationName) {
@@ -457,6 +474,10 @@ Deno.serve(async (req: Request) => {
           } catch (error) {
             console.warn(`[SportsEngine] Geocoding failed for: ${event.location}`, error);
           }
+        } else if (existingEvent?.location_name && !locationChanged) {
+          // Preserve existing location_name if location hasn't changed
+          console.log(`[SportsEngine] Preserving existing location_name: ${existingEvent.location_name}`);
+          return { ...event, location_name: existingEvent.location_name };
         }
         return event;
       }));
@@ -483,17 +504,9 @@ Deno.serve(async (req: Request) => {
       if (apiEventIds.length > 0) {
         console.log('Deleting stale SportsEngine events not in API response...');
 
-        // Get all synced events for this team to find which ones to delete
-        const { data: existingEvents } = await supabaseClient
-          .from('events')
-          .select('id, external_id')
-          .eq('platform_team_id', teamId)
-          .eq('platform', 'SportsEngine')
-          .not('external_id', 'is', null);
-
-        if (existingEvents && existingEvents.length > 0) {
+        if (existingEventsData && existingEventsData.length > 0) {
           // Find events that exist in DB but not in API response
-          const eventsToDelete = existingEvents
+          const eventsToDelete = existingEventsData
             .filter(e => !apiEventIds.includes(e.external_id))
             .map(e => e.id);
 
@@ -517,17 +530,9 @@ Deno.serve(async (req: Request) => {
       if (deduplicatedEvents.length > 0) {
         console.log('Upserting SportsEngine events...');
 
-        // First, fetch existing events to get their IDs
-        const { data: existingEventsForUpsert } = await supabaseClient
-          .from('events')
-          .select('id, external_id, platform, platform_team_id')
-          .eq('platform_team_id', teamId)
-          .eq('platform', 'SportsEngine')
-          .in('external_id', deduplicatedEvents.map(e => e.external_id));
-
-        // Create a map of external_id -> event_id for quick lookup
+        // Create a map of external_id -> event_id for quick lookup (reuse existing data)
         const existingEventsMap = new Map(
-          existingEventsForUpsert?.map(e => [e.external_id, e.id]) || []
+          existingEventsData?.map(e => [e.external_id, e.id]) || []
         );
 
         // Add existing event IDs to the upsert payload to preserve them
