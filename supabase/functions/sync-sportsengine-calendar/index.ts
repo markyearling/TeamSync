@@ -441,11 +441,19 @@ Deno.serve(async (req: Request) => {
         };
       });
 
-      console.log('Transformed events:', events.length);
+      console.log('[SportsEngine Sync] Transformed events:', events.length);
 
       const googleMapsApiKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+      console.log(`[SportsEngine Sync] Google Maps API key present: ${!!googleMapsApiKey}`);
+      if (googleMapsApiKey) {
+        const apiKeyMasked = googleMapsApiKey.length >= 8
+          ? `${googleMapsApiKey.substring(0, 4)}...${googleMapsApiKey.substring(googleMapsApiKey.length - 4)}`
+          : '[INVALID_KEY]';
+        console.log(`[SportsEngine Sync] API key masked: ${apiKeyMasked}`);
+      }
 
       // Fetch existing events with location data for comparison
+      console.log('[SportsEngine Sync] Fetching existing events from database...');
       const { data: existingEventsData } = await supabaseClient
         .from('events')
         .select('id, external_id, location, location_name')
@@ -453,38 +461,79 @@ Deno.serve(async (req: Request) => {
         .eq('platform', 'SportsEngine')
         .not('external_id', 'is', null);
 
+      console.log(`[SportsEngine Sync] Found ${existingEventsData?.length || 0} existing events in database`);
+
       // Create map of external_id -> existing event data
       const existingEventsDataMap = new Map(
         existingEventsData?.map(e => [e.external_id, e]) || []
       );
 
-      const enrichedEvents = await Promise.all(events.map(async (event) => {
+      const geocodingStats = {
+        needsGeocode: 0,
+        preserved: 0,
+        geocoded: 0,
+        failed: 0,
+        noApiKey: 0
+      };
+
+      console.log('[SportsEngine Sync] Starting event enrichment with geocoding...');
+
+      const enrichedEvents = await Promise.all(events.map(async (event, index) => {
+        console.log(`[SportsEngine Sync] -------- Event ${index + 1}/${events.length} (ID: ${event.external_id}) --------`);
+        console.log(`[SportsEngine Sync] Event location: "${event.location || 'N/A'}"`);
         const existingEvent = existingEventsDataMap.get(event.external_id);
         const locationChanged = !existingEvent || existingEvent.location !== event.location;
         const hasValidLocationName = existingEvent?.location_name && existingEvent.location_name.trim() !== '';
         const needsGeocode = event.location && event.location.trim() !== '' && (!hasValidLocationName || locationChanged);
 
+        console.log(`[SportsEngine Sync] Event ${event.external_id} geocoding decision:`);
+        console.log(`[SportsEngine Sync]   - existingEvent: ${!!existingEvent}`);
+        console.log(`[SportsEngine Sync]   - existing location: "${existingEvent?.location || 'N/A'}"`);
+        console.log(`[SportsEngine Sync]   - existing location_name: "${existingEvent?.location_name || 'N/A'}"`);
+        console.log(`[SportsEngine Sync]   - locationChanged: ${locationChanged}`);
+        console.log(`[SportsEngine Sync]   - hasValidLocationName: ${hasValidLocationName}`);
+        console.log(`[SportsEngine Sync]   - needsGeocode: ${needsGeocode}`);
+
         if (needsGeocode && googleMapsApiKey) {
+          geocodingStats.needsGeocode++;
           try {
-            console.log(`[SportsEngine] Geocoding address: ${event.location}`);
+            console.log(`[SportsEngine Sync] Event ${event.external_id}: Calling geocoding API for: "${event.location}"`);
             const geocodeResult = await geocodeAddress(event.location, googleMapsApiKey, supabaseClient);
             if (geocodeResult.locationName) {
-              console.log(`[SportsEngine] Geocoded: ${event.location} -> ${geocodeResult.locationName}`);
+              console.log(`[SportsEngine Sync] Event ${event.external_id}: ✓ Geocoded successfully: "${event.location}" -> "${geocodeResult.locationName}"`);
+              geocodingStats.geocoded++;
               return { ...event, location_name: geocodeResult.locationName };
             } else {
-              console.log(`[SportsEngine] No location name found for: ${event.location}`);
+              console.warn(`[SportsEngine Sync] Event ${event.external_id}: ⚠ No location name found for: "${event.location}"`);
+              geocodingStats.failed++;
             }
           } catch (error) {
-            console.warn(`[SportsEngine] Geocoding failed for: ${event.location}`, error);
+            console.error(`[SportsEngine Sync] Event ${event.external_id}: ✗ Geocoding exception for: "${event.location}"`, error);
+            geocodingStats.failed++;
           }
+        } else if (needsGeocode && !googleMapsApiKey) {
+          console.warn(`[SportsEngine Sync] Event ${event.external_id}: ⚠ Needs geocoding but API key is missing`);
+          geocodingStats.noApiKey++;
         } else if (hasValidLocationName && !locationChanged) {
-          console.log(`[SportsEngine] Preserving existing location_name: ${existingEvent.location_name}`);
+          console.log(`[SportsEngine Sync] Event ${event.external_id}: Preserving existing location_name: "${existingEvent.location_name}"`);
+          geocodingStats.preserved++;
           return { ...event, location_name: existingEvent.location_name };
+        } else if (!event.location || event.location.trim() === '') {
+          console.log(`[SportsEngine Sync] Event ${event.external_id}: No location address, skipping geocoding`);
         }
         return event;
       }));
 
-      console.log('Enriched events with location names:', enrichedEvents.length);
+      console.log(`[SportsEngine Sync] ========================================`);
+      console.log(`[SportsEngine Sync] GEOCODING SUMMARY:`);
+      console.log(`[SportsEngine Sync]   - Needed geocoding: ${geocodingStats.needsGeocode}`);
+      console.log(`[SportsEngine Sync]   - Successfully geocoded: ${geocodingStats.geocoded}`);
+      console.log(`[SportsEngine Sync]   - Preserved existing: ${geocodingStats.preserved}`);
+      console.log(`[SportsEngine Sync]   - Failed to geocode: ${geocodingStats.failed}`);
+      console.log(`[SportsEngine Sync]   - Missing API key: ${geocodingStats.noApiKey}`);
+      console.log(`[SportsEngine Sync] ========================================`);
+
+      console.log('[SportsEngine Sync] Enriched events with location names:', enrichedEvents.length);
 
       // Deduplicate events based on the unique constraint fields
       const uniqueEvents = new Map();

@@ -196,11 +196,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
       events = teamEvents.data;
     }
 
-    console.log(`Found ${events.length} events from TeamSnap API`);
+    console.log(`[TeamSnap Sync] Found ${events.length} events from TeamSnap API`);
 
     const googleMapsApiKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+    console.log(`[TeamSnap Sync] Google Maps API key present: ${!!googleMapsApiKey}`);
+    if (googleMapsApiKey) {
+      const apiKeyMasked = googleMapsApiKey.length >= 8
+        ? `${googleMapsApiKey.substring(0, 4)}...${googleMapsApiKey.substring(googleMapsApiKey.length - 4)}`
+        : '[INVALID_KEY]';
+      console.log(`[TeamSnap Sync] API key masked: ${apiKeyMasked}`);
+    }
 
     // Fetch existing events with location data for comparison
+    console.log(`[TeamSnap Sync] Fetching existing events from database...`);
     const { data: existingEventsData } = await supabaseClient
       .from('events')
       .select('id, external_id, location, location_name')
@@ -208,13 +216,27 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .eq('platform', 'TeamSnap')
       .not('external_id', 'is', null);
 
+    console.log(`[TeamSnap Sync] Found ${existingEventsData?.length || 0} existing events in database`);
+
     // Create map of external_id -> existing event data
     const existingEventsDataMap = new Map(
       existingEventsData?.map(e => [e.external_id, e]) || []
     );
 
+    // Geocoding tracking counters
+    const geocodingStats = {
+      needsGeocode: 0,
+      preserved: 0,
+      geocoded: 0,
+      failed: 0,
+      noApiKey: 0
+    };
+
+    console.log(`[TeamSnap Sync] Starting event transformation with geocoding...`);
+
     // Transform TeamSnap events for database storage
-    const eventsToUpsert = await Promise.all(events.filter(event => event.start_date && event.id).map(async event => {
+    const eventsToUpsert = await Promise.all(events.filter(event => event.start_date && event.id).map(async (event, index) => {
+      console.log(`[TeamSnap Sync] -------- Event ${index + 1}/${events.length} (ID: ${event.id}) --------`);
       // Format the title based on event type and is_game flag
       let title = 'TeamSnap Event';
 
@@ -240,27 +262,47 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const locationAddress = event.location_name || '';
       let locationName: string | null = null;
 
+      console.log(`[TeamSnap Sync] Event ${event.id}: location from API: "${locationAddress}"`);
+
       const existingEvent = existingEventsDataMap.get(String(event.id));
       const locationChanged = !existingEvent || existingEvent.location !== locationAddress;
       const hasValidLocationName = existingEvent?.location_name && existingEvent.location_name.trim() !== '';
       const needsGeocode = locationAddress && locationAddress.trim() !== '' && (!hasValidLocationName || locationChanged);
 
+      console.log(`[TeamSnap Sync] Event ${event.id} geocoding decision:`);
+      console.log(`[TeamSnap Sync]   - existingEvent: ${!!existingEvent}`);
+      console.log(`[TeamSnap Sync]   - existing location: "${existingEvent?.location || 'N/A'}"`);
+      console.log(`[TeamSnap Sync]   - existing location_name: "${existingEvent?.location_name || 'N/A'}"`);
+      console.log(`[TeamSnap Sync]   - locationChanged: ${locationChanged}`);
+      console.log(`[TeamSnap Sync]   - hasValidLocationName: ${hasValidLocationName}`);
+      console.log(`[TeamSnap Sync]   - needsGeocode: ${needsGeocode}`);
+
       if (needsGeocode && googleMapsApiKey) {
+        geocodingStats.needsGeocode++;
         try {
-          console.log(`[TeamSnap] Geocoding address: ${locationAddress}`);
+          console.log(`[TeamSnap Sync] Event ${event.id}: Calling geocoding API for: "${locationAddress}"`);
           const geocodeResult = await geocodeAddress(locationAddress, googleMapsApiKey, supabaseClient);
           locationName = geocodeResult.locationName;
           if (locationName) {
-            console.log(`[TeamSnap] Geocoded location: ${locationAddress} -> ${locationName}`);
+            console.log(`[TeamSnap Sync] Event ${event.id}: ✓ Geocoded successfully: "${locationAddress}" -> "${locationName}"`);
+            geocodingStats.geocoded++;
           } else {
-            console.log(`[TeamSnap] No location name found for: ${locationAddress}`);
+            console.warn(`[TeamSnap Sync] Event ${event.id}: ⚠ No location name found for: "${locationAddress}"`);
+            geocodingStats.failed++;
           }
         } catch (error) {
-          console.warn(`[TeamSnap] Geocoding failed for: ${locationAddress}`, error);
+          console.error(`[TeamSnap Sync] Event ${event.id}: ✗ Geocoding exception for: "${locationAddress}"`, error);
+          geocodingStats.failed++;
         }
+      } else if (needsGeocode && !googleMapsApiKey) {
+        console.warn(`[TeamSnap Sync] Event ${event.id}: ⚠ Needs geocoding but API key is missing`);
+        geocodingStats.noApiKey++;
       } else if (hasValidLocationName && !locationChanged) {
         locationName = existingEvent.location_name;
-        console.log(`[TeamSnap] Preserving existing location_name: ${locationName}`);
+        console.log(`[TeamSnap Sync] Event ${event.id}: Preserving existing location_name: "${locationName}"`);
+        geocodingStats.preserved++;
+      } else if (!locationAddress || locationAddress.trim() === '') {
+        console.log(`[TeamSnap Sync] Event ${event.id}: No location address, skipping geocoding`);
       }
 
       return {
@@ -281,7 +323,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
       };
     }));
 
-    console.log(`Transformed ${eventsToUpsert.length} valid events for database upsert`);
+    console.log(`[TeamSnap Sync] ========================================`);
+    console.log(`[TeamSnap Sync] GEOCODING SUMMARY:`);
+    console.log(`[TeamSnap Sync]   - Needed geocoding: ${geocodingStats.needsGeocode}`);
+    console.log(`[TeamSnap Sync]   - Successfully geocoded: ${geocodingStats.geocoded}`);
+    console.log(`[TeamSnap Sync]   - Preserved existing: ${geocodingStats.preserved}`);
+    console.log(`[TeamSnap Sync]   - Failed to geocode: ${geocodingStats.failed}`);
+    console.log(`[TeamSnap Sync]   - Missing API key: ${geocodingStats.noApiKey}`);
+    console.log(`[TeamSnap Sync] ========================================`);
+    console.log(`[TeamSnap Sync] Transformed ${eventsToUpsert.length} valid events for database upsert`);
 
     // Get external IDs of events from API
     const apiEventIds = eventsToUpsert.map(e => e.external_id);

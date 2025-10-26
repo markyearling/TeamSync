@@ -422,11 +422,19 @@ Deno.serve(async (req: Request) => {
         };
       });
 
-      console.log('Transformed events:', events.length);
+      console.log('[Playmetrics Sync] Transformed events:', events.length);
 
       const googleMapsApiKey = Deno.env.get('VITE_GOOGLE_MAPS_API_KEY');
+      console.log(`[Playmetrics Sync] Google Maps API key present: ${!!googleMapsApiKey}`);
+      if (googleMapsApiKey) {
+        const apiKeyMasked = googleMapsApiKey.length >= 8
+          ? `${googleMapsApiKey.substring(0, 4)}...${googleMapsApiKey.substring(googleMapsApiKey.length - 4)}`
+          : '[INVALID_KEY]';
+        console.log(`[Playmetrics Sync] API key masked: ${apiKeyMasked}`);
+      }
 
       // Fetch existing events with location data for comparison
+      console.log('[Playmetrics Sync] Fetching existing events from database...');
       const { data: existingEventsData } = await supabaseClient
         .from('events')
         .select('id, external_id, location, location_name')
@@ -434,36 +442,77 @@ Deno.serve(async (req: Request) => {
         .eq('platform', 'Playmetrics')
         .not('external_id', 'is', null);
 
+      console.log(`[Playmetrics Sync] Found ${existingEventsData?.length || 0} existing events in database`);
+
       // Create map of external_id -> existing event data
       const existingEventsDataMap = new Map(
         existingEventsData?.map(e => [e.external_id, e]) || []
       );
 
-      const enrichedEvents = await Promise.all(events.map(async (event) => {
+      const geocodingStats = {
+        needsGeocode: 0,
+        preserved: 0,
+        geocoded: 0,
+        failed: 0,
+        noApiKey: 0
+      };
+
+      console.log('[Playmetrics Sync] Starting event enrichment with geocoding...');
+
+      const enrichedEvents = await Promise.all(events.map(async (event, index) => {
+        console.log(`[Playmetrics Sync] -------- Event ${index + 1}/${events.length} (ID: ${event.external_id}) --------`);
+        console.log(`[Playmetrics Sync] Event location: "${event.location || 'N/A'}"`);
         const existingEvent = existingEventsDataMap.get(event.external_id);
         const locationChanged = !existingEvent || existingEvent.location !== event.location;
         const hasValidLocationName = existingEvent?.location_name && existingEvent.location_name.trim() !== '';
         const needsGeocode = event.location && event.location.trim() !== '' && (!hasValidLocationName || locationChanged);
 
+        console.log(`[Playmetrics Sync] Event ${event.external_id} geocoding decision:`);
+        console.log(`[Playmetrics Sync]   - existingEvent: ${!!existingEvent}`);
+        console.log(`[Playmetrics Sync]   - existing location: "${existingEvent?.location || 'N/A'}"`);
+        console.log(`[Playmetrics Sync]   - existing location_name: "${existingEvent?.location_name || 'N/A'}"`);
+        console.log(`[Playmetrics Sync]   - locationChanged: ${locationChanged}`);
+        console.log(`[Playmetrics Sync]   - hasValidLocationName: ${hasValidLocationName}`);
+        console.log(`[Playmetrics Sync]   - needsGeocode: ${needsGeocode}`);
+
         if (needsGeocode && googleMapsApiKey) {
+          geocodingStats.needsGeocode++;
           try {
-            console.log(`[Playmetrics] Geocoding address: ${event.location}`);
+            console.log(`[Playmetrics Sync] Event ${event.external_id}: Calling geocoding API for: "${event.location}"`);
             const geocodeResult = await geocodeAddress(event.location, googleMapsApiKey, supabaseClient);
             if (geocodeResult.locationName) {
-              console.log(`[Playmetrics] Geocoded: ${event.location} -> ${geocodeResult.locationName}`);
+              console.log(`[Playmetrics Sync] Event ${event.external_id}: ✓ Geocoded successfully: "${event.location}" -> "${geocodeResult.locationName}"`);
+              geocodingStats.geocoded++;
               return { ...event, location_name: geocodeResult.locationName };
             } else {
-              console.log(`[Playmetrics] No location name found for: ${event.location}`);
+              console.warn(`[Playmetrics Sync] Event ${event.external_id}: ⚠ No location name found for: "${event.location}"`);
+              geocodingStats.failed++;
             }
           } catch (error) {
-            console.warn(`[Playmetrics] Geocoding failed for: ${event.location}`, error);
+            console.error(`[Playmetrics Sync] Event ${event.external_id}: ✗ Geocoding exception for: "${event.location}"`, error);
+            geocodingStats.failed++;
           }
+        } else if (needsGeocode && !googleMapsApiKey) {
+          console.warn(`[Playmetrics Sync] Event ${event.external_id}: ⚠ Needs geocoding but API key is missing`);
+          geocodingStats.noApiKey++;
         } else if (hasValidLocationName && !locationChanged) {
-          console.log(`[Playmetrics] Preserving existing location_name: ${existingEvent.location_name}`);
+          console.log(`[Playmetrics Sync] Event ${event.external_id}: Preserving existing location_name: "${existingEvent.location_name}"`);
+          geocodingStats.preserved++;
           return { ...event, location_name: existingEvent.location_name };
+        } else if (!event.location || event.location.trim() === '') {
+          console.log(`[Playmetrics Sync] Event ${event.external_id}: No location address, skipping geocoding`);
         }
         return event;
       }));
+
+      console.log(`[Playmetrics Sync] ========================================`);
+      console.log(`[Playmetrics Sync] GEOCODING SUMMARY:`);
+      console.log(`[Playmetrics Sync]   - Needed geocoding: ${geocodingStats.needsGeocode}`);
+      console.log(`[Playmetrics Sync]   - Successfully geocoded: ${geocodingStats.geocoded}`);
+      console.log(`[Playmetrics Sync]   - Preserved existing: ${geocodingStats.preserved}`);
+      console.log(`[Playmetrics Sync]   - Failed to geocode: ${geocodingStats.failed}`);
+      console.log(`[Playmetrics Sync]   - Missing API key: ${geocodingStats.noApiKey}`);
+      console.log(`[Playmetrics Sync] ========================================`);
 
       // Deduplicate events based on the unique constraint fields
       const uniqueEvents = new Map();
