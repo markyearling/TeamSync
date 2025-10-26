@@ -45,17 +45,37 @@ export const geocodeAddress = async (
       const result = data.results[0];
       let locationName: string | null = null;
 
+      const locationTypes = [
+        'establishment',
+        'point_of_interest',
+        'premise',
+        'school',
+        'stadium',
+        'park',
+        'gym',
+        'sports_complex',
+        'university',
+        'secondary_school',
+        'primary_school'
+      ];
+
       for (const component of result.address_components) {
-        if (component.types.includes('establishment') ||
-            component.types.includes('point_of_interest') ||
-            component.types.includes('premise')) {
+        const hasLocationType = locationTypes.some(type => component.types.includes(type));
+        if (hasLocationType) {
           locationName = component.long_name;
+          console.log(`[Geocoding] Found location name from types ${component.types.join(', ')}: ${locationName}`);
           break;
         }
       }
 
       if (!locationName && result.name && result.name !== result.formatted_address) {
         locationName = result.name;
+        console.log(`[Geocoding] Using result.name as location name: ${locationName}`);
+      }
+
+      if (!locationName) {
+        console.log(`[Geocoding] No location name found in address_components or result.name`);
+        console.log(`[Geocoding] Address components:`, JSON.stringify(result.address_components.map((c: any) => ({ name: c.long_name, types: c.types })), null, 2));
       }
 
       const geocodeResult = {

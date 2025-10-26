@@ -77,15 +77,20 @@ Deno.serve(async (req: Request) => {
     const url = new URL(req.url);
     const batchSize = parseInt(url.searchParams.get('batch_size') || '50');
     const dryRun = url.searchParams.get('dry_run') === 'true';
+    const forceReGeocode = url.searchParams.get('force') === 'true';
 
-    console.log(`[Enrich Locations] Starting enrichment (batch_size: ${batchSize}, dry_run: ${dryRun})`);
+    console.log(`[Enrich Locations] Starting enrichment (batch_size: ${batchSize}, dry_run: ${dryRun}, force: ${forceReGeocode})`);
 
-    const { data: events, error: fetchError } = await supabaseClient
+    let query = supabaseClient
       .from('events')
       .select('id, location, location_name')
-      .not('location', 'is', null)
-      .or('location_name.is.null,location_name.eq.')
-      .limit(batchSize);
+      .not('location', 'is', null);
+
+    if (!forceReGeocode) {
+      query = query.or('location_name.is.null,location_name.eq.');
+    }
+
+    const { data: events, error: fetchError } = await query.limit(batchSize);
 
     if (fetchError) {
       throw fetchError;
@@ -123,6 +128,13 @@ Deno.serve(async (req: Request) => {
           continue;
         }
 
+        const hasValidLocationName = event.location_name && event.location_name.trim() !== '';
+        if (!forceReGeocode && hasValidLocationName) {
+          console.log(`[Enrich Locations] Skipping event ${event.id}, already has location_name: ${event.location_name}`);
+          results.skipped++;
+          continue;
+        }
+
         const normalizedAddress = event.location.trim().toLowerCase();
 
         const { data: cachedResult } = await supabaseClient
@@ -133,7 +145,7 @@ Deno.serve(async (req: Request) => {
 
         let locationName: string | null = null;
 
-        if (cachedResult) {
+        if (cachedResult && !forceReGeocode) {
           console.log(`[Enrich Locations] Cache hit for: ${event.location}`);
           locationName = cachedResult.location_name;
           results.cached++;
@@ -150,14 +162,15 @@ Deno.serve(async (req: Request) => {
                 location_name: geocodeResult.locationName,
                 formatted_address: geocodeResult.formattedAddress
               }, {
-                onConflict: 'address'
+                onConflict: 'address',
+                ignoreDuplicates: false
               });
           }
 
           await new Promise(resolve => setTimeout(resolve, 100));
         }
 
-        if (locationName) {
+        if (locationName && locationName.trim() !== '') {
           if (!dryRun) {
             const { error: updateError } = await supabaseClient
               .from('events')
@@ -168,6 +181,7 @@ Deno.serve(async (req: Request) => {
               console.error(`[Enrich Locations] Failed to update event ${event.id}:`, updateError);
               results.failed++;
             } else {
+              console.log(`[Enrich Locations] Enriched event ${event.id}: ${event.location} -> ${locationName}`);
               results.enriched++;
             }
           } else {

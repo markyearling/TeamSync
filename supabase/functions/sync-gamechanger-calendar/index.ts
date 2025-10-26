@@ -483,20 +483,23 @@ Deno.serve(async (req: Request) => {
       const enrichedEvents = await Promise.all(events.map(async (event) => {
         const existingEvent = existingEventsDataMap.get(event.external_id);
         const locationChanged = !existingEvent || existingEvent.location !== event.location;
-        const needsGeocode = event.location && (!existingEvent?.location_name || locationChanged);
+        const hasValidLocationName = existingEvent?.location_name && existingEvent.location_name.trim() !== '';
+        const needsGeocode = event.location && event.location.trim() !== '' && (!hasValidLocationName || locationChanged);
 
         if (needsGeocode && googleMapsApiKey) {
           try {
+            console.log(`[GameChanger] Geocoding address: ${event.location}`);
             const geocodeResult = await geocodeAddress(event.location, googleMapsApiKey, supabaseClient);
             if (geocodeResult.locationName) {
               console.log(`[GameChanger] Geocoded: ${event.location} -> ${geocodeResult.locationName}`);
               return { ...event, location_name: geocodeResult.locationName };
+            } else {
+              console.log(`[GameChanger] No location name found for: ${event.location}`);
             }
           } catch (error) {
             console.warn(`[GameChanger] Geocoding failed for: ${event.location}`, error);
           }
-        } else if (existingEvent?.location_name && !locationChanged) {
-          // Preserve existing location_name if location hasn't changed
+        } else if (hasValidLocationName && !locationChanged) {
           console.log(`[GameChanger] Preserving existing location_name: ${existingEvent.location_name}`);
           return { ...event, location_name: existingEvent.location_name };
         }

@@ -240,23 +240,25 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const locationAddress = event.location_name || '';
       let locationName: string | null = null;
 
-      // Check if this event already exists in the database
       const existingEvent = existingEventsDataMap.get(String(event.id));
       const locationChanged = !existingEvent || existingEvent.location !== locationAddress;
-      const needsGeocode = locationAddress && (!existingEvent?.location_name || locationChanged);
+      const hasValidLocationName = existingEvent?.location_name && existingEvent.location_name.trim() !== '';
+      const needsGeocode = locationAddress && locationAddress.trim() !== '' && (!hasValidLocationName || locationChanged);
 
       if (needsGeocode && googleMapsApiKey) {
         try {
+          console.log(`[TeamSnap] Geocoding address: ${locationAddress}`);
           const geocodeResult = await geocodeAddress(locationAddress, googleMapsApiKey, supabaseClient);
           locationName = geocodeResult.locationName;
           if (locationName) {
             console.log(`[TeamSnap] Geocoded location: ${locationAddress} -> ${locationName}`);
+          } else {
+            console.log(`[TeamSnap] No location name found for: ${locationAddress}`);
           }
         } catch (error) {
           console.warn(`[TeamSnap] Geocoding failed for: ${locationAddress}`, error);
         }
-      } else if (existingEvent?.location_name && !locationChanged) {
-        // Preserve existing location_name if location hasn't changed
+      } else if (hasValidLocationName && !locationChanged) {
         locationName = existingEvent.location_name;
         console.log(`[TeamSnap] Preserving existing location_name: ${locationName}`);
       }
