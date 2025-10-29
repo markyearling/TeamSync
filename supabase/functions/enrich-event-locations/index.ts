@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { geocodeAddress } from '../_shared/geocoding.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,52 +8,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
-interface GeocodeResult {
-  locationName: string | null;
-  formattedAddress: string | null;
-}
-
-const geocodeAddress = async (address: string, apiKey: string): Promise<GeocodeResult> => {
-  if (!address || address.trim() === '') {
-    return { locationName: null, formattedAddress: null };
-  }
-
-  try {
-    const encodedAddress = encodeURIComponent(address);
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
-
-    const response = await fetch(url);
-    const data = await response.json();
-
-    if (data.status === 'OK' && data.results && data.results.length > 0) {
-      const result = data.results[0];
-      let locationName: string | null = null;
-
-      for (const component of result.address_components) {
-        if (component.types.includes('establishment') ||
-            component.types.includes('point_of_interest') ||
-            component.types.includes('premise')) {
-          locationName = component.long_name;
-          break;
-        }
-      }
-
-      if (!locationName && result.name && result.name !== result.formatted_address) {
-        locationName = result.name;
-      }
-
-      return {
-        locationName,
-        formattedAddress: result.formatted_address
-      };
-    }
-
-    return { locationName: null, formattedAddress: null };
-  } catch (error) {
-    console.error('[Geocoding] Error:', error);
-    return { locationName: null, formattedAddress: null };
-  }
-};
 
 Deno.serve(async (req: Request) => {
   const sessionId = Math.random().toString(36).substring(7);
