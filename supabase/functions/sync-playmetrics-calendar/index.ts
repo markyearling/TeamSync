@@ -1,7 +1,7 @@
 import ICAL from 'npm:ical.js@1.5.0';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { DateTime } from 'npm:luxon@3.4.4';
-import { geocodeAddress } from './_shared/geocoding.ts';
+import { geocodeAddress } from '../_shared/geocoding.ts';
 
 const getSportDetails = (sportName: string) => {
   const sportColors: Record<string, string> = {
