@@ -316,10 +316,14 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                     <img
                       src={event.child.photo_url}
                       alt={event.child.name}
-                      className="h-24 w-24 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                      className="h-24 w-24 rounded-full object-cover border-2"
+                      style={{ borderColor: event.child.color }}
                     />
                   ) : (
-                    <div className="h-24 w-24 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-600">
+                    <div
+                      className="h-24 w-24 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-600 border-2"
+                      style={{ borderColor: event.child.color }}
+                    >
                       <User className="h-12 w-12 text-gray-500 dark:text-gray-400" />
                     </div>
                   )}
