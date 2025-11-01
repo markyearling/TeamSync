@@ -177,9 +177,20 @@ const EditChildProfile: React.FC = () => {
   const isFriendProfile = !child.isOwnProfile;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
-        <div className="flex items-center justify-between px-4 py-3">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col" style={{
+      paddingLeft: 'env(safe-area-inset-left)',
+      paddingRight: 'env(safe-area-inset-right)',
+      paddingBottom: 'env(safe-area-inset-bottom)'
+    }}>
+      <div className="sticky top-0 z-10 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm" style={{
+        paddingTop: 'env(safe-area-inset-top)',
+        marginLeft: 'calc(-1 * env(safe-area-inset-left))',
+        marginRight: 'calc(-1 * env(safe-area-inset-right))'
+      }}>
+        <div className="flex items-center justify-between px-4 py-3" style={{
+          paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+          paddingRight: 'max(1rem, env(safe-area-inset-right))'
+        }}>
           <button
             onClick={handleCancel}
             disabled={saving}

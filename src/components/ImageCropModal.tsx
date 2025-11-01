@@ -118,7 +118,12 @@ const ImageCropModal: React.FC<ImageCropModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-95 flex flex-col z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-95 flex flex-col z-50" style={{
+      paddingTop: 'env(safe-area-inset-top)',
+      paddingLeft: 'env(safe-area-inset-left)',
+      paddingRight: 'env(safe-area-inset-right)',
+      paddingBottom: 'env(safe-area-inset-bottom)'
+    }}>
       <div className="flex items-center justify-between p-4 bg-gray-900">
         <button
           onClick={onClose}
