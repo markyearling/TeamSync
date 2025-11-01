@@ -2,26 +2,30 @@ import React, { useState } from 'react';
 import { Camera, Upload, Image, AlertCircle } from 'lucide-react';
 import { useCamera } from '../../hooks/useCamera';
 import { useCapacitor } from '../../hooks/useCapacitor';
+import ImageCropModal from '../ImageCropModal';
 
 interface MobilePhotoUploadProps {
   currentPhotoUrl?: string | null;
-  onPhotoChange: (file: File | string) => void;
+  onPhotoChange: (file: File | string | Blob) => void;
 }
 
-const MobilePhotoUpload: React.FC<MobilePhotoUploadProps> = ({ 
-  currentPhotoUrl, 
-  onPhotoChange 
+const MobilePhotoUpload: React.FC<MobilePhotoUploadProps> = ({
+  currentPhotoUrl,
+  onPhotoChange
 }) => {
   const { takePhoto, selectFromGallery, isLoading, error } = useCamera();
   const { isNative } = useCapacitor();
   const [showOptions, setShowOptions] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
 
   const handleTakePhoto = async () => {
     setErrorMessage(null);
     const photoDataUrl = await takePhoto();
     if (photoDataUrl) {
-      onPhotoChange(photoDataUrl);
+      setImageToCrop(photoDataUrl);
+      setShowCropModal(true);
     } else if (error) {
       setErrorMessage(error);
     }
@@ -32,11 +36,17 @@ const MobilePhotoUpload: React.FC<MobilePhotoUploadProps> = ({
     setErrorMessage(null);
     const photoDataUrl = await selectFromGallery();
     if (photoDataUrl) {
-      onPhotoChange(photoDataUrl);
+      setImageToCrop(photoDataUrl);
+      setShowCropModal(true);
     } else if (error) {
       setErrorMessage(error);
     }
     setShowOptions(false);
+  };
+
+  const handleCropComplete = (croppedBlob: Blob) => {
+    setShowCropModal(false);
+    onPhotoChange(croppedBlob);
   };
 
   const handleWebUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,7 +133,7 @@ const MobilePhotoUpload: React.FC<MobilePhotoUploadProps> = ({
             <h3 className="text-lg font-medium text-gray-900 dark:text-white text-center">
               Choose Photo
             </h3>
-            
+
             <div className="space-y-3">
               <button
                 onClick={handleTakePhoto}
@@ -132,7 +142,7 @@ const MobilePhotoUpload: React.FC<MobilePhotoUploadProps> = ({
                 <Camera className="h-5 w-5 mr-2" />
                 Take Photo
               </button>
-              
+
               <button
                 onClick={handleSelectFromGallery}
                 className="w-full flex items-center justify-center px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
@@ -140,7 +150,7 @@ const MobilePhotoUpload: React.FC<MobilePhotoUploadProps> = ({
                 <Image className="h-5 w-5 mr-2" />
                 Choose from Gallery
               </button>
-              
+
               <button
                 onClick={() => setShowOptions(false)}
                 className="w-full flex items-center justify-center px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
@@ -150,6 +160,14 @@ const MobilePhotoUpload: React.FC<MobilePhotoUploadProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {showCropModal && imageToCrop && (
+        <ImageCropModal
+          imageSrc={imageToCrop}
+          onCropComplete={handleCropComplete}
+          onClose={() => setShowCropModal(false)}
+        />
       )}
     </div>
   );

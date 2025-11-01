@@ -13,6 +13,7 @@ import Profiles from './pages/Profiles';
 import Friends from './pages/Friends';
 import Settings from './pages/Settings';
 import ChildProfile from './pages/ChildProfile';
+import EditChildProfile from './pages/EditChildProfile';
 import NotFound from './pages/NotFound';
 import LandingPage from './pages/LandingPage';
 import Features from './pages/Features';
@@ -402,6 +403,11 @@ const AppContent: React.FC<AppContentProps> = ({ fcmToken, fcmRegistered }) => {
           <Layout>
             <ChildProfile />
           </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/profiles/:id/edit" element={
+        <ProtectedRoute>
+          <EditChildProfile />
         </ProtectedRoute>
       } />
       <Route path="/friends" element={

@@ -5,13 +5,14 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useProfiles } from '../context/ProfilesContext';
 import { supabase } from '../lib/supabase';
 import { availableSports, getSportDetails } from '../utils/sports';
+import ProfilePhotoUpload from '../components/ProfilePhotoUpload';
 
 const Profiles: React.FC = () => {
   const navigate = useNavigate();
   const { profiles, friendsProfiles, addProfile, loading, error } = useProfiles();
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedSports, setSelectedSports] = useState<string[]>([]);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | Blob | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -41,15 +42,16 @@ const Profiles: React.FC = () => {
     ...friendsProfiles.map(p => ({ ...p, isOwnProfile: false }))
   ];
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhotoFile(file);
+  const handlePhotoChange = (fileOrBlob: File | Blob | string) => {
+    if (fileOrBlob instanceof Blob) {
+      setPhotoFile(fileOrBlob);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPhotoPreview(reader.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(fileOrBlob);
+    } else if (typeof fileOrBlob === 'string') {
+      setPhotoPreview(fileOrBlob);
     }
   };
 
@@ -58,11 +60,14 @@ const Profiles: React.FC = () => {
     try {
       let photoUrl = null;
       if (photoFile) {
-        const fileExt = photoFile.name.split('.').pop();
+        const fileExt = photoFile instanceof File ? photoFile.name.split('.').pop() : 'jpg';
         const fileName = `${Math.random()}.${fileExt}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from('profile-photos')
-          .upload(fileName, photoFile);
+          .upload(fileName, photoFile, {
+            contentType: photoFile instanceof Blob ? 'image/jpeg' : undefined,
+            upsert: false
+          });
 
         if (uploadError) throw uploadError;
 
@@ -285,35 +290,10 @@ const Profiles: React.FC = () => {
               <div className="p-6 space-y-6">
                 <div className="flex items-center space-x-6">
                   <div className="flex-shrink-0">
-                    <div className="relative">
-                      <div className="h-32 w-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
-                        {photoPreview ? (
-                          <img 
-                            src={photoPreview} 
-                            alt="Preview" 
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <Upload className="h-8 w-8 text-gray-400 dark:text-gray-500" />
-                        )}
-                      </div>
-                      <label
-                        htmlFor="photo"
-                        className="absolute bottom-0 right-0 bg-white dark:bg-gray-700 rounded-full p-2 shadow-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600"
-                      >
-                        <Plus className="h-4 w-4 text-gray-600 dark:text-gray-300" />
-                        <input 
-                          type="file" 
-                          id="photo" 
-                          className="hidden" 
-                          accept="image/*"
-                          onChange={handlePhotoChange}
-                        />
-                      </label>
-                    </div>
-                    <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-                      Click to upload photo
-                    </p>
+                    <ProfilePhotoUpload
+                      currentPhotoUrl={photoPreview}
+                      onPhotoChange={handlePhotoChange}
+                    />
                   </div>
 
                   <div className="flex-1 space-y-4">
