@@ -5,11 +5,6 @@ export interface GeocodeResult {
   longitude: number | null;
 }
 
-const maskApiKey = (key: string): string => {
-  if (!key || key.length < 8) return '[INVALID_KEY]';
-  return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
-};
-
 const geocodeAddressToCoordinates = async (
   address: string,
   apiKey: string,
@@ -47,43 +42,68 @@ const geocodeAddressToCoordinates = async (
   }
 };
 
-const findNearbyPlace = async (
+const searchPlaceAtAddress = async (
+  address: string,
   latitude: number,
   longitude: number,
   apiKey: string,
   requestId: string
 ): Promise<{ locationName: string | null; latitude: number; longitude: number } | null> => {
   try {
-    const radius = 50;
-    const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${latitude},${longitude}&radius=${radius}&key=${apiKey}`;
+    const textQuery = `place at ${address}`;
+    const url = `https://places.googleapis.com/v1/places:searchText`;
 
-    console.log(`[Step2-Nearby:${requestId}] Searching within ${radius}m radius...`);
-    const response = await fetch(url);
+    const requestBody = {
+      textQuery: textQuery,
+      locationRestriction: {
+        circle: {
+          center: {
+            latitude: latitude,
+            longitude: longitude
+          },
+          radius: 50.0
+        }
+      }
+    };
+
+    console.log(`[Step2-PlaceAt:${requestId}] Searching: "${textQuery}"`);
+    console.log(`[Step2-PlaceAt:${requestId}] Location restriction: 50m radius around (${latitude}, ${longitude})`);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': 'places.displayName,places.formattedAddress,places.location,places.types'
+      },
+      body: JSON.stringify(requestBody)
+    });
+
     const data = await response.json();
 
-    console.log(`[Step2-Nearby:${requestId}] Response: ${data.status} with ${data.results?.length || 0} results`);
+    console.log(`[Step2-PlaceAt:${requestId}] Response status: ${response.status}`);
 
-    if (data.status === 'OK' && data.results && data.results.length > 0) {
-      const place = data.results[0];
-      const placeName = place.name || null;
-      const placeLocation = place.geometry?.location;
+    if (response.ok && data.places && data.places.length > 0) {
+      const place = data.places[0];
+      const placeName = place.displayName?.text || null;
+      const placeLocation = place.location;
       const types = place.types || [];
 
-      console.log(`[Step2-Nearby:${requestId}] ✓ Top result: "${placeName}"`);
-      console.log(`[Step2-Nearby:${requestId}]   Types: [${types.join(', ')}]`);
-      console.log(`[Step2-Nearby:${requestId}]   Location: (${placeLocation?.lat}, ${placeLocation?.lng})`);
+      console.log(`[Step2-PlaceAt:${requestId}] ✓ Found: "${placeName}"`);
+      console.log(`[Step2-PlaceAt:${requestId}]   Types: [${types.join(', ')}]`);
+      console.log(`[Step2-PlaceAt:${requestId}]   Location: (${placeLocation?.latitude}, ${placeLocation?.longitude})`);
 
       return {
         locationName: placeName,
-        latitude: placeLocation?.lat || latitude,
-        longitude: placeLocation?.lng || longitude
+        latitude: placeLocation?.latitude || latitude,
+        longitude: placeLocation?.longitude || longitude
       };
     }
 
-    console.log(`[Step2-Nearby:${requestId}] ✗ No places found within ${radius}m radius`);
+    console.log(`[Step2-PlaceAt:${requestId}] ✗ No places found within 50m radius`);
     return null;
   } catch (error) {
-    console.error(`[Step2-Nearby:${requestId}] Error:`, error);
+    console.error(`[Step2-PlaceAt:${requestId}] Error:`, error);
     return null;
   }
 };
@@ -161,8 +181,9 @@ export const geocodeAddress = async (
       return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
     }
 
-    console.log(`[Geocoding:${requestId}] STEP 2: Searching for nearby places within 50m...`);
-    const nearbyPlace = await findNearbyPlace(
+    console.log(`[Geocoding:${requestId}] STEP 2: Searching for "place at ${address}" within 50m...`);
+    const placeResult = await searchPlaceAtAddress(
+      address,
       geocodeResult.latitude,
       geocodeResult.longitude,
       apiKey,
@@ -171,16 +192,16 @@ export const geocodeAddress = async (
 
     let finalResult: GeocodeResult;
 
-    if (nearbyPlace && nearbyPlace.locationName) {
-      console.log(`[Geocoding:${requestId}] ✓ SUCCESS: Found location "${nearbyPlace.locationName}"`);
+    if (placeResult && placeResult.locationName) {
+      console.log(`[Geocoding:${requestId}] ✓ SUCCESS: Found location "${placeResult.locationName}"`);
       finalResult = {
-        locationName: nearbyPlace.locationName,
+        locationName: placeResult.locationName,
         formattedAddress: geocodeResult.formattedAddress,
-        latitude: nearbyPlace.latitude,
-        longitude: nearbyPlace.longitude
+        latitude: placeResult.latitude,
+        longitude: placeResult.longitude
       };
     } else {
-      console.log(`[Geocoding:${requestId}] ✗ No nearby place found, returning null location_name`);
+      console.log(`[Geocoding:${requestId}] ✗ No place found, returning null location_name`);
       finalResult = {
         locationName: null,
         formattedAddress: geocodeResult.formattedAddress,
