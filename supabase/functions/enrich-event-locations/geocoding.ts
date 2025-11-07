@@ -80,76 +80,143 @@ const isGenericPlaceType = (types: string[]): boolean => {
   return types.every(type => genericTypes.includes(type) || type === 'geocode');
 };
 
+const geocodeAddressToCoordinates = async (
+  address: string,
+  apiKey: string,
+  requestId: string
+): Promise<{ latitude: number | null; longitude: number | null; formattedAddress: string | null }> => {
+  try {
+    const encodedAddress = encodeURIComponent(address);
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
+
+    console.log(`[Geocode:${requestId}] Getting coordinates for address: "${address}"`);
+    console.log(`[Geocode:${requestId}] API URL (masked): https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${maskApiKey(apiKey)}`);
+
+    const startTime = Date.now();
+    const response = await fetch(url);
+    const responseTime = Date.now() - startTime;
+
+    console.log(`[Geocode:${requestId}] API response status: ${response.status} (${responseTime}ms)`);
+
+    const data = await response.json();
+    console.log(`[Geocode:${requestId}] API response status field: "${data.status}"`);
+    console.log(`[Geocode:${requestId}] API response results count: ${data.results?.length || 0}`);
+
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const result = data.results[0];
+      const lat = result.geometry?.location?.lat || null;
+      const lng = result.geometry?.location?.lng || null;
+      const formattedAddress = result.formatted_address || null;
+
+      console.log(`[Geocode:${requestId}] ✓ Successfully geocoded address`);
+      console.log(`[Geocode:${requestId}]   - Coordinates: ${lat}, ${lng}`);
+      console.log(`[Geocode:${requestId}]   - Formatted Address: "${formattedAddress}"`);
+
+      return { latitude: lat, longitude: lng, formattedAddress };
+    } else {
+      console.log(`[Geocode:${requestId}] Failed to geocode address: ${data.status}`);
+      if (data.error_message) {
+        console.error(`[Geocode:${requestId}] API error message: ${data.error_message}`);
+      }
+      return { latitude: null, longitude: null, formattedAddress: null };
+    }
+  } catch (error) {
+    console.error(`[Geocode:${requestId}] Exception during Geocode API call:`, error);
+    if (error instanceof Error) {
+      console.error(`[Geocode:${requestId}] Error message: ${error.message}`);
+    }
+    return { latitude: null, longitude: null, formattedAddress: null };
+  }
+};
+
 const findPlaceByTextSearch = async (
   address: string,
   apiKey: string,
   requestId: string
 ): Promise<{ locationName: string | null; formattedAddress: string | null; latitude: number | null; longitude: number | null }> => {
   try {
-    const queries = [
-      `place at ${address}`,
-      address
-    ];
+    console.log(`[PlaceSearch:${requestId}] Step 1: Geocoding address to get coordinates...`);
+    const geocodeResult = await geocodeAddressToCoordinates(address, apiKey, requestId);
 
-    for (let queryIndex = 0; queryIndex < queries.length; queryIndex++) {
-      const query = queries[queryIndex];
-      const encodedQuery = encodeURIComponent(query);
-      const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodedQuery}&key=${apiKey}`;
+    if (geocodeResult.latitude === null || geocodeResult.longitude === null) {
+      console.log(`[PlaceSearch:${requestId}] ⚠ Cannot proceed - failed to geocode address`);
+      return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
+    }
 
-      console.log(`[TextSearch:${requestId}] Attempt ${queryIndex + 1}/${queries.length}: "${query}"`);
-      console.log(`[TextSearch:${requestId}] API URL (masked): https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodedQuery}&key=${maskApiKey(apiKey)}`);
+    console.log(`[PlaceSearch:${requestId}] Step 2: Searching for popular places AT this address...`);
+    console.log(`[PlaceSearch:${requestId}] Using coordinates: ${geocodeResult.latitude}, ${geocodeResult.longitude}`);
 
-      const startTime = Date.now();
-      const response = await fetch(url);
-      const responseTime = Date.now() - startTime;
+    const location = `${geocodeResult.latitude},${geocodeResult.longitude}`;
+    const radius = 50;
+    const query = `popular places at ${address}`;
+    const encodedQuery = encodeURIComponent(query);
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodedQuery}&location=${location}&radius=${radius}&key=${apiKey}`;
 
-      console.log(`[TextSearch:${requestId}] API response status: ${response.status} (${responseTime}ms)`);
+    console.log(`[PlaceSearch:${requestId}] Text search query: "${query}"`);
+    console.log(`[PlaceSearch:${requestId}] Search radius: ${radius}m from address coordinates`);
+    console.log(`[PlaceSearch:${requestId}] API URL (masked): https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodedQuery}&location=${location}&radius=${radius}&key=${maskApiKey(apiKey)}`);
 
-      const data = await response.json();
-      console.log(`[TextSearch:${requestId}] API response status field: "${data.status}"`);
-      console.log(`[TextSearch:${requestId}] API response results count: ${data.results?.length || 0}`);
+    const startTime = Date.now();
+    const response = await fetch(url);
+    const responseTime = Date.now() - startTime;
 
-      if (data.status !== 'OK') {
-        if (data.status === 'ZERO_RESULTS') {
-          console.log(`[TextSearch:${requestId}] No places found for query: "${query}"`);
-          continue;
-        } else {
-          console.error(`[TextSearch:${requestId}] API returned non-OK status: ${data.status}`);
-          if (data.error_message) {
-            console.error(`[TextSearch:${requestId}] API error message: ${data.error_message}`);
-          }
-          if (queryIndex === queries.length - 1) {
-            return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
-          }
-          continue;
+    console.log(`[PlaceSearch:${requestId}] API response status: ${response.status} (${responseTime}ms)`);
+
+    const data = await response.json();
+    console.log(`[PlaceSearch:${requestId}] API response status field: "${data.status}"`);
+    console.log(`[PlaceSearch:${requestId}] API response results count: ${data.results?.length || 0}`);
+
+    if (data.status !== 'OK') {
+      if (data.status === 'ZERO_RESULTS') {
+        console.log(`[PlaceSearch:${requestId}] No places found within ${radius}m of address`);
+      } else {
+        console.error(`[PlaceSearch:${requestId}] API returned non-OK status: ${data.status}`);
+        if (data.error_message) {
+          console.error(`[PlaceSearch:${requestId}] API error message: ${data.error_message}`);
         }
       }
+      return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
+    }
 
-      if (data.results && data.results.length > 0) {
-        console.log(`[TextSearch:${requestId}] Found ${data.results.length} places, filtering for valid business names...`);
+    if (data.results && data.results.length > 0) {
+      console.log(`[PlaceSearch:${requestId}] Found ${data.results.length} places, filtering for valid business names...`);
 
-        for (let i = 0; i < Math.min(data.results.length, 5); i++) {
-          const place = data.results[i];
-          const placeName = place.name || '';
-          const placeTypes = place.types || [];
-          const formattedAddress = place.formatted_address || null;
-          const geometry = place.geometry || null;
-          const lat = geometry?.location?.lat || null;
-          const lng = geometry?.location?.lng || null;
+      for (let i = 0; i < Math.min(data.results.length, 5); i++) {
+        const place = data.results[i];
+        const placeName = place.name || '';
+        const placeTypes = place.types || [];
+        const formattedAddress = place.formatted_address || null;
+        const geometry = place.geometry || null;
+        const lat = geometry?.location?.lat || null;
+        const lng = geometry?.location?.lng || null;
 
-          console.log(`[TextSearch:${requestId}] Checking result ${i + 1}:`);
-          console.log(`[TextSearch:${requestId}]   - Name: "${placeName}"`);
-          console.log(`[TextSearch:${requestId}]   - Types: [${placeTypes.join(', ')}]`);
-          console.log(`[TextSearch:${requestId}]   - Formatted Address: "${formattedAddress}"`);
-          console.log(`[TextSearch:${requestId}]   - Coordinates: ${lat}, ${lng}`);
+        if (lat && lng) {
+          const distanceMeters = calculateDistance(
+            geocodeResult.latitude!,
+            geocodeResult.longitude!,
+            lat,
+            lng
+          );
+
+          console.log(`[PlaceSearch:${requestId}] Checking result ${i + 1}:`);
+          console.log(`[PlaceSearch:${requestId}]   - Name: "${placeName}"`);
+          console.log(`[PlaceSearch:${requestId}]   - Types: [${placeTypes.join(', ')}]`);
+          console.log(`[PlaceSearch:${requestId}]   - Formatted Address: "${formattedAddress}"`);
+          console.log(`[PlaceSearch:${requestId}]   - Coordinates: ${lat}, ${lng}`);
+          console.log(`[PlaceSearch:${requestId}]   - Distance from address: ${distanceMeters.toFixed(1)}m`);
+
+          if (distanceMeters > radius) {
+            console.log(`[PlaceSearch:${requestId}]   - Rejected: Too far from address (${distanceMeters.toFixed(1)}m > ${radius}m)`);
+            continue;
+          }
 
           if (isGenericPlaceType(placeTypes)) {
-            console.log(`[TextSearch:${requestId}]   - Rejected: Generic place type (address/premise)`);
+            console.log(`[PlaceSearch:${requestId}]   - Rejected: Generic place type (address/premise)`);
             continue;
           }
 
           if (isBusinessPlaceType(placeTypes) && isValidPlaceName(placeName, address)) {
-            console.log(`[TextSearch:${requestId}] ✓ Found valid business place: "${placeName}"`);
+            console.log(`[PlaceSearch:${requestId}] ✓ Found valid business place within ${distanceMeters.toFixed(1)}m: "${placeName}"`);
             return {
               locationName: placeName,
               formattedAddress: formattedAddress,
@@ -157,25 +224,37 @@ const findPlaceByTextSearch = async (
               longitude: lng
             };
           } else if (isBusinessPlaceType(placeTypes)) {
-            console.log(`[TextSearch:${requestId}]   - Rejected: Business type but invalid name`);
+            console.log(`[PlaceSearch:${requestId}]   - Rejected: Business type but invalid name`);
           } else {
-            console.log(`[TextSearch:${requestId}]   - Rejected: Not a business place type`);
+            console.log(`[PlaceSearch:${requestId}]   - Rejected: Not a business place type`);
           }
         }
-
-        console.log(`[TextSearch:${requestId}] ⚠ No valid business names found in results`);
       }
+
+      console.log(`[PlaceSearch:${requestId}] ⚠ No valid business names found within ${radius}m of address`);
     }
 
-    console.log(`[TextSearch:${requestId}] All queries exhausted, no valid location name found`);
+    console.log(`[PlaceSearch:${requestId}] No place name found, returning null`);
     return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
   } catch (error) {
-    console.error(`[TextSearch:${requestId}] Exception during Text Search API call:`, error);
+    console.error(`[PlaceSearch:${requestId}] Exception during Place Search:`, error);
     if (error instanceof Error) {
-      console.error(`[TextSearch:${requestId}] Error message: ${error.message}`);
+      console.error(`[PlaceSearch:${requestId}] Error message: ${error.message}`);
     }
     return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
   }
+};
+
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
 };
 
 export const geocodeAddress = async (
