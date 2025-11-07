@@ -247,6 +247,14 @@ Deno.serve(async (req: Request) => {
       } catch (error) {
         console.warn('[Playmetrics Sync] Exception getting user timezone, using UTC:', error);
       }
+
+      // Helper function to detect if an event is cancelled
+      const isEventCancelled = (title: string, description: string, summary: string): boolean => {
+        const cancellationKeywords = /\b(cancel+ed|cancel|postponed?|rescheduled?)\b/i;
+        const fieldsToCheck = [title, description, summary].filter(field => field && field.trim() !== '');
+        return fieldsToCheck.some(field => cancellationKeywords.test(field));
+      };
+
       // Transform events for the specific profile
       const events = vevents.filter(vevent => {
         // Pre-filter events with valid dates
@@ -319,11 +327,17 @@ Deno.serve(async (req: Request) => {
         
         // If opponent found but not in description, add it
         if (opponent && !description.toLowerCase().includes('opponent') && !description.includes(opponent)) {
-          description = description 
+          description = description
             ? `${description}\n\nOpponent: ${opponent}`
             : `Opponent: ${opponent}`;
         }
-        
+
+        // Detect if event is cancelled
+        const isCancelled = isEventCancelled(title, description, summary);
+        if (isCancelled) {
+          console.log(`[Playmetrics Sync] Event detected as CANCELLED: ${title}`);
+        }
+
         // Improved timezone handling
         console.log(`Processing event: ${title}`);
         
@@ -418,7 +432,8 @@ Deno.serve(async (req: Request) => {
           platform_color: '#10B981',
           profile_id: profileId,
           platform_team_id: teamId,
-          visibility: 'public' // Platform-synced events default to public
+          visibility: 'public', // Platform-synced events default to public
+          is_cancelled: isCancelled
         };
       });
 

@@ -232,6 +232,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
       noApiKey: 0
     };
 
+    // Helper function to detect if an event is cancelled
+    const isEventCancelled = (title: string, description: string, notes: string, formattedTitle: string): boolean => {
+      const cancellationKeywords = /\b(cancel+ed|cancel|postponed?|rescheduled?)\b/i;
+      const fieldsToCheck = [title, description, notes, formattedTitle].filter(field => field && field.trim() !== '');
+      return fieldsToCheck.some(field => cancellationKeywords.test(field));
+    };
+
     console.log(`[TeamSnap Sync] Starting event transformation with geocoding...`);
 
     // Transform TeamSnap events for database storage
@@ -257,6 +264,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
         description = event.formatted_title_for_multi_team;
       } else if (event.notes) {
         description = event.notes;
+      }
+
+      // Detect if event is cancelled
+      const isCancelled = isEventCancelled(
+        title,
+        description,
+        event.notes || '',
+        event.formatted_title_for_multi_team || ''
+      );
+      if (isCancelled) {
+        console.log(`[TeamSnap Sync] Event ${event.id}: Detected as CANCELLED`);
       }
 
       const locationAddress = event.location_name || '';
@@ -319,7 +337,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         platform_color: '#F97316',
         platform_team_id: teamId,
         profile_id: profileId,
-        visibility: 'public'
+        visibility: 'public',
+        is_cancelled: isCancelled
       };
     }));
 
