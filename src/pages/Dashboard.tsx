@@ -240,7 +240,8 @@ const Dashboard: React.FC = () => {
           sportIcon: sportDetails.icon,
           platformIcon: CalendarIcon,
           isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
-          isOwnEvent: true
+          isOwnEvent: true,
+          is_cancelled: event.is_cancelled || false
         };
       });
 
@@ -287,7 +288,8 @@ const Dashboard: React.FC = () => {
             platformIcon: CalendarIcon,
             isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
             isOwnEvent: false,
-            ownerName: profile?.ownerName
+            ownerName: profile?.ownerName,
+            is_cancelled: event.is_cancelled || false
           };
         });
 

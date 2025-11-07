@@ -160,7 +160,8 @@ const ChildProfile: React.FC = () => {
             platformIcon: CalendarIcon,
             isOwnEvent: profile.isOwnProfile,
             isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
-            ownerName: profile.ownerName
+            ownerName: profile.ownerName,
+            is_cancelled: event.is_cancelled || false
           }));
 
           setEvents(formattedEvents);
@@ -249,7 +250,8 @@ const ChildProfile: React.FC = () => {
         platformIcon: CalendarIcon,
         isOwnEvent: profile.isOwnProfile,
         isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
-        ownerName: profile.ownerName
+        ownerName: profile.ownerName,
+        is_cancelled: event.is_cancelled || false
       }));
 
       setEvents(formattedEvents);
@@ -1127,7 +1129,8 @@ const ChildProfile: React.FC = () => {
                   platformIcon: CalendarIcon,
                   isOwnEvent: profile.isOwnProfile,
                   isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
-                  ownerName: profile.ownerName
+                  ownerName: profile.ownerName,
+                  is_cancelled: event.is_cancelled || false
                 }));
 
                 setEvents(formattedEvents);

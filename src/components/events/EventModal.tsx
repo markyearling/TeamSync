@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, FileEdit as Edit, MessageCircle } from 'lucide-react';
+import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, FileEdit as Edit, MessageCircle, AlertCircle } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import { GoogleMap } from '@react-google-maps/api';
@@ -230,12 +230,22 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
           style={{ zIndex: 201 }}
         >
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center relative" style={{ zIndex: 202 }}>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-1 min-w-0">
               <span
-                className="w-3 h-3 rounded-full"
+                className="w-3 h-3 rounded-full flex-shrink-0"
                 style={{ backgroundColor: event.child.color }}
               ></span>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{event.title}</h3>
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                {event.is_cancelled && (
+                  <span className="px-2 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 text-xs font-bold rounded flex items-center gap-1 flex-shrink-0">
+                    <AlertCircle className="h-3 w-3" />
+                    CANCELLED
+                  </span>
+                )}
+                <h3 className={`text-xl font-semibold text-gray-900 dark:text-white min-w-0 ${event.is_cancelled ? 'line-through' : ''}`}>
+                  {event.title}
+                </h3>
+              </div>
             </div>
             <div className="flex items-center space-x-2" style={{ position: 'relative', zIndex: 203 }}>
               {canEdit && (
@@ -313,21 +323,21 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
             <div className="space-y-4">
               <div className="flex items-start justify-between">
                 <div className="flex-1 space-y-4">
-                  <div className="flex items-center text-gray-600 dark:text-gray-300">
+                  <div className={`flex items-center text-gray-600 dark:text-gray-300 ${event.is_cancelled ? 'line-through' : ''}`}>
                     <Calendar className="h-5 w-5 mr-3" />
                     <span>
                       {formatDate(event.startTime)}
                     </span>
                   </div>
 
-                  <div className="flex items-center text-gray-600 dark:text-gray-300">
+                  <div className={`flex items-center text-gray-600 dark:text-gray-300 ${event.is_cancelled ? 'line-through' : ''}`}>
                     <Clock className="h-5 w-5 mr-3" />
                     <span>
                       {formatTime(event.startTime)} - {formatTime(event.endTime)}
                     </span>
                   </div>
 
-                  <div className="flex items-center text-gray-600 dark:text-gray-300">
+                  <div className={`flex items-center text-gray-600 dark:text-gray-300 ${event.is_cancelled ? 'line-through' : ''}`}>
                     <User className="h-5 w-5 mr-3" />
                     <span className="mr-3">{event.child.name}</span>
                     {event.sportIcon && (
@@ -369,16 +379,16 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                 <div className="space-y-2">
                   {event.location_name ? (
                     <>
-                      <div className="flex items-center text-gray-600 dark:text-gray-300">
+                      <div className={`flex items-center text-gray-600 dark:text-gray-300 ${event.is_cancelled ? 'line-through' : ''}`}>
                         <MapPin className="h-5 w-5 mr-3" />
                         <span>{event.location_name}</span>
                       </div>
-                      <div className="flex items-center ml-8 text-sm text-gray-500 dark:text-gray-400">
+                      <div className={`flex items-center ml-8 text-sm text-gray-500 dark:text-gray-400 ${event.is_cancelled ? 'line-through' : ''}`}>
                         <span>{event.location}</span>
                       </div>
                     </>
                   ) : (
-                    <div className="flex items-center text-gray-600 dark:text-gray-300">
+                    <div className={`flex items-center text-gray-600 dark:text-gray-300 ${event.is_cancelled ? 'line-through' : ''}`}>
                       <MapPin className="h-5 w-5 mr-3" />
                       <span>{event.location}</span>
                     </div>
@@ -460,7 +470,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
               {event.description && (
                 <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                  <p className="text-gray-600 dark:text-gray-300">{event.description}</p>
+                  <p className={`text-gray-600 dark:text-gray-300 ${event.is_cancelled ? 'line-through' : ''}`}>{event.description}</p>
                 </div>
               )}
             </div>

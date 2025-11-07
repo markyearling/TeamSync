@@ -47,6 +47,7 @@ export interface Event {
   isOwnEvent?: boolean;
   ownerName?: string;
   visibility?: 'public' | 'private';
+  is_cancelled?: boolean;
 }
   full_name?: string;
   phone_number?: string;

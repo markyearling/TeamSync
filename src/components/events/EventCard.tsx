@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Clock, User } from 'lucide-react';
+import { MapPin, Clock, User, AlertCircle } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import EventModal from './EventModal';
@@ -61,31 +61,37 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
       >
         <div className="flex items-start space-x-4">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-wrap">
               <span
-                className="inline-block h-2 w-2 rounded-full"
+                className="inline-block h-2 w-2 rounded-full flex-shrink-0"
                 style={{ backgroundColor: event.child.color }}
               ></span>
-              <span className="text-sm text-gray-500 dark:text-gray-400">{event.child.name}</span>
-              <span 
-                className="text-xs px-2 py-0.5 rounded-full flex items-center font-medium"
-                style={{ 
+              <span className={`text-sm text-gray-500 dark:text-gray-400 ${event.is_cancelled ? 'line-through' : ''}`}>{event.child.name}</span>
+              <span
+                className={`text-xs px-2 py-0.5 rounded-full flex items-center font-medium ${event.is_cancelled ? 'line-through' : ''}`}
+                style={{
                   backgroundColor: event.color + '20',
                   color: event.color
                 }}
               >
                 {event.sportIcon && (
-                  <FontAwesomeIcon 
-                    icon={event.sportIcon} 
+                  <FontAwesomeIcon
+                    icon={event.sportIcon}
                     className="h-3 w-3 mr-1"
                     style={{ color: event.color }}
                   />
                 )}
                 {event.sport}
               </span>
+              {event.is_cancelled && (
+                <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 text-xs font-bold rounded flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  CANCELLED
+                </span>
+              )}
             </div>
-            <h3 className="text-base font-medium text-gray-900 dark:text-white mt-1">{event.title}</h3>
-            <div className="mt-2 space-y-1 text-sm text-gray-500 dark:text-gray-400">
+            <h3 className={`text-base font-medium text-gray-900 dark:text-white mt-1 ${event.is_cancelled ? 'line-through' : ''}`}>{event.title}</h3>
+            <div className={`mt-2 space-y-1 text-sm text-gray-500 dark:text-gray-400 ${event.is_cancelled ? 'line-through' : ''}`}>
               <div className="flex items-center">
                 <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
                 <span>{formatTime(event.startTime)} - {formatTime(event.endTime)}</span>
