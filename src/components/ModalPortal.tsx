@@ -27,10 +27,16 @@ const ModalPortal: React.FC<ModalPortalProps> = ({ children }) => {
   }, [registerModal, unregisterModal]);
 
   const modalRoot = document.getElementById('modal-root');
-  
+
   if (!modalRoot) {
     console.error('[ModalPortal] modal-root element not found!');
     return null;
+  }
+
+  // Ensure modal-root has proper z-index
+  if (modalRoot && !modalRoot.style.zIndex) {
+    modalRoot.style.position = 'fixed';
+    modalRoot.style.zIndex = '200';
   }
 
   return createPortal(children, modalRoot);

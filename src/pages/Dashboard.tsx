@@ -645,7 +645,13 @@ const Dashboard: React.FC = () => {
 
   // Touch event handlers for pull-to-refresh (Facebook-style)
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (!isNative || selectedEvent || isRefreshing) return;
+    // Don't start pull-to-refresh if modal is open, already refreshing, or not native
+    if (!isNative || selectedEvent || isRefreshing) {
+      setTouchStartY(0);
+      setIsPulling(false);
+      setPullDistance(0);
+      return;
+    }
 
     // Only start pull if we're at the very top of the page
     const scrollContainer = document.querySelector('.space-y-6.overflow-y-auto');
@@ -657,7 +663,15 @@ const Dashboard: React.FC = () => {
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isNative || selectedEvent || isRefreshing || touchStartY === 0) return;
+    // Don't allow pulling if modal is open
+    if (!isNative || selectedEvent || isRefreshing || touchStartY === 0) {
+      if (selectedEvent && isPulling) {
+        setIsPulling(false);
+        setPullDistance(0);
+        setTouchStartY(0);
+      }
+      return;
+    }
 
     const touchY = e.touches[0].clientY;
     const distance = touchY - touchStartY;
@@ -689,7 +703,15 @@ const Dashboard: React.FC = () => {
   };
 
   const handleTouchEnd = () => {
-    if (!isNative || selectedEvent || !isPulling) return;
+    // Don't process pull-to-refresh if modal is open
+    if (!isNative || selectedEvent || !isPulling) {
+      if (selectedEvent) {
+        setIsPulling(false);
+        setPullDistance(0);
+        setTouchStartY(0);
+      }
+      return;
+    }
 
     // Require a significant pull (80px worth of resistance = ~270px actual pull)
     // This matches Facebook's behavior of requiring a substantial pull
@@ -762,12 +784,13 @@ const Dashboard: React.FC = () => {
       onTouchEnd={handleTouchEnd}
       >
       {/* Professional pull-to-refresh indicator */}
-      {(isPulling || isRefreshing) && (
+      {(isPulling || isRefreshing) && !selectedEvent && (
         <div
           className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200"
           style={{
             height: isRefreshing ? '48px' : isPulling ? `${Math.min(pullDistance, 48)}px` : '0px',
-            opacity: isRefreshing ? 1 : isPulling ? (pullDistance / 80) : 0
+            opacity: isRefreshing ? 1 : isPulling ? (pullDistance / 80) : 0,
+            zIndex: selectedEvent ? 0 : 50
           }}
         >
           <div className="flex items-center justify-center h-full">

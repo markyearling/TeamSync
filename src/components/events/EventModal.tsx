@@ -152,18 +152,23 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
   // Handle click outside to close modal
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       // Only close if edit modal, messages modal, and share modal are not open
       if (!showEditModal && !showMessagesModal && !showShareModal && modalRef.current && !modalRef.current.contains(e.target as Node)) {
-        onClose();
+        // Add a small delay to ensure button clicks are processed first
+        setTimeout(() => {
+          onClose();
+        }, 10);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    // Use touchend instead of mousedown for better mobile compatibility
+    const eventType = isNative ? 'touchend' : 'mousedown';
+    document.addEventListener(eventType, handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener(eventType, handleClickOutside);
     };
-  }, [onClose, showEditModal, showMessagesModal, showShareModal]);
+  }, [onClose, showEditModal, showMessagesModal, showShareModal, isNative]);
 
   const handleMapLoad = (map: google.maps.Map) => {
     setMapRef(map);
@@ -214,30 +219,39 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
           top: 0,
           left: 0,
           right: 0,
-          bottom: 0
-        } : undefined}
+          bottom: 0,
+          zIndex: 200
+        } : { zIndex: 200 }}
       >
         <div
           ref={modalRef}
           className={modalContentClasses}
           onClick={(e) => e.stopPropagation()}
+          style={{ zIndex: 201 }}
         >
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center relative" style={{ zIndex: 202 }}>
             <div className="flex items-center space-x-2">
-              <span 
+              <span
                 className="w-3 h-3 rounded-full"
                 style={{ backgroundColor: event.child.color }}
               ></span>
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{event.title}</h3>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2" style={{ position: 'relative', zIndex: 203 }}>
               {canEdit && (
                 <button
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     setShowEditModal(true);
                   }}
-                  className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowEditModal(true);
+                  }}
+                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-blue-500 dark:text-gray-500 dark:active:text-blue-400 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                   title="Edit event"
                 >
                   <Edit className="h-5 w-5" />
@@ -245,29 +259,50 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
               )}
               <button
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setShowMessagesModal(true);
                 }}
-                className="p-2 text-gray-400 hover:text-blue-500 dark:text-gray-500 dark:hover:text-blue-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowMessagesModal(true);
+                }}
+                className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-blue-500 dark:text-gray-500 dark:active:text-blue-400 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                 title="View messages"
               >
                 <MessageCircle className="h-5 w-5" />
               </button>
               <button
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   setShowShareModal(true);
                 }}
-                className="p-2 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowShareModal(true);
+                }}
+                className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-gray-500 dark:text-gray-500 dark:active:text-gray-200 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
               >
                 <Share2 className="h-5 w-5" />
               </button>
               <button
                 onClick={(e) => {
+                  e.preventDefault();
                   e.stopPropagation();
                   onClose();
                 }}
-                className="p-2 text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-200 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onClose();
+                }}
+                className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-gray-500 dark:text-gray-500 dark:active:text-gray-200 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
               >
                 <X className="h-5 w-5" />
               </button>
