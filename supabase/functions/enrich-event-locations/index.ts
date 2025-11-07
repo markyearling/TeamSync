@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { geocodeAddress } from '../_shared/geocoding.ts';
+import { geocodeAddress } from './geocoding.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
