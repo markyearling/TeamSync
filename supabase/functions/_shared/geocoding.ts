@@ -8,6 +8,107 @@ const maskApiKey = (key: string): string => {
   return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
 };
 
+const isValidPlaceName = (name: string, address: string): boolean => {
+  const lowerName = name.toLowerCase();
+  const lowerAddress = address.toLowerCase();
+
+  const addressPatterns = [
+    /^\d+[\s-]+\w+[\s-]+(?:st|street|rd|road|ave|avenue|ln|lane|dr|drive|blvd|boulevard|way|ct|court|pl|place)/i,
+    /^[news]\d+[news]\d+/i,
+    /^\d+\s*[news]\s*\d+(st|nd|rd|th)?/i,
+    /^(?:wi|us|state|county|highway|hwy|route|rt)[\s-]?\d+/i,
+  ];
+
+  for (const pattern of addressPatterns) {
+    if (pattern.test(lowerName)) {
+      console.log(`[Places] Rejected "${name}" - matches address pattern: ${pattern}`);
+      return false;
+    }
+  }
+
+  const genericTerms = ['grafton', 'mequon', 'milwaukee', 'wisconsin', 'port washington', 'germantown', 'brookfield', 'brown deer'];
+  for (const term of genericTerms) {
+    if (lowerName === term && lowerAddress.includes(term)) {
+      console.log(`[Places] Rejected "${name}" - generic city/location name`);
+      return false;
+    }
+  }
+
+  if (lowerName === lowerAddress) {
+    console.log(`[Places] Rejected "${name}" - same as address`);
+    return false;
+  }
+
+  return true;
+};
+
+const findNearbyPlace = async (
+  lat: number,
+  lng: number,
+  apiKey: string,
+  requestId: string,
+  originalAddress: string
+): Promise<string | null> => {
+  try {
+    const radius = 50;
+    const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&key=${apiKey}`;
+
+    console.log(`[Places:${requestId}] Making Places API Nearby Search request...`);
+    console.log(`[Places:${requestId}] Location: ${lat},${lng}, Radius: ${radius}m`);
+    console.log(`[Places:${requestId}] API URL (masked): https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&key=${maskApiKey(apiKey)}`);
+
+    const placesStartTime = Date.now();
+    const response = await fetch(url);
+    const placesTime = Date.now() - placesStartTime;
+
+    console.log(`[Places:${requestId}] API response status: ${response.status} (${placesTime}ms)`);
+
+    const data = await response.json();
+    console.log(`[Places:${requestId}] API response status field: "${data.status}"`);
+    console.log(`[Places:${requestId}] API response results count: ${data.results?.length || 0}`);
+
+    if (data.status !== 'OK') {
+      if (data.status === 'ZERO_RESULTS') {
+        console.log(`[Places:${requestId}] No places found within ${radius}m`);
+      } else {
+        console.error(`[Places:${requestId}] API returned non-OK status: ${data.status}`);
+        if (data.error_message) {
+          console.error(`[Places:${requestId}] API error message: ${data.error_message}`);
+        }
+      }
+      return null;
+    }
+
+    if (data.results && data.results.length > 0) {
+      console.log(`[Places:${requestId}] Found ${data.results.length} places, filtering for valid names...`);
+
+      for (let i = 0; i < Math.min(data.results.length, 5); i++) {
+        const place = data.results[i];
+        console.log(`[Places:${requestId}] Checking place ${i + 1}: "${place.name}"`);
+        console.log(`[Places:${requestId}]   - Types: [${place.types?.join(', ') || 'none'}]`);
+        console.log(`[Places:${requestId}]   - Vicinity: "${place.vicinity || 'N/A'}"`);
+
+        if (isValidPlaceName(place.name, originalAddress)) {
+          console.log(`[Places:${requestId}] ✓ Found valid place: "${place.name}"`);
+          return place.name;
+        }
+      }
+
+      console.log(`[Places:${requestId}] ⚠ No valid place names found (all were addresses or generic names)`);
+      return null;
+    }
+
+    console.log(`[Places:${requestId}] No results in response`);
+    return null;
+  } catch (error) {
+    console.error(`[Places:${requestId}] Exception during Places API call:`, error);
+    if (error instanceof Error) {
+      console.error(`[Places:${requestId}] Error message: ${error.message}`);
+    }
+    return null;
+  }
+};
+
 export const geocodeAddress = async (
   address: string,
   apiKey: string,
@@ -149,16 +250,24 @@ export const geocodeAddress = async (
       }
 
       if (!locationName) {
-        console.warn(`[Geocoding:${requestId}] ⚠ NO LOCATION NAME FOUND`);
-        console.log(`[Geocoding:${requestId}] All address_components:`, JSON.stringify(
-          result.address_components.map((c: any) => ({
-            long_name: c.long_name,
-            short_name: c.short_name,
-            types: c.types
-          })),
-          null,
-          2
-        ));
+        console.warn(`[Geocoding:${requestId}] ⚠ NO LOCATION NAME FOUND in Geocoding API`);
+        console.log(`[Geocoding:${requestId}] Will try Places API as fallback...`);
+
+        if (result.geometry?.location) {
+          const lat = result.geometry.location.lat;
+          const lng = result.geometry.location.lng;
+          console.log(`[Geocoding:${requestId}] Using coordinates: ${lat}, ${lng}`);
+
+          locationName = await findNearbyPlace(lat, lng, apiKey, requestId, address);
+
+          if (locationName) {
+            console.log(`[Geocoding:${requestId}] ✓ Places API found location name: "${locationName}"`);
+          } else {
+            console.warn(`[Geocoding:${requestId}] ⚠ Places API found no valid location name`);
+          }
+        } else {
+          console.error(`[Geocoding:${requestId}] No geometry.location available for Places API lookup`);
+        }
       }
 
       const geocodeResult = {
@@ -168,10 +277,10 @@ export const geocodeAddress = async (
 
       console.log(`[Geocoding:${requestId}] Final result - locationName: "${geocodeResult.locationName}", formattedAddress: "${geocodeResult.formattedAddress}"`);
 
-      if (supabaseClient) {
+      if (supabaseClient && locationName !== null) {
         const cacheWriteStart = Date.now();
         try {
-          console.log(`[Geocoding:${requestId}] Writing to cache...`);
+          console.log(`[Geocoding:${requestId}] Writing to cache (locationName is valid)...`);
           const { error: cacheWriteError } = await supabaseClient
             .from('location_cache')
             .upsert({
@@ -193,6 +302,8 @@ export const geocodeAddress = async (
         } catch (error) {
           console.error(`[Geocoding:${requestId}] Cache write exception:`, error);
         }
+      } else if (supabaseClient && locationName === null) {
+        console.log(`[Geocoding:${requestId}] ⚠ NOT caching - locationName is null`);
       }
 
       const totalTime = Date.now() - startTime;
