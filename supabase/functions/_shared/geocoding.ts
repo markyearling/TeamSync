@@ -14,7 +14,7 @@ const geocodeAddressToCoordinates = async (
     const encodedAddress = encodeURIComponent(address);
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
 
-    console.log(`[Step1-Geocode:$respo{requestId}] Converting address to coordinates...`);
+    console.log(`[Step1-Geocode:${requestId}] Converting address to coordinates...`);
     const response = await fetch(url);
     const data = await response.json();
 
@@ -68,6 +68,8 @@ const searchPlaceAtAddress = async (
 
     console.log(`[Step2-PlaceAt:${requestId}] Searching: "${textQuery}"`);
     console.log(`[Step2-PlaceAt:${requestId}] Location restriction: 50m radius around (${latitude}, ${longitude})`);
+    console.log(`[Step2-PlaceAt:${requestId}] Request body:`);
+    console.log(JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(url, {
       method: 'POST',
@@ -81,29 +83,69 @@ const searchPlaceAtAddress = async (
 
     const data = await response.json();
 
-    console.log(`[Step2-PlaceAt:${requestId}] Response status: ${response.status}`);
+    console.log(`[Step2-PlaceAt:${requestId}] Response status: ${response.status} (${response.statusText})`);
 
-    if (response.ok && data.places && data.places.length > 0) {
+    if (!response.ok) {
+      console.error(`[Step2-PlaceAt:${requestId}] ✗ API request rejected by Google`);
+      console.error(`[Step2-PlaceAt:${requestId}] Full response data:`);
+      console.error(JSON.stringify(data, null, 2));
+
+      if (data.error) {
+        console.error(`[Step2-PlaceAt:${requestId}] Error details:`);
+        console.error(`[Step2-PlaceAt:${requestId}]   - Message: ${data.error.message || 'N/A'}`);
+        console.error(`[Step2-PlaceAt:${requestId}]   - Code: ${data.error.code || 'N/A'}`);
+        console.error(`[Step2-PlaceAt:${requestId}]   - Status: ${data.error.status || 'N/A'}`);
+
+        if (data.error.details && Array.isArray(data.error.details)) {
+          console.error(`[Step2-PlaceAt:${requestId}]   - Details: ${JSON.stringify(data.error.details)}`);
+        }
+      }
+
+      console.log(`[Step2-PlaceAt:${requestId}] ✗ No places found due to API error`);
+      return null;
+    }
+
+    console.log(`[Step2-PlaceAt:${requestId}] Response data:`);
+    console.log(JSON.stringify(data, null, 2));
+
+    if (data.places && data.places.length > 0) {
+      console.log(`[Step2-PlaceAt:${requestId}] ✓ Found ${data.places.length} place(s)`);
+
+      data.places.forEach((place: any, index: number) => {
+        const placeName = place.displayName?.text || 'N/A';
+        const types = place.types || [];
+        const placeLocation = place.location;
+        console.log(`[Step2-PlaceAt:${requestId}]   Place ${index + 1}: "${placeName}"`);
+        console.log(`[Step2-PlaceAt:${requestId}]     Types: [${types.join(', ')}]`);
+        console.log(`[Step2-PlaceAt:${requestId}]     Location: (${placeLocation?.latitude}, ${placeLocation?.longitude})`);
+      });
+
       const place = data.places[0];
       const placeName = place.displayName?.text || null;
       const placeLocation = place.location;
-      const types = place.types || [];
 
-      console.log(`[Step2-PlaceAt:${requestId}] ✓ Found: "${placeName}"`);
-      console.log(`[Step2-PlaceAt:${requestId}]   Types: [${types.join(', ')}]`);
-      console.log(`[Step2-PlaceAt:${requestId}]   Location: (${placeLocation?.latitude}, ${placeLocation?.longitude})`);
+      console.log(`[Step2-PlaceAt:${requestId}] ✓ Using first result: "${placeName}"`);
 
       return {
         locationName: placeName,
         latitude: placeLocation?.latitude || latitude,
         longitude: placeLocation?.longitude || longitude
       };
+    } else if (data.places) {
+      console.log(`[Step2-PlaceAt:${requestId}] ✗ Response contained empty places array`);
+    } else {
+      console.log(`[Step2-PlaceAt:${requestId}] ✗ Response did not contain places array`);
     }
 
     console.log(`[Step2-PlaceAt:${requestId}] ✗ No places found within 50m radius`);
     return null;
   } catch (error) {
+    console.error(`[Step2-PlaceAt:${requestId}] ✗ Exception occurred during API call`);
     console.error(`[Step2-PlaceAt:${requestId}] Error:`, error);
+    if (error instanceof Error) {
+      console.error(`[Step2-PlaceAt:${requestId}]   Message: ${error.message}`);
+      console.error(`[Step2-PlaceAt:${requestId}]   Stack: ${error.stack}`);
+    }
     return null;
   }
 };
