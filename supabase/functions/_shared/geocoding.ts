@@ -53,21 +53,31 @@ const searchPlaceAtAddress = async (
     const textQuery = `place at ${address}`;
     const url = `https://places.googleapis.com/v1/places:searchText`;
 
+    const metersPerDegreeLat = 111320;
+    const metersPerDegreeLng = 111320 * Math.cos(latitude * Math.PI / 180);
+    const radiusMeters = 100;
+
+    const latDelta = radiusMeters / metersPerDegreeLat;
+    const lngDelta = radiusMeters / metersPerDegreeLng;
+
     const requestBody = {
       textQuery: textQuery,
-      locationBias: {
-        circle: {
-          center: {
-            latitude: latitude,
-            longitude: longitude
+      locationRestriction: {
+        rectangle: {
+          low: {
+            latitude: latitude - latDelta,
+            longitude: longitude - lngDelta
           },
-          radius: 50.0
+          high: {
+            latitude: latitude + latDelta,
+            longitude: longitude + lngDelta
+          }
         }
       }
     };
 
     console.log(`[Step2-PlaceAt:${requestId}] Searching: "${textQuery}"`);
-    console.log(`[Step2-PlaceAt:${requestId}] Location bias: 50m radius around (${latitude}, ${longitude})`);
+    console.log(`[Step2-PlaceAt:${requestId}] Location restriction: ${radiusMeters}m rectangle around (${latitude}, ${longitude})`);
     console.log(`[Step2-PlaceAt:${requestId}] Request body:`);
     console.log(JSON.stringify(requestBody, null, 2));
 
@@ -137,7 +147,7 @@ const searchPlaceAtAddress = async (
       console.log(`[Step2-PlaceAt:${requestId}] ✗ Response did not contain places array`);
     }
 
-    console.log(`[Step2-PlaceAt:${requestId}] ✗ No places found within 50m radius`);
+    console.log(`[Step2-PlaceAt:${requestId}] ✗ No places found within rectangular boundary`);
     return null;
   } catch (error) {
     console.error(`[Step2-PlaceAt:${requestId}] ✗ Exception occurred during API call`);
@@ -223,7 +233,7 @@ export const geocodeAddress = async (
       return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
     }
 
-    console.log(`[Geocoding:${requestId}] STEP 2: Searching for "place at ${address}" within 50m...`);
+    console.log(`[Geocoding:${requestId}] STEP 2: Searching for "place at ${address}" within rectangular bounds...`);
     const placeResult = await searchPlaceAtAddress(
       address,
       geocodeResult.latitude,
