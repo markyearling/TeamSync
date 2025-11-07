@@ -29,6 +29,50 @@ const maskApiKey = (key: string): string => {
   return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
 };
 
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371000;
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+};
+
+const geocodeAddressCoordinates = async (
+  address: string,
+  apiKey: string,
+  requestId: string
+): Promise<{ latitude: number; longitude: number } | null> => {
+  try {
+    const encodedAddress = encodeURIComponent(address);
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
+
+    console.log(`[Geocode:${requestId}] Getting coordinates for address...`);
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const location = data.results[0].geometry?.location;
+      if (location && location.lat && location.lng) {
+        console.log(`[Geocode:${requestId}] ✓ Address coordinates: (${location.lat}, ${location.lng})`);
+        return { latitude: location.lat, longitude: location.lng };
+      }
+    }
+
+    console.log(`[Geocode:${requestId}] Could not geocode address`);
+    return null;
+  } catch (error) {
+    console.error(`[Geocode:${requestId}] Error:`, error);
+    return null;
+  }
+};
+
 const hasVenueType = (types: string[] | undefined): boolean => {
   if (!types || types.length === 0) return false;
   return types.some(type => VENUE_TYPES.includes(type));
@@ -215,13 +259,33 @@ export const geocodeAddress = async (
   }
 
   try {
+    const addressCoords = await geocodeAddressCoordinates(address, apiKey, requestId);
+
     console.log(`[Lookup:${requestId}] Starting TIER 2: Popular place search...`);
     let result = await findPopularPlaceByTextSearch(address, apiKey, requestId);
 
     if (result.locationName !== null) {
       console.log(`[Lookup:${requestId}] ✓ TIER 2 succeeded: "${result.locationName}"`);
 
-      if (supabaseClient && result.latitude !== null && result.longitude !== null) {
+      if (addressCoords && result.latitude !== null && result.longitude !== null) {
+        const distance = calculateDistance(
+          addressCoords.latitude,
+          addressCoords.longitude,
+          result.latitude,
+          result.longitude
+        );
+
+        console.log(`[Lookup:${requestId}] Distance from address to place: ${distance.toFixed(1)}m`);
+
+        if (distance > 100) {
+          console.log(`[Lookup:${requestId}] ✗ Place rejected: ${distance.toFixed(1)}m exceeds 100m threshold`);
+          result = { locationName: null, formattedAddress: null, latitude: null, longitude: null };
+        } else {
+          console.log(`[Lookup:${requestId}] ✓ Place accepted: ${distance.toFixed(1)}m within 100m threshold`);
+        }
+      }
+
+      if (result.locationName !== null && supabaseClient && result.latitude !== null && result.longitude !== null) {
         try {
           console.log(`[Lookup:${requestId}] Checking proximity cache at (${result.latitude}, ${result.longitude})...`);
           const { data: nearbyResult } = await supabaseClient
@@ -299,7 +363,25 @@ export const geocodeAddress = async (
     if (result.locationName !== null) {
       console.log(`[Lookup:${requestId}] ✓ TIER 3 succeeded: "${result.locationName}"`);
 
-      if (supabaseClient && result.latitude !== null && result.longitude !== null) {
+      if (addressCoords && result.latitude !== null && result.longitude !== null) {
+        const distance = calculateDistance(
+          addressCoords.latitude,
+          addressCoords.longitude,
+          result.latitude,
+          result.longitude
+        );
+
+        console.log(`[Lookup:${requestId}] Distance from address to place: ${distance.toFixed(1)}m`);
+
+        if (distance > 100) {
+          console.log(`[Lookup:${requestId}] ✗ Place rejected: ${distance.toFixed(1)}m exceeds 100m threshold`);
+          result = { locationName: null, formattedAddress: null, latitude: null, longitude: null };
+        } else {
+          console.log(`[Lookup:${requestId}] ✓ Place accepted: ${distance.toFixed(1)}m within 100m threshold`);
+        }
+      }
+
+      if (result.locationName !== null && supabaseClient && result.latitude !== null && result.longitude !== null) {
         try {
           console.log(`[Lookup:${requestId}] Checking proximity cache at (${result.latitude}, ${result.longitude})...`);
           const { data: nearbyResult } = await supabaseClient
