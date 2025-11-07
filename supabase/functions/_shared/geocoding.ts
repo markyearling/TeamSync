@@ -5,52 +5,53 @@ export interface GeocodeResult {
   longitude: number | null;
 }
 
+const VENUE_TYPES = [
+  'stadium',
+  'sports_complex',
+  'tourist_attraction',
+  'point_of_interest',
+  'establishment',
+  'park',
+  'premise'
+];
+
+const EXCLUDE_TYPES = [
+  'restaurant',
+  'food',
+  'cafe',
+  'bar',
+  'meal_takeaway',
+  'meal_delivery'
+];
+
 const maskApiKey = (key: string): string => {
   if (!key || key.length < 8) return '[INVALID_KEY]';
   return `${key.substring(0, 4)}...${key.substring(key.length - 4)}`;
 };
 
-const findPlaceByTextSearch = async (
-  address: string,
-  apiKey: string,
-  requestId: string
-): Promise<{ locationName: string | null; formattedAddress: string | null; latitude: number | null; longitude: number | null }> => {
-  try {
-    const query = `place at ${address}`;
-    const encodedQuery = encodeURIComponent(query);
-    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodedQuery}&key=${apiKey}`;
+const hasVenueType = (types: string[] | undefined): boolean => {
+  if (!types || types.length === 0) return false;
+  return types.some(type => VENUE_TYPES.includes(type));
+};
 
-    console.log(`[PlaceAt:${requestId}] Searching: "${query}"`);
+const hasExcludedType = (types: string[] | undefined): boolean => {
+  if (!types || types.length === 0) return false;
+  return types.some(type => EXCLUDE_TYPES.includes(type));
+};
 
-    const startTime = Date.now();
-    const response = await fetch(url);
-    const responseTime = Date.now() - startTime;
+const findBestVenue = (results: any[]): any | null => {
+  const filtered = results.filter(place => {
+    const types = place.types || [];
+    const hasVenue = hasVenueType(types);
+    const hasExcluded = hasExcludedType(types);
+    return hasVenue && !hasExcluded;
+  });
 
-    const data = await response.json();
-    console.log(`[PlaceAt:${requestId}] Response: ${data.status} with ${data.results?.length || 0} results (${responseTime}ms)`);
-
-    if (data.status === 'OK' && data.results && data.results.length > 0) {
-      const place = data.results[0];
-      const placeName = place.name || null;
-      const formattedAddress = place.formatted_address || null;
-      const lat = place.geometry?.location?.lat || null;
-      const lng = place.geometry?.location?.lng || null;
-
-      console.log(`[PlaceAt:${requestId}] ✓ Found: "${placeName}"`);
-      return {
-        locationName: placeName,
-        formattedAddress: formattedAddress,
-        latitude: lat,
-        longitude: lng
-      };
-    }
-
-    console.log(`[PlaceAt:${requestId}] No results found`);
-    return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
-  } catch (error) {
-    console.error(`[PlaceAt:${requestId}] Error:`, error);
-    return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
+  if (filtered.length > 0) {
+    return filtered[0];
   }
+
+  return results[0] || null;
 };
 
 const findPopularPlaceByTextSearch = async (
@@ -63,23 +64,29 @@ const findPopularPlaceByTextSearch = async (
     const encodedQuery = encodeURIComponent(query);
     const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodedQuery}&key=${apiKey}`;
 
-    console.log(`[PopularPlace:${requestId}] Searching: "${query}"`);
+    console.log(`[TIER2-PopularPlace:${requestId}] Searching: "${query}"`);
 
     const startTime = Date.now();
     const response = await fetch(url);
     const responseTime = Date.now() - startTime;
 
     const data = await response.json();
-    console.log(`[PopularPlace:${requestId}] Response: ${data.status} with ${data.results?.length || 0} results (${responseTime}ms)`);
+    console.log(`[TIER2-PopularPlace:${requestId}] Response: ${data.status} with ${data.results?.length || 0} results (${responseTime}ms)`);
 
     if (data.status === 'OK' && data.results && data.results.length > 0) {
-      const place = data.results[0];
+      const place = findBestVenue(data.results);
+      if (!place) {
+        console.log(`[TIER2-PopularPlace:${requestId}] No suitable venue found after filtering`);
+        return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
+      }
+
       const placeName = place.name || null;
       const formattedAddress = place.formatted_address || null;
       const lat = place.geometry?.location?.lat || null;
       const lng = place.geometry?.location?.lng || null;
+      const types = place.types || [];
 
-      console.log(`[PopularPlace:${requestId}] ✓ Found: "${placeName}"`);
+      console.log(`[TIER2-PopularPlace:${requestId}] ✓ Found: "${placeName}" [types: ${types.join(', ')}]`);
       return {
         locationName: placeName,
         formattedAddress: formattedAddress,
@@ -88,10 +95,59 @@ const findPopularPlaceByTextSearch = async (
       };
     }
 
-    console.log(`[PopularPlace:${requestId}] No results found`);
+    console.log(`[TIER2-PopularPlace:${requestId}] No results found`);
     return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
   } catch (error) {
-    console.error(`[PopularPlace:${requestId}] Error:`, error);
+    console.error(`[TIER2-PopularPlace:${requestId}] Error:`, error);
+    return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
+  }
+};
+
+const findPlaceByTextSearch = async (
+  address: string,
+  apiKey: string,
+  requestId: string
+): Promise<{ locationName: string | null; formattedAddress: string | null; latitude: number | null; longitude: number | null }> => {
+  try {
+    const query = `place at ${address}`;
+    const encodedQuery = encodeURIComponent(query);
+    const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodedQuery}&key=${apiKey}`;
+
+    console.log(`[TIER3-PlaceAt:${requestId}] Searching: "${query}"`);
+
+    const startTime = Date.now();
+    const response = await fetch(url);
+    const responseTime = Date.now() - startTime;
+
+    const data = await response.json();
+    console.log(`[TIER3-PlaceAt:${requestId}] Response: ${data.status} with ${data.results?.length || 0} results (${responseTime}ms)`);
+
+    if (data.status === 'OK' && data.results && data.results.length > 0) {
+      const place = findBestVenue(data.results);
+      if (!place) {
+        console.log(`[TIER3-PlaceAt:${requestId}] No suitable venue found after filtering`);
+        return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
+      }
+
+      const placeName = place.name || null;
+      const formattedAddress = place.formatted_address || null;
+      const lat = place.geometry?.location?.lat || null;
+      const lng = place.geometry?.location?.lng || null;
+      const types = place.types || [];
+
+      console.log(`[TIER3-PlaceAt:${requestId}] ✓ Found: "${placeName}" [types: ${types.join(', ')}]`);
+      return {
+        locationName: placeName,
+        formattedAddress: formattedAddress,
+        latitude: lat,
+        longitude: lng
+      };
+    }
+
+    console.log(`[TIER3-PlaceAt:${requestId}] No results found`);
+    return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
+  } catch (error) {
+    console.error(`[TIER3-PlaceAt:${requestId}] Error:`, error);
     return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
   }
 };
@@ -109,9 +165,8 @@ export const geocodeAddress = async (
   console.log(`[Lookup:${requestId}] Address: "${address}"`);
   console.log(`[Lookup:${requestId}] Provided location_name: "${providedLocationName || 'N/A'}"`);
 
-  // TIER 1: Use provided location name if available
   if (providedLocationName && providedLocationName.trim() !== '') {
-    console.log(`[Lookup:${requestId}] ✓ Using provided location_name (0 API calls)`);
+    console.log(`[Lookup:${requestId}] ✓ TIER 1: Using provided location_name (0 API calls)`);
     const totalTime = Date.now() - startTime;
     console.log(`[Lookup:${requestId}] ========== END (${totalTime}ms) ==========`);
     return {
@@ -134,7 +189,6 @@ export const geocodeAddress = async (
 
   const normalizedAddress = address.trim().toLowerCase();
 
-  // Check exact address cache
   if (supabaseClient) {
     try {
       const { data: cachedResult, error: cacheError } = await supabaseClient
@@ -145,7 +199,7 @@ export const geocodeAddress = async (
         .maybeSingle();
 
       if (!cacheError && cachedResult) {
-        console.log(`[Lookup:${requestId}] ✓ Cache hit: "${cachedResult.location_name}"`);
+        console.log(`[Lookup:${requestId}] ✓ Exact cache hit: "${cachedResult.location_name}"`);
         const totalTime = Date.now() - startTime;
         console.log(`[Lookup:${requestId}] ========== END (${totalTime}ms) ==========`);
         return {
@@ -161,15 +215,15 @@ export const geocodeAddress = async (
   }
 
   try {
-    // TIER 2: Try "place at" search
-    let result = await findPlaceByTextSearch(address, apiKey, requestId);
+    console.log(`[Lookup:${requestId}] Starting TIER 2: Popular place search...`);
+    let result = await findPopularPlaceByTextSearch(address, apiKey, requestId);
 
     if (result.locationName !== null) {
-      console.log(`[Lookup:${requestId}] ✓ Place at search succeeded: "${result.locationName}"`);
+      console.log(`[Lookup:${requestId}] ✓ TIER 2 succeeded: "${result.locationName}"`);
 
-      // Check proximity cache if we have coordinates
       if (supabaseClient && result.latitude !== null && result.longitude !== null) {
         try {
+          console.log(`[Lookup:${requestId}] Checking proximity cache at (${result.latitude}, ${result.longitude})...`);
           const { data: nearbyResult } = await supabaseClient
             .rpc('find_nearby_location', {
               search_lat: result.latitude,
@@ -179,37 +233,44 @@ export const geocodeAddress = async (
 
           if (nearbyResult && nearbyResult.length > 0) {
             const nearby = nearbyResult[0];
-            console.log(`[Lookup:${requestId}] ✓ Proximity cache hit: "${nearby.location_name}" (${nearby.distance_meters.toFixed(1)}m)`);
+            const distance = nearby.distance_meters;
 
-            // Cache this address pointing to the nearby result
-            await supabaseClient
-              .from('location_cache')
-              .upsert({
-                address: normalizedAddress,
-                location_name: nearby.location_name,
-                formatted_address: nearby.formatted_address,
+            if (distance <= 50) {
+              console.log(`[Lookup:${requestId}] ✓ Proximity cache hit: "${nearby.location_name}" (${distance.toFixed(1)}m away)`);
+
+              await supabaseClient
+                .from('location_cache')
+                .upsert({
+                  address: normalizedAddress,
+                  location_name: nearby.location_name,
+                  formatted_address: nearby.formatted_address,
+                  latitude: nearby.latitude,
+                  longitude: nearby.longitude
+                }, {
+                  onConflict: 'address',
+                  ignoreDuplicates: false
+                });
+
+              const totalTime = Date.now() - startTime;
+              console.log(`[Lookup:${requestId}] ========== END (${totalTime}ms) ==========`);
+              return {
+                locationName: nearby.location_name,
+                formattedAddress: nearby.formatted_address,
                 latitude: nearby.latitude,
                 longitude: nearby.longitude
-              }, {
-                onConflict: 'address',
-                ignoreDuplicates: false
-              });
-
-            const totalTime = Date.now() - startTime;
-            console.log(`[Lookup:${requestId}] ========== END (${totalTime}ms) ==========`);
-            return {
-              locationName: nearby.location_name,
-              formattedAddress: nearby.formatted_address,
-              latitude: nearby.latitude,
-              longitude: nearby.longitude
-            };
+              };
+            } else {
+              console.log(`[Lookup:${requestId}] Nearby location too far: ${distance.toFixed(1)}m > 50m threshold`);
+            }
+          } else {
+            console.log(`[Lookup:${requestId}] No nearby cached locations found within 50m`);
           }
         } catch (error) {
           console.error(`[Lookup:${requestId}] Proximity cache error:`, error);
         }
 
-        // Cache the new result
         try {
+          console.log(`[Lookup:${requestId}] Caching new result: "${result.locationName}"`);
           await supabaseClient
             .from('location_cache')
             .upsert({
@@ -232,16 +293,62 @@ export const geocodeAddress = async (
       return result;
     }
 
-    // TIER 3: Try "popular place at" search
-    console.log(`[Lookup:${requestId}] Place at search failed, trying popular place...`);
-    result = await findPopularPlaceByTextSearch(address, apiKey, requestId);
+    console.log(`[Lookup:${requestId}] TIER 2 failed, starting TIER 3: Place at search...`);
+    result = await findPlaceByTextSearch(address, apiKey, requestId);
 
     if (result.locationName !== null) {
-      console.log(`[Lookup:${requestId}] ✓ Popular place search succeeded: "${result.locationName}"`);
+      console.log(`[Lookup:${requestId}] ✓ TIER 3 succeeded: "${result.locationName}"`);
 
-      // Cache the result
       if (supabaseClient && result.latitude !== null && result.longitude !== null) {
         try {
+          console.log(`[Lookup:${requestId}] Checking proximity cache at (${result.latitude}, ${result.longitude})...`);
+          const { data: nearbyResult } = await supabaseClient
+            .rpc('find_nearby_location', {
+              search_lat: result.latitude,
+              search_lng: result.longitude,
+              max_distance_meters: 50
+            });
+
+          if (nearbyResult && nearbyResult.length > 0) {
+            const nearby = nearbyResult[0];
+            const distance = nearby.distance_meters;
+
+            if (distance <= 50) {
+              console.log(`[Lookup:${requestId}] ✓ Proximity cache hit: "${nearby.location_name}" (${distance.toFixed(1)}m away)`);
+
+              await supabaseClient
+                .from('location_cache')
+                .upsert({
+                  address: normalizedAddress,
+                  location_name: nearby.location_name,
+                  formatted_address: nearby.formatted_address,
+                  latitude: nearby.latitude,
+                  longitude: nearby.longitude
+                }, {
+                  onConflict: 'address',
+                  ignoreDuplicates: false
+                });
+
+              const totalTime = Date.now() - startTime;
+              console.log(`[Lookup:${requestId}] ========== END (${totalTime}ms) ==========`);
+              return {
+                locationName: nearby.location_name,
+                formattedAddress: nearby.formatted_address,
+                latitude: nearby.latitude,
+                longitude: nearby.longitude
+              };
+            } else {
+              console.log(`[Lookup:${requestId}] Nearby location too far: ${distance.toFixed(1)}m > 50m threshold`);
+            }
+          } else {
+            console.log(`[Lookup:${requestId}] No nearby cached locations found within 50m`);
+          }
+        } catch (error) {
+          console.error(`[Lookup:${requestId}] Proximity cache error:`, error);
+        }
+
+        try {
+          console.log(`[Lookup:${requestId}] Caching new result: "${result.locationName}"`);
           await supabaseClient
             .from('location_cache')
             .upsert({
@@ -264,8 +371,7 @@ export const geocodeAddress = async (
       return result;
     }
 
-    // Both searches failed
-    console.log(`[Lookup:${requestId}] All searches failed, returning null`);
+    console.log(`[Lookup:${requestId}] All tiers failed, returning null`);
     const totalTime = Date.now() - startTime;
     console.log(`[Lookup:${requestId}] ========== END (${totalTime}ms) ==========`);
     return { locationName: null, formattedAddress: null, latitude: null, longitude: null };
