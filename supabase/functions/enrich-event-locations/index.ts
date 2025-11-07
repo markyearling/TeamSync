@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { geocodeAddress } from './geocoding.ts';
+import { geocodeAddress } from '../_shared/geocoding.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,24 +48,25 @@ Deno.serve(async (req: Request) => {
     const url = new URL(req.url);
     const batchSize = parseInt(url.searchParams.get('batch_size') || '50');
     const dryRun = url.searchParams.get('dry_run') === 'true';
-    const forceReGeocode = url.searchParams.get('force') === 'true';
+    const recentHours = parseInt(url.searchParams.get('recent_hours') || '24');
 
     console.log(`[Enrich:${sessionId}] Parameters:`);
     console.log(`[Enrich:${sessionId}] - batch_size: ${batchSize}`);
     console.log(`[Enrich:${sessionId}] - dry_run: ${dryRun}`);
-    console.log(`[Enrich:${sessionId}] - force: ${forceReGeocode}`);
+    console.log(`[Enrich:${sessionId}] - recent_hours: ${recentHours}`);
+
+    const recentCutoff = new Date(Date.now() - recentHours * 60 * 60 * 1000).toISOString();
+    console.log(`[Enrich:${sessionId}] Processing events updated after: ${recentCutoff}`);
 
     let query = supabaseClient
       .from('events')
-      .select('id, location, location_name')
-      .not('location', 'is', null);
+      .select('id, location, location_name, updated_at')
+      .not('location', 'is', null)
+      .or('location_name.is.null,location_name.eq.')
+      .gte('updated_at', recentCutoff)
+      .order('updated_at', { ascending: false });
 
-    if (!forceReGeocode) {
-      query = query.or('location_name.is.null,location_name.eq.');
-      console.log(`[Enrich:${sessionId}] Query filter: location NOT NULL AND (location_name IS NULL OR location_name = '')`);
-    } else {
-      console.log(`[Enrich:${sessionId}] Query filter: location NOT NULL (force mode, will re-geocode all)`);
-    }
+    console.log(`[Enrich:${sessionId}] Query filter: location NOT NULL AND (location_name IS NULL OR location_name = '') AND updated_at >= ${recentCutoff}`);
 
     console.log(`[Enrich:${sessionId}] Fetching events from database...`);
     const fetchStart = Date.now();
@@ -125,51 +126,20 @@ Deno.serve(async (req: Request) => {
         console.log(`[Enrich:${sessionId}]   - location: "${event.location}"`);
         console.log(`[Enrich:${sessionId}]   - location_name: "${event.location_name || 'NULL'}"`);
         console.log(`[Enrich:${sessionId}]   - hasValidLocationName: ${hasValidLocationName}`);
-        console.log(`[Enrich:${sessionId}]   - forceReGeocode: ${forceReGeocode}`);
 
-        if (!forceReGeocode && hasValidLocationName) {
+        if (hasValidLocationName) {
           console.log(`[Enrich:${sessionId}] Event ${event.id}: Already has valid location_name, skipping`);
           results.skipped++;
           continue;
         }
 
-        const normalizedAddress = event.location.trim().toLowerCase();
-        console.log(`[Enrich:${sessionId}] Event ${event.id}: Normalized address: "${normalizedAddress}"`);
+        console.log(`[Enrich:${sessionId}] Event ${event.id}: Calling geocode API with three-tier approach...`);
+        const geocodeResult = await geocodeAddress(event.location, googleMapsApiKey, supabaseClient);
+        const locationName = geocodeResult.locationName;
 
-        console.log(`[Enrich:${sessionId}] Event ${event.id}: Checking cache...`);
-        const cacheCheckStart = Date.now();
-        const { data: cachedResult, error: cacheError } = await supabaseClient
-          .from('location_cache')
-          .select('location_name, formatted_address')
-          .eq('address', normalizedAddress)
-          .maybeSingle();
-        const cacheCheckTime = Date.now() - cacheCheckStart;
+        console.log(`[Enrich:${sessionId}] Event ${event.id}: Geocode returned locationName: "${locationName}"`);
 
-        if (cacheError) {
-          console.error(`[Enrich:${sessionId}] Event ${event.id}: Cache check error (${cacheCheckTime}ms):`, cacheError.message);
-        }
-
-        let locationName: string | null = null;
-
-        if (cachedResult && !forceReGeocode) {
-          console.log(`[Enrich:${sessionId}] Event ${event.id}: ✓ Cache hit (${cacheCheckTime}ms)`);
-          console.log(`[Enrich:${sessionId}]   - cached location_name: "${cachedResult.location_name}"`);
-          locationName = cachedResult.location_name;
-          results.cached++;
-        } else {
-          if (cachedResult && forceReGeocode) {
-            console.log(`[Enrich:${sessionId}] Event ${event.id}: Cache found but force=true, will re-geocode`);
-          } else {
-            console.log(`[Enrich:${sessionId}] Event ${event.id}: Cache miss, calling geocode API...`);
-          }
-
-          const geocodeResult = await geocodeAddress(event.location, googleMapsApiKey, supabaseClient);
-          locationName = geocodeResult.locationName;
-
-          console.log(`[Enrich:${sessionId}] Event ${event.id}: Geocode returned locationName: "${locationName}"`);
-
-          await new Promise(resolve => setTimeout(resolve, 100));
-        }
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         if (locationName && locationName.trim() !== '') {
           console.log(`[Enrich:${sessionId}] Event ${event.id}: Valid location name found: "${locationName}"`);
