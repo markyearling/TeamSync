@@ -55,7 +55,7 @@ const searchPlaceAtAddress = async (
 
     const requestBody = {
       textQuery: textQuery,
-      locationRestriction: {
+      locationBias: {
         circle: {
           center: {
             latitude: latitude,
@@ -67,7 +67,7 @@ const searchPlaceAtAddress = async (
     };
 
     console.log(`[Step2-PlaceAt:${requestId}] Searching: "${textQuery}"`);
-    console.log(`[Step2-PlaceAt:${requestId}] Location restriction: 50m radius around (${latitude}, ${longitude})`);
+    console.log(`[Step2-PlaceAt:${requestId}] Location bias: 50m radius around (${latitude}, ${longitude})`);
     console.log(`[Step2-PlaceAt:${requestId}] Request body:`);
     console.log(JSON.stringify(requestBody, null, 2));
 
