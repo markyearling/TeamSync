@@ -48,6 +48,19 @@ export interface Event {
   ownerName?: string;
   visibility?: 'public' | 'private';
   is_cancelled?: boolean;
+  recurring_group_id?: string;
+  recurrence_pattern?: RecurrencePattern;
+  recurrence_end_date?: Date;
+  is_recurring?: boolean;
+  parent_event_id?: string;
+}
+
+export type RecurrencePattern = 'daily' | 'weekly' | 'biweekly' | 'monthly';
+
+export interface RecurrenceConfig {
+  isRecurring: boolean;
+  pattern?: RecurrencePattern;
+  endDate?: string;
 }
   full_name?: string;
   phone_number?: string;

@@ -8,6 +8,7 @@ import { useCapacitor } from '../../hooks/useCapacitor';
 import ModalPortal from '../ModalPortal';
 import { availableSports, getSportDetails } from '../../utils/sports';
 import { getLocationNameFromPlace, geocodeAddress } from '../../utils/geocoding';
+import RecurringEventActionModal from './RecurringEventActionModal';
 
 interface EditEventModalProps {
   event: Event;
@@ -39,6 +40,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showRecurringActionModal, setShowRecurringActionModal] = useState(false);
   const { isNative } = useCapacitor();
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -86,6 +88,15 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (event.is_recurring && event.recurring_group_id) {
+      setShowRecurringActionModal(true);
+    } else {
+      await performUpdate(false);
+    }
+  };
+
+  const performUpdate = async (applyToAll: boolean) => {
     setSaving(true);
     setError(null);
 
@@ -109,23 +120,36 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         }
       }
 
-      const { error: updateError } = await supabase
-        .from('events')
-        .update({
-          title: formData.title,
-          description: formData.description,
-          start_time: startDateTime.toISOString(),
-          end_time: endDateTime.toISOString(),
-          location: formData.location,
-          location_name: locationName || null,
-          sport: formData.sport,
-          color: sportDetails.color,
-          visibility: formData.visibility
-        })
-        .eq('id', event.id);
+      const updateData = {
+        title: formData.title,
+        description: formData.description,
+        start_time: startDateTime.toISOString(),
+        end_time: endDateTime.toISOString(),
+        location: formData.location,
+        location_name: locationName || null,
+        sport: formData.sport,
+        color: sportDetails.color,
+        visibility: formData.visibility
+      };
 
-      if (updateError) throw updateError;
+      if (applyToAll && event.recurring_group_id) {
+        const { error: updateError } = await supabase
+          .from('events')
+          .update(updateData)
+          .eq('recurring_group_id', event.recurring_group_id)
+          .gte('start_time', event.startTime.toISOString());
 
+        if (updateError) throw updateError;
+      } else {
+        const { error: updateError } = await supabase
+          .from('events')
+          .update(updateData)
+          .eq('id', event.id);
+
+        if (updateError) throw updateError;
+      }
+
+      setShowRecurringActionModal(false);
       onEventUpdated();
     } catch (err) {
       console.error('Failed to update event:', err);
@@ -394,6 +418,15 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         </form>
       </div>
       </div>
+
+      {showRecurringActionModal && (
+        <RecurringEventActionModal
+          isOpen={showRecurringActionModal}
+          onClose={() => setShowRecurringActionModal(false)}
+          onConfirm={performUpdate}
+          actionType="edit"
+        />
+      )}
     </ModalPortal>
   );
 }

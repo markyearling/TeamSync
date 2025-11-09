@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { X, Calendar as CalendarIcon } from 'lucide-react';
+import { X, Calendar as CalendarIcon, Repeat } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { supabase } from '../../lib/supabase';
 import { Autocomplete } from '@react-google-maps/api';
@@ -7,6 +7,7 @@ import { useCapacitor } from '../../hooks/useCapacitor';
 import { availableSports, getSportDetails } from '../../utils/sports';
 import { getLocationNameFromPlace, geocodeAddress } from '../../utils/geocoding';
 import ModalPortal from '../ModalPortal';
+import { RecurrencePattern } from '../../types';
 
 interface AddEventModalProps {
   profileId: string;
@@ -32,11 +33,14 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     description: '',
     date: '',
     time: '',
-    duration: '60', // Default duration in minutes
+    duration: '60',
     location: '',
     locationName: '',
-    visibility: 'public' as 'public' | 'private', // Default to public
-    sport: sports[0]?.name || 'Other'
+    visibility: 'public' as 'public' | 'private',
+    sport: sports[0]?.name || 'Other',
+    isRecurring: false,
+    recurrencePattern: 'weekly' as RecurrencePattern,
+    recurrenceEndDate: ''
   });
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -64,10 +68,12 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
   }, [onClose]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -81,6 +87,38 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         locationName: locationName || ''
       }));
     }
+  };
+
+  const generateRecurringEvents = (
+    startDate: Date,
+    endDate: Date,
+    pattern: RecurrencePattern,
+    duration: number
+  ) => {
+    const events: Date[] = [];
+    let currentDate = new Date(startDate);
+    const finalDate = new Date(endDate);
+
+    while (currentDate <= finalDate) {
+      events.push(new Date(currentDate));
+
+      switch (pattern) {
+        case 'daily':
+          currentDate.setDate(currentDate.getDate() + 1);
+          break;
+        case 'weekly':
+          currentDate.setDate(currentDate.getDate() + 7);
+          break;
+        case 'biweekly':
+          currentDate.setDate(currentDate.getDate() + 14);
+          break;
+        case 'monthly':
+          currentDate.setMonth(currentDate.getMonth() + 1);
+          break;
+      }
+    }
+
+    return events;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,22 +144,74 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
         }
       }
 
-      const { error } = await supabase
-        .from('events')
-        .insert({
-          profile_id: profileId,
-          title: formData.title,
-          description: formData.description,
-          start_time: startDateTime.toISOString(),
-          end_time: endDateTime.toISOString(),
-          location: formData.location,
-          location_name: locationName || null,
-          sport: formData.sport,
-          color: sportDetails.color,
-          visibility: formData.visibility
+      if (formData.isRecurring && formData.recurrenceEndDate) {
+        const recurringGroupId = crypto.randomUUID();
+        const eventDates = generateRecurringEvents(
+          startDateTime,
+          new Date(`${formData.recurrenceEndDate}T${formData.time}`),
+          formData.recurrencePattern,
+          parseInt(formData.duration)
+        );
+
+        const eventsToInsert = eventDates.map((eventDate, index) => {
+          const eventStart = new Date(eventDate);
+          const eventEnd = new Date(eventStart.getTime() + parseInt(formData.duration) * 60000);
+
+          return {
+            profile_id: profileId,
+            title: formData.title,
+            description: formData.description,
+            start_time: eventStart.toISOString(),
+            end_time: eventEnd.toISOString(),
+            location: formData.location,
+            location_name: locationName || null,
+            sport: formData.sport,
+            color: sportDetails.color,
+            visibility: formData.visibility,
+            is_recurring: true,
+            recurring_group_id: recurringGroupId,
+            recurrence_pattern: formData.recurrencePattern,
+            recurrence_end_date: new Date(`${formData.recurrenceEndDate}T${formData.time}`).toISOString(),
+            parent_event_id: index === 0 ? null : undefined
+          };
         });
 
-      if (error) throw error;
+        const { data: insertedEvents, error: insertError } = await supabase
+          .from('events')
+          .insert(eventsToInsert)
+          .select('id');
+
+        if (insertError) throw insertError;
+
+        if (insertedEvents && insertedEvents.length > 0) {
+          const parentId = insertedEvents[0].id;
+          const updatePromises = insertedEvents.slice(1).map(event =>
+            supabase
+              .from('events')
+              .update({ parent_event_id: parentId })
+              .eq('id', event.id)
+          );
+          await Promise.all(updatePromises);
+        }
+      } else {
+        const { error } = await supabase
+          .from('events')
+          .insert({
+            profile_id: profileId,
+            title: formData.title,
+            description: formData.description,
+            start_time: startDateTime.toISOString(),
+            end_time: endDateTime.toISOString(),
+            location: formData.location,
+            location_name: locationName || null,
+            sport: formData.sport,
+            color: sportDetails.color,
+            visibility: formData.visibility,
+            is_recurring: false
+          });
+
+        if (error) throw error;
+      }
 
       onEventAdded();
       onClose();
@@ -292,6 +382,64 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
                 <option value="240">4 hours</option>
                 <option value="1440">1 day</option>
               </select>
+            </div>
+
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isRecurring"
+                  name="isRecurring"
+                  checked={formData.isRecurring}
+                  onChange={handleInputChange}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="isRecurring" className="ml-2 flex items-center text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <Repeat className="h-4 w-4 mr-1" />
+                  Recurring Event
+                </label>
+              </div>
+
+              {formData.isRecurring && (
+                <div className="mt-4 space-y-4 pl-6 border-l-2 border-blue-200 dark:border-blue-800">
+                  <div>
+                    <label htmlFor="recurrencePattern" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Frequency
+                    </label>
+                    <select
+                      id="recurrencePattern"
+                      name="recurrencePattern"
+                      value={formData.recurrencePattern}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="daily">Daily</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="biweekly">Every 2 Weeks</option>
+                      <option value="monthly">Monthly</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="recurrenceEndDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Ends On
+                    </label>
+                    <input
+                      type="date"
+                      id="recurrenceEndDate"
+                      name="recurrenceEndDate"
+                      value={formData.recurrenceEndDate}
+                      onChange={handleInputChange}
+                      min={formData.date}
+                      required={formData.isRecurring}
+                      className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                      Select the last date for this recurring event
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>

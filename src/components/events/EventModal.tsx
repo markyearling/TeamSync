@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, FileEdit as Edit, MessageCircle, AlertCircle } from 'lucide-react';
+import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, FileEdit as Edit, MessageCircle, AlertCircle, Trash2, Repeat } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import { GoogleMap } from '@react-google-maps/api';
@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 import EditEventModal from './EditEventModal';
 import EventMessagesModal from './EventMessagesModal';
 import ShareModal from './ShareModal';
+import RecurringEventActionModal from './RecurringEventActionModal';
 import { DateTime } from 'luxon';
 import { useCapacitor } from '../../hooks/useCapacitor';
 import ModalPortal from '../ModalPortal';
@@ -25,6 +26,9 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   const [showShareModal, setShowShareModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showMessagesModal, setShowMessagesModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRecurringActionModal, setShowRecurringActionModal] = useState(false);
+  const [recurringEventCount, setRecurringEventCount] = useState(0);
   const [mapCenter, setMapCenter] = useState<google.maps.LatLngLiteral | null>(null);
   const [geocodingAttempted, setGeocodingAttempted] = useState(false);
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
@@ -37,7 +41,73 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     if (onEventUpdated) {
       onEventUpdated();
     }
-    onClose(); // Close the modal after updating
+    onClose();
+  };
+
+  const handleDelete = async () => {
+    if (event.is_recurring && event.recurring_group_id) {
+      const { count } = await supabase
+        .from('events')
+        .select('*', { count: 'exact', head: true })
+        .eq('recurring_group_id', event.recurring_group_id)
+        .gte('start_time', event.startTime.toISOString());
+
+      setRecurringEventCount(count || 0);
+      setShowRecurringActionModal(true);
+    } else {
+      setShowDeleteConfirm(true);
+    }
+  };
+
+  const confirmDelete = async (applyToAll: boolean) => {
+    try {
+      if (applyToAll && event.recurring_group_id) {
+        const { error } = await supabase
+          .from('events')
+          .delete()
+          .eq('recurring_group_id', event.recurring_group_id)
+          .gte('start_time', event.startTime.toISOString());
+
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('events')
+          .delete()
+          .eq('id', event.id);
+
+        if (error) throw error;
+      }
+
+      if (onEventUpdated) {
+        onEventUpdated();
+      }
+      onClose();
+    } catch (err) {
+      console.error('Failed to delete event:', err);
+      alert('Failed to delete event. Please try again.');
+    }
+    setShowRecurringActionModal(false);
+    setShowDeleteConfirm(false);
+  };
+
+  const confirmSingleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', event.id);
+
+      if (error) throw error;
+
+      if (onEventUpdated) {
+        onEventUpdated();
+      }
+      onClose();
+    } catch (err) {
+      console.error('Failed to delete event:', err);
+      alert('Failed to delete event. Please try again.');
+    }
+    setShowDeleteConfirm(false);
   };
 
   // Open messages modal if shouldOpenMessages is true
@@ -249,23 +319,42 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
             </div>
             <div className="flex items-center space-x-2" style={{ position: 'relative', zIndex: 203 }}>
               {canEdit && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowEditModal(true);
-                  }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowEditModal(true);
-                  }}
-                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-blue-500 dark:text-gray-500 dark:active:text-blue-400 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
-                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                  title="Edit event"
-                >
-                  <Edit className="h-5 w-5" />
-                </button>
+                <>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowEditModal(true);
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowEditModal(true);
+                    }}
+                    className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-blue-500 dark:text-gray-500 dark:active:text-blue-400 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                    title="Edit event"
+                  >
+                    <Edit className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDelete();
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDelete();
+                    }}
+                    className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-red-500 dark:text-gray-500 dark:active:text-red-400 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                    title="Delete event"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </>
               )}
               <button
                 onClick={(e) => {
@@ -354,6 +443,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                       {event.sport}
                     </span>
                   </div>
+
+                  {event.is_recurring && (
+                    <div className="flex items-center text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg">
+                      <Repeat className="h-5 w-5 mr-2" />
+                      <span className="text-sm font-medium">Recurring Event</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex-shrink-0 ml-4">
@@ -509,10 +605,51 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
       )}
 
       {showMessagesModal && (
-        <EventMessagesModal 
-          event={event} 
+        <EventMessagesModal
+          event={event}
           onClose={() => setShowMessagesModal(false)}
         />
+      )}
+
+      {showRecurringActionModal && (
+        <RecurringEventActionModal
+          isOpen={showRecurringActionModal}
+          onClose={() => setShowRecurringActionModal(false)}
+          onConfirm={confirmDelete}
+          actionType="delete"
+          eventCount={recurringEventCount}
+        />
+      )}
+
+      {showDeleteConfirm && (
+        <ModalPortal>
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[220]">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Delete Event</h3>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-600 dark:text-gray-300">
+                  Are you sure you want to delete this event? This action cannot be undone.
+                </p>
+              </div>
+              <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmSingleDelete}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
       )}
     </ModalPortal>
   );

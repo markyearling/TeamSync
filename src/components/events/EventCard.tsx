@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Clock, User, AlertCircle } from 'lucide-react';
+import { MapPin, Clock, User, AlertCircle, Repeat } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import EventModal from './EventModal';
@@ -83,6 +83,12 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
                 )}
                 {event.sport}
               </span>
+              {event.is_recurring && (
+                <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 text-xs font-medium rounded flex items-center gap-1">
+                  <Repeat className="h-3 w-3" />
+                  Recurring
+                </span>
+              )}
               {event.is_cancelled && (
                 <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 text-xs font-bold rounded flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
