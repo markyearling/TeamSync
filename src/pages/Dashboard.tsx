@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Calendar as CalendarIcon, Users, Clock, ArrowRight, RefreshCw, UserPlus, Link as LinkIcon, MapPin } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import EventCard from '../components/events/EventCard';
 import ChildActivitySummary from '../components/dashboard/ChildActivitySummary';
 import ConnectedPlatform from '../components/dashboard/ConnectedPlatform';
@@ -1004,9 +1004,9 @@ const Dashboard: React.FC = () => {
               Upcoming Events
             </h2>
           </div>
-          <a href="/calendar" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center transition-colors">
+          <Link to="/calendar" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center transition-colors">
             View calendar <ArrowRight className="ml-1 h-4 w-4" />
-          </a>
+          </Link>
         </div>
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
           {upcomingEvents
@@ -1040,9 +1040,9 @@ const Dashboard: React.FC = () => {
               </div>
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Children's Activities</h2>
             </div>
-            <a href="/profiles" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center transition-colors">
+            <Link to="/profiles" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center transition-colors">
               View all <ArrowRight className="ml-1 h-4 w-4" />
-            </a>
+            </Link>
           </div>
           <div className="px-4 py-5 sm:px-6 space-y-4">
             {/* Own children */}
@@ -1136,9 +1136,9 @@ const Dashboard: React.FC = () => {
                 Syncing...
               </div>
             )}
-            <a href="/connections" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center transition-colors">
+            <Link to="/connections" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center transition-colors">
               Manage <ArrowRight className="ml-1 h-4 w-4" />
-            </a>
+            </Link>
           </div>
         </div>
         <div className="px-4 py-5 sm:px-6 space-y-4">
