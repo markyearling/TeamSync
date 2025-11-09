@@ -1,17 +1,22 @@
 import React, { ReactNode, useState, useEffect, useRef } from 'react';
-import { Bell, User, Search, Moon, Sun, LogOut, Users } from 'lucide-react';
+import { Plus, User, Search, Moon, Sun, LogOut, Users } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../hooks/useAuth';
-import NotificationCenter from '../notifications/NotificationCenter';
 import FriendsListModal from '../friends/FriendsListModal';
 import ChatModal from '../chat/ChatModal';
 import { supabase } from '../../lib/supabase';
 import EventModal from '../events/EventModal';
+import ProfileSelectionModal from '../events/ProfileSelectionModal';
+import AddEventModal from '../events/AddEventModal';
 import { Event } from '../../types';
 import { useCapacitor } from '../../hooks/useCapacitor';
 import { getSportDetails } from '../../utils/sports';
+import { useProfiles } from '../../context/ProfilesContext';
+import { useLoadScript, Libraries } from '@react-google-maps/api';
+
+const libraries: Libraries = ['places', 'marker'];
 
 interface HeaderProps {
   children?: ReactNode;
@@ -36,10 +41,9 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const { theme, toggleTheme } = useTheme();
   const { user: authUser } = useAuth();
   const { isIOS, isNative } = useCapacitor();
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const { profiles } = useProfiles();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(0);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [filteredFriends, setFilteredFriends] = useState<Friend[]>([]);
   const [friendSearchQuery, setFriendSearchQuery] = useState('');
@@ -50,17 +54,19 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [profileSelectionOpen, setProfileSelectionOpen] = useState(false);
+  const [addEventProfileId, setAddEventProfileId] = useState<string | null>(null);
+  const [userTimezone, setUserTimezone] = useState<string>('UTC');
   const searchRef = useRef<HTMLDivElement>(null);
   const friendsDropdownRef = useRef<HTMLDivElement>(null);
-  const notificationsRef = useRef<HTMLDivElement>(null);
-
-  // add missing subscription ref and notifications state used by the realtime handlers
-  const subscriptionRef = useRef<any | null>(null);
-  const [notifications, setNotifications] = useState<any[]>([]);
 
   const navigate = useNavigate();
 
-  const toggleNotifications = () => setNotificationsOpen(!notificationsOpen);
+  const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
+    libraries,
+    mapIds: [import.meta.env.VITE_GOOGLE_MAPS_MAP_ID || '']
+  });
 
   console.log('Header component rendered.');
 
@@ -81,61 +87,31 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   };
 
   useEffect(() => {
-    fetchNotificationCount();
+    const fetchUserTimezone = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-    // Set up real-time subscription for notifications count (excluding messages)
-    console.log('Header: Setting up notification subscription effect.');
+        const { data: userSettings, error } = await supabase
+          .from('user_settings')
+          .select('timezone')
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-    const setupNotificationSubscription = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+        if (error) {
+          console.error('Error fetching user timezone:', error);
+          return;
+        }
 
-      if (user) {
-        const notificationsSubscription = supabase
-          .channel(`header-notifications:user_id=eq.${user.id}`) // This channel name is fine as it's for a specific user's notifications table
-          .on(
-            'postgres_changes',
-            {
-              event: '*',
-              schema: 'public',
-              table: 'notifications'
-            },
-            (payload) => {
-              console.log('🔔 HEADER: Notification change received:', payload);
-              
-              if (payload.eventType === 'INSERT') {
-                const newNotification = payload.new as Notification;
-                if (newNotification && newNotification.type !== 'message') { // Only add non-message notifications
-                  setNotifications(prev => [newNotification, ...prev]);
-                }
-              } else if (payload.eventType === 'UPDATE') {
-                const updatedNotification = payload.new as Notification;
-                if (updatedNotification) {
-                  setNotifications(prev => 
-                    prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
-                  );
-                }
-              } else if (payload.eventType === 'DELETE') {
-                const deletedId = payload.old?.id; // Use payload.old for DELETE events
-                if (deletedId) {
-                  setNotifications(prev => prev.filter(n => n.id !== deletedId));
-                }
-              }
-              // Re-fetch notification count to ensure accuracy
-              fetchNotificationCount();
-            }
-          )
-          .subscribe();
-
-        // Store the subscription reference for cleanup
-        subscriptionRef.current = notificationsSubscription;
-
-        return () => {
-          notificationsSubscription.unsubscribe();
-        };
+        if (userSettings?.timezone) {
+          setUserTimezone(userSettings.timezone);
+        }
+      } catch (error) {
+        console.error('Error fetching user timezone:', error);
       }
     };
 
-    setupNotificationSubscription();
+    fetchUserTimezone();
   }, []);
 
   const fetchFriends = React.useCallback(async () => {
@@ -463,10 +439,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
       if (friendsDropdownRef.current && !friendsDropdownRef.current.contains(event.target as Node)) {
         setFriendsOpen(false);
       }
-
-      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
-        setNotificationsOpen(false);
-      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -592,26 +564,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     return () => clearTimeout(timeoutId);
   }, [searchQuery, authUser]);
 
-  const fetchNotificationCount = async () => {
-    try {
-      if (!authUser) return;
-
-      // Count unread notifications excluding message notifications
-      const { count, error: countError } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', authUser.id)
-        .eq('read', false)
-        .neq('type', 'message'); // Exclude message notifications
-
-      if (!countError) {
-        setNotificationCount(count || 0);
-      }
-    } catch (error) {
-      console.error('Error fetching notification count:', error);
-    }
-  };
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate('/auth/signin');
@@ -635,9 +587,17 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     navigate('/friends');
   };
 
-  const handleOpenChatFromNotification = (friendId: string, friendInfo: any) => {
-    setSelectedFriend(friendInfo);
-    setNotificationsOpen(false);
+  const handleAddEventClick = () => {
+    setProfileSelectionOpen(true);
+  };
+
+  const handleProfileSelected = (profileId: string) => {
+    setAddEventProfileId(profileId);
+    setProfileSelectionOpen(false);
+  };
+
+  const handleEventAdded = () => {
+    setAddEventProfileId(null);
   };
 
   const handleEventSelect = (event: Event) => {
@@ -674,7 +634,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   }, []);
 
   // Determine if header should be hidden (when full-screen modals are open)
-  const shouldHideHeader = selectedFriend !== null || selectedEvent !== null;
+  const shouldHideHeader = selectedFriend !== null || selectedEvent !== null || profileSelectionOpen || addEventProfileId !== null;
 
   return (
     <>
@@ -779,6 +739,16 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             </div>
 
             <div className="ml-auto flex items-center space-x-3">
+              {/* Add Event Button */}
+              <button
+                onClick={handleAddEventClick}
+                className="flex items-center px-3 py-1.5 bg-blue-600 dark:bg-blue-500 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors shadow-sm"
+                title="Add Event"
+              >
+                <Plus className="h-4 w-4 md:mr-1.5" />
+                <span className="hidden md:inline text-sm font-medium">Add Event</span>
+              </button>
+
               <button
                 onClick={toggleTheme}
                 className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -789,46 +759,6 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                   <Moon className="h-5 w-5" />
                 )}
               </button>
-
-              {/* Notifications */}
-              <div className="relative" ref={notificationsRef}>
-                <button
-                  type="button"
-                  className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white dark:bg-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onClick={toggleNotifications}
-                >
-                  <span className="sr-only">View notifications</span>
-                  <Bell className="h-5 w-5" />
-                  {notificationCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white font-medium">
-                      {notificationCount > 99 ? '99+' : notificationCount}
-                    </span>
-                  )}
-                </button>
-
-                {notificationsOpen && (
-                  isNative ? (
-                    <div className="fixed inset-0 z-40 bg-white dark:bg-gray-800" style={{
-                      top: 'env(safe-area-inset-top, 0px)',
-                      bottom: 'env(safe-area-inset-bottom, 0px)',
-                      left: 'env(safe-area-inset-left, 0px)',
-                      right: 'env(safe-area-inset-right, 0px)'
-                    }}>
-                      <NotificationCenter
-                        onClose={() => setNotificationsOpen(false)}
-                        onOpenChat={handleOpenChatFromNotification}
-                      />
-                    </div>
-                  ) : (
-                    <div className="absolute right-0 mt-2 w-full md:w-96 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-40">
-                      <NotificationCenter 
-                        onClose={() => setNotificationsOpen(false)} 
-                        onOpenChat={handleOpenChatFromNotification}
-                      />
-                    </div>
-                  )
-                )}
-              </div>
 
               {/* Friends Dropdown */}
               <div className="relative" ref={friendsDropdownRef}>
@@ -929,6 +859,27 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
           onClose={handleCloseEventModal}
           mapsLoaded={true}
           mapsLoadError={undefined}
+        />
+      )}
+
+      {/* Profile Selection Modal */}
+      {profileSelectionOpen && (
+        <ProfileSelectionModal
+          onClose={() => setProfileSelectionOpen(false)}
+          onProfileSelected={handleProfileSelected}
+        />
+      )}
+
+      {/* Add Event Modal */}
+      {addEventProfileId && (
+        <AddEventModal
+          profileId={addEventProfileId}
+          onClose={() => setAddEventProfileId(null)}
+          onEventAdded={handleEventAdded}
+          sports={profiles.find(p => p.id === addEventProfileId)?.sports || []}
+          mapsLoaded={mapsLoaded}
+          mapsLoadError={mapsLoadError}
+          userTimezone={userTimezone}
         />
       )}
     </>
