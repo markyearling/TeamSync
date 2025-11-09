@@ -471,7 +471,7 @@ Deno.serve(async (req: Request) => {
       console.log('[SportsEngine Sync] Fetching existing events from database...');
       const { data: existingEventsData } = await supabaseClient
         .from('events')
-        .select('id, external_id, location, location_name')
+        .select('id, external_id, location, location_name, geocoding_attempted')
         .eq('platform_team_id', teamId)
         .eq('platform', 'SportsEngine')
         .not('external_id', 'is', null);
@@ -488,7 +488,8 @@ Deno.serve(async (req: Request) => {
         preserved: 0,
         geocoded: 0,
         failed: 0,
-        noApiKey: 0
+        noApiKey: 0,
+        skippedAlreadyAttempted: 0
       };
 
       console.log('[SportsEngine Sync] Starting event enrichment with geocoding...');
@@ -499,14 +500,17 @@ Deno.serve(async (req: Request) => {
         const existingEvent = existingEventsDataMap.get(event.external_id);
         const locationChanged = !existingEvent || existingEvent.location !== event.location;
         const hasValidLocationName = existingEvent?.location_name && existingEvent.location_name.trim() !== '';
-        const needsGeocode = event.location && event.location.trim() !== '' && (!hasValidLocationName || locationChanged);
+        const alreadyAttemptedGeocodingForSameLocation = existingEvent?.geocoding_attempted && !locationChanged;
+        const needsGeocode = event.location && event.location.trim() !== '' && (!hasValidLocationName || locationChanged) && !alreadyAttemptedGeocodingForSameLocation;
 
         console.log(`[SportsEngine Sync] Event ${event.external_id} geocoding decision:`);
         console.log(`[SportsEngine Sync]   - existingEvent: ${!!existingEvent}`);
         console.log(`[SportsEngine Sync]   - existing location: "${existingEvent?.location || 'N/A'}"`);
         console.log(`[SportsEngine Sync]   - existing location_name: "${existingEvent?.location_name || 'N/A'}"`);
+        console.log(`[SportsEngine Sync]   - existing geocoding_attempted: ${existingEvent?.geocoding_attempted || false}`);
         console.log(`[SportsEngine Sync]   - locationChanged: ${locationChanged}`);
         console.log(`[SportsEngine Sync]   - hasValidLocationName: ${hasValidLocationName}`);
+        console.log(`[SportsEngine Sync]   - alreadyAttemptedGeocodingForSameLocation: ${alreadyAttemptedGeocodingForSameLocation}`);
         console.log(`[SportsEngine Sync]   - needsGeocode: ${needsGeocode}`);
 
         if (needsGeocode && googleMapsApiKey) {
@@ -517,26 +521,36 @@ Deno.serve(async (req: Request) => {
             if (geocodeResult.locationName) {
               console.log(`[SportsEngine Sync] Event ${event.external_id}: ✓ Geocoded successfully: "${event.location}" -> "${geocodeResult.locationName}"`);
               geocodingStats.geocoded++;
-              return { ...event, location_name: geocodeResult.locationName };
+              return { ...event, location_name: geocodeResult.locationName, geocoding_attempted: true };
             } else {
               console.warn(`[SportsEngine Sync] Event ${event.external_id}: ⚠ No location name found for: "${event.location}"`);
               geocodingStats.failed++;
+              return { ...event, geocoding_attempted: true };
             }
           } catch (error) {
             console.error(`[SportsEngine Sync] Event ${event.external_id}: ✗ Geocoding exception for: "${event.location}"`, error);
             geocodingStats.failed++;
+            return { ...event, geocoding_attempted: true };
           }
         } else if (needsGeocode && !googleMapsApiKey) {
           console.warn(`[SportsEngine Sync] Event ${event.external_id}: ⚠ Needs geocoding but API key is missing`);
           geocodingStats.noApiKey++;
+        } else if (alreadyAttemptedGeocodingForSameLocation) {
+          console.log(`[SportsEngine Sync] Event ${event.external_id}: Skipping geocoding - already attempted for this location`);
+          geocodingStats.skippedAlreadyAttempted++;
+          if (hasValidLocationName) {
+            return { ...event, location_name: existingEvent.location_name, geocoding_attempted: true };
+          }
+          return { ...event, geocoding_attempted: true };
         } else if (hasValidLocationName && !locationChanged) {
           console.log(`[SportsEngine Sync] Event ${event.external_id}: Preserving existing location_name: "${existingEvent.location_name}"`);
           geocodingStats.preserved++;
-          return { ...event, location_name: existingEvent.location_name };
+          return { ...event, location_name: existingEvent.location_name, geocoding_attempted: true };
         } else if (!event.location || event.location.trim() === '') {
           console.log(`[SportsEngine Sync] Event ${event.external_id}: No location address, skipping geocoding`);
         }
-        return event;
+        // Reset geocoding_attempted to false when location changes
+        return { ...event, geocoding_attempted: locationChanged ? false : (existingEvent?.geocoding_attempted || false) };
       }));
 
       console.log(`[SportsEngine Sync] ========================================`);
@@ -545,6 +559,7 @@ Deno.serve(async (req: Request) => {
       console.log(`[SportsEngine Sync]   - Successfully geocoded: ${geocodingStats.geocoded}`);
       console.log(`[SportsEngine Sync]   - Preserved existing: ${geocodingStats.preserved}`);
       console.log(`[SportsEngine Sync]   - Failed to geocode: ${geocodingStats.failed}`);
+      console.log(`[SportsEngine Sync]   - Skipped (already attempted): ${geocodingStats.skippedAlreadyAttempted}`);
       console.log(`[SportsEngine Sync]   - Missing API key: ${geocodingStats.noApiKey}`);
       console.log(`[SportsEngine Sync] ========================================`);
 

@@ -211,7 +211,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     console.log(`[TeamSnap Sync] Fetching existing events from database...`);
     const { data: existingEventsData } = await supabaseClient
       .from('events')
-      .select('id, external_id, location, location_name')
+      .select('id, external_id, location, location_name, geocoding_attempted')
       .eq('platform_team_id', teamId)
       .eq('platform', 'TeamSnap')
       .not('external_id', 'is', null);
@@ -229,7 +229,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
       preserved: 0,
       geocoded: 0,
       failed: 0,
-      noApiKey: 0
+      noApiKey: 0,
+      skippedAlreadyAttempted: 0
     };
 
     // Helper function to detect if an event is cancelled
@@ -279,20 +280,24 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       const locationAddress = event.location_name || '';
       let locationName: string | null = null;
+      let geocodingAttempted = false;
 
       console.log(`[TeamSnap Sync] Event ${event.id}: location from API: "${locationAddress}"`);
 
       const existingEvent = existingEventsDataMap.get(String(event.id));
       const locationChanged = !existingEvent || existingEvent.location !== locationAddress;
       const hasValidLocationName = existingEvent?.location_name && existingEvent.location_name.trim() !== '';
-      const needsGeocode = locationAddress && locationAddress.trim() !== '' && (!hasValidLocationName || locationChanged);
+      const alreadyAttemptedGeocodingForSameLocation = existingEvent?.geocoding_attempted && !locationChanged;
+      const needsGeocode = locationAddress && locationAddress.trim() !== '' && (!hasValidLocationName || locationChanged) && !alreadyAttemptedGeocodingForSameLocation;
 
       console.log(`[TeamSnap Sync] Event ${event.id} geocoding decision:`);
       console.log(`[TeamSnap Sync]   - existingEvent: ${!!existingEvent}`);
       console.log(`[TeamSnap Sync]   - existing location: "${existingEvent?.location || 'N/A'}"`);
       console.log(`[TeamSnap Sync]   - existing location_name: "${existingEvent?.location_name || 'N/A'}"`);
+      console.log(`[TeamSnap Sync]   - existing geocoding_attempted: ${existingEvent?.geocoding_attempted || false}`);
       console.log(`[TeamSnap Sync]   - locationChanged: ${locationChanged}`);
       console.log(`[TeamSnap Sync]   - hasValidLocationName: ${hasValidLocationName}`);
+      console.log(`[TeamSnap Sync]   - alreadyAttemptedGeocodingForSameLocation: ${alreadyAttemptedGeocodingForSameLocation}`);
       console.log(`[TeamSnap Sync]   - needsGeocode: ${needsGeocode}`);
 
       if (needsGeocode && googleMapsApiKey) {
@@ -301,6 +306,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
           console.log(`[TeamSnap Sync] Event ${event.id}: Calling geocoding API for: "${locationAddress}"`);
           const geocodeResult = await geocodeAddress(locationAddress, googleMapsApiKey, supabaseClient);
           locationName = geocodeResult.locationName;
+          geocodingAttempted = true;
           if (locationName) {
             console.log(`[TeamSnap Sync] Event ${event.id}: ✓ Geocoded successfully: "${locationAddress}" -> "${locationName}"`);
             geocodingStats.geocoded++;
@@ -311,16 +317,30 @@ Deno.serve(async (req: Request): Promise<Response> => {
         } catch (error) {
           console.error(`[TeamSnap Sync] Event ${event.id}: ✗ Geocoding exception for: "${locationAddress}"`, error);
           geocodingStats.failed++;
+          geocodingAttempted = true;
         }
       } else if (needsGeocode && !googleMapsApiKey) {
         console.warn(`[TeamSnap Sync] Event ${event.id}: ⚠ Needs geocoding but API key is missing`);
         geocodingStats.noApiKey++;
+      } else if (alreadyAttemptedGeocodingForSameLocation) {
+        console.log(`[TeamSnap Sync] Event ${event.id}: Skipping geocoding - already attempted for this location`);
+        geocodingStats.skippedAlreadyAttempted++;
+        locationName = existingEvent.location_name;
+        geocodingAttempted = true;
       } else if (hasValidLocationName && !locationChanged) {
         locationName = existingEvent.location_name;
+        geocodingAttempted = true;
         console.log(`[TeamSnap Sync] Event ${event.id}: Preserving existing location_name: "${locationName}"`);
         geocodingStats.preserved++;
       } else if (!locationAddress || locationAddress.trim() === '') {
         console.log(`[TeamSnap Sync] Event ${event.id}: No location address, skipping geocoding`);
+      }
+
+      // Reset geocoding_attempted to false when location changes
+      if (locationChanged) {
+        geocodingAttempted = false;
+      } else if (existingEvent?.geocoding_attempted) {
+        geocodingAttempted = true;
       }
 
       return {
@@ -338,7 +358,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         platform_team_id: teamId,
         profile_id: profileId,
         visibility: 'public',
-        is_cancelled: isCancelled
+        is_cancelled: isCancelled,
+        geocoding_attempted: geocodingAttempted
       };
     }));
 
@@ -348,6 +369,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
     console.log(`[TeamSnap Sync]   - Successfully geocoded: ${geocodingStats.geocoded}`);
     console.log(`[TeamSnap Sync]   - Preserved existing: ${geocodingStats.preserved}`);
     console.log(`[TeamSnap Sync]   - Failed to geocode: ${geocodingStats.failed}`);
+    console.log(`[TeamSnap Sync]   - Skipped (already attempted): ${geocodingStats.skippedAlreadyAttempted}`);
     console.log(`[TeamSnap Sync]   - Missing API key: ${geocodingStats.noApiKey}`);
     console.log(`[TeamSnap Sync] ========================================`);
     console.log(`[TeamSnap Sync] Transformed ${eventsToUpsert.length} valid events for database upsert`);
