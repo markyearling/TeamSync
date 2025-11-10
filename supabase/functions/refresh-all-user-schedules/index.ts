@@ -10,6 +10,7 @@ interface SyncResult {
   teamId: string;
   teamName: string;
   platform: string;
+  userId: string;
   status: 'success' | 'error' | 'skipped';
   message?: string;
   profileCount?: number;
@@ -17,6 +18,7 @@ interface SyncResult {
 }
 
 Deno.serve(async (req) => {
+  const executionStartTime = Date.now();
   console.log('=== Refresh All User Schedules Function Started ===');
   console.log('Request method:', req.method);
   console.log('Request URL:', req.url);
@@ -29,6 +31,8 @@ Deno.serve(async (req) => {
       headers: corsHeaders,
     });
   }
+
+  let logId: string | null = null;
 
   try {
     // Initialize Supabase client with service role key for admin access
@@ -43,6 +47,28 @@ Deno.serve(async (req) => {
     );
 
     console.log('Supabase client initialized with service role key');
+
+    // Create initial log entry
+    const { data: logEntry, error: logError } = await supabaseClient
+      .from('schedule_refresh_logs')
+      .insert({
+        started_at: new Date().toISOString(),
+        total_teams: 0,
+        successful_teams: 0,
+        failed_teams: 0,
+        skipped_teams: 0,
+        total_events_synced: 0,
+        total_users_affected: 0
+      })
+      .select()
+      .single();
+
+    if (logError) {
+      console.error('Error creating log entry:', logError);
+    } else {
+      logId = logEntry.id;
+      console.log(`Created log entry with ID: ${logId}`);
+    }
 
     // Fetch all platform teams from the database
     console.log('Fetching all platform teams...');
@@ -77,9 +103,12 @@ Deno.serve(async (req) => {
     let totalTeamsProcessed = 0;
     let totalSuccessfulSyncs = 0;
     let totalErrors = 0;
+    const affectedUserIds = new Set<string>();
 
     // Process each platform team
     for (const team of platformTeams) {
+      // Track the user who owns this team
+      affectedUserIds.add(team.user_id);
       totalTeamsProcessed++;
       console.log(`\n--- Processing team ${totalTeamsProcessed}/${platformTeams.length}: ${team.team_name} (${team.platform}) ---`);
 
@@ -101,6 +130,7 @@ Deno.serve(async (req) => {
             teamId: team.id,
             teamName: team.team_name,
             platform: team.platform,
+            userId: team.user_id,
             status: 'skipped',
             message: 'No profiles mapped to this team',
             profileCount: 0
@@ -227,6 +257,7 @@ Deno.serve(async (req) => {
           teamId: team.id,
           teamName: team.team_name,
           platform: team.platform,
+          userId: team.user_id,
           status: finalSyncStatus,
           profileCount: profileMappings.length,
           eventCount: totalEventsForTeam
@@ -263,6 +294,7 @@ Deno.serve(async (req) => {
           teamId: team.id,
           teamName: team.team_name,
           platform: team.platform,
+          userId: team.user_id,
           status: 'error',
           message: teamProcessError.message || 'Unknown processing error'
         });
@@ -270,12 +302,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Calculate execution duration
+    const executionDuration = Date.now() - executionStartTime;
+
     // Log final summary
     console.log('\n=== SYNC SUMMARY ===');
     console.log(`Total teams processed: ${totalTeamsProcessed}`);
     console.log(`Successful syncs: ${totalSuccessfulSyncs}`);
     console.log(`Errors: ${totalErrors}`);
     console.log(`Skipped: ${syncResults.filter(r => r.status === 'skipped').length}`);
+    console.log(`Total users affected: ${affectedUserIds.size}`);
+    console.log(`Execution duration: ${executionDuration}ms`);
 
     // Group results by status for the response
     const summary = {
@@ -283,17 +320,65 @@ Deno.serve(async (req) => {
       successful: totalSuccessfulSyncs,
       errors: totalErrors,
       skipped: syncResults.filter(r => r.status === 'skipped').length,
-      totalEvents: syncResults.reduce((sum, r) => sum + (r.eventCount || 0), 0)
+      totalEvents: syncResults.reduce((sum, r) => sum + (r.eventCount || 0), 0),
+      totalUsersAffected: affectedUserIds.size,
+      executionDurationMs: executionDuration
     };
+
+    // Update last_dashboard_refresh for all affected users
+    console.log('\n=== Updating last_dashboard_refresh for affected users ===');
+    const refreshTimestamp = new Date().toISOString();
+    for (const userId of affectedUserIds) {
+      try {
+        const { error: updateError } = await supabaseClient
+          .from('user_settings')
+          .update({ last_dashboard_refresh: refreshTimestamp })
+          .eq('user_id', userId);
+
+        if (updateError) {
+          console.error(`Error updating last_dashboard_refresh for user ${userId}:`, updateError);
+        } else {
+          console.log(`✅ Updated last_dashboard_refresh for user ${userId}`);
+        }
+      } catch (updateErr) {
+        console.error(`Exception updating last_dashboard_refresh for user ${userId}:`, updateErr);
+      }
+    }
+
+    // Update the log entry with final statistics
+    if (logId) {
+      console.log('\n=== Updating log entry ===');
+      const { error: logUpdateError } = await supabaseClient
+        .from('schedule_refresh_logs')
+        .update({
+          completed_at: new Date().toISOString(),
+          total_teams: totalTeamsProcessed,
+          successful_teams: totalSuccessfulSyncs,
+          failed_teams: totalErrors,
+          skipped_teams: syncResults.filter(r => r.status === 'skipped').length,
+          total_events_synced: syncResults.reduce((sum, r) => sum + (r.eventCount || 0), 0),
+          total_users_affected: affectedUserIds.size,
+          execution_duration_ms: executionDuration,
+          results: syncResults
+        })
+        .eq('id', logId);
+
+      if (logUpdateError) {
+        console.error('Error updating log entry:', logUpdateError);
+      } else {
+        console.log(`✅ Updated log entry ${logId} with final statistics`);
+      }
+    }
 
     console.log('Refresh-all-user-schedules function completed successfully');
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         message: `Processed ${totalTeamsProcessed} teams: ${totalSuccessfulSyncs} successful, ${totalErrors} errors`,
         summary,
-        results: syncResults
+        results: syncResults,
+        logId
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -307,11 +392,45 @@ Deno.serve(async (req) => {
     console.error('Error message:', error instanceof Error ? error.message : 'Unknown error');
     console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
 
+    // Update log entry with error details if we have a logId
+    if (logId) {
+      try {
+        const supabaseClient = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+          {
+            auth: {
+              persistSession: false,
+            }
+          }
+        );
+
+        const executionDuration = Date.now() - executionStartTime;
+        await supabaseClient
+          .from('schedule_refresh_logs')
+          .update({
+            completed_at: new Date().toISOString(),
+            execution_duration_ms: executionDuration,
+            error_details: {
+              error: error instanceof Error ? error.message : 'Unknown error',
+              stack: error instanceof Error ? error.stack : undefined,
+              timestamp: new Date().toISOString()
+            }
+          })
+          .eq('id', logId);
+
+        console.log(`Updated log entry ${logId} with error details`);
+      } catch (logUpdateError) {
+        console.error('Failed to update log entry with error:', logUpdateError);
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : 'An unknown error occurred during global refresh',
-        details: error instanceof Error ? error.stack : undefined
+        details: error instanceof Error ? error.stack : undefined,
+        logId
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
