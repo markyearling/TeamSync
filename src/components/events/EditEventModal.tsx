@@ -151,9 +151,11 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
       setShowRecurringActionModal(false);
       onEventUpdated();
+      onClose();
     } catch (err) {
       console.error('Failed to update event:', err);
       setError('Failed to update event. Please try again.');
+      setShowRecurringActionModal(false);
     } finally {
       setSaving(false);
     }
