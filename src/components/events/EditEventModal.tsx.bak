@@ -96,7 +96,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     }
   };
 
-  const performUpdate = async (applyToAll: boolean): Promise<void> => {
+  const performUpdate = async (applyToAll: boolean) => {
     setSaving(true);
     setError(null);
 
@@ -149,22 +149,13 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         if (updateError) throw updateError;
       }
 
-      // Close recurring action modal if it was open
       setShowRecurringActionModal(false);
-      
-      // Notify parent and close
       onEventUpdated();
       onClose();
     } catch (err) {
       console.error('Failed to update event:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update event. Please try again.';
-      setError(errorMessage);
-      
-      // Close recurring action modal to return user to edit form
+      setError('Failed to update event. Please try again.');
       setShowRecurringActionModal(false);
-      
-      // Re-throw to let RecurringEventActionModal know there was an error
-      throw err;
     } finally {
       setSaving(false);
     }
@@ -411,7 +402,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
             <button
               type="submit"
               disabled={saving}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center"
             >
               {saving ? (
                 <>

@@ -59,7 +59,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     }
   };
 
-  const confirmDelete = async (applyToAll: boolean): Promise<void> => {
+  const confirmDelete = async (applyToAll: boolean) => {
     try {
       if (applyToAll && event.recurring_group_id) {
         const { error } = await supabase
@@ -78,26 +78,16 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
         if (error) throw error;
       }
 
-      // Close recurring action modal
-      setShowRecurringActionModal(false);
-      
-      // Notify parent and close
       if (onEventUpdated) {
         onEventUpdated();
       }
       onClose();
     } catch (err) {
       console.error('Failed to delete event:', err);
-      
-      // Close recurring action modal to return user to event view
-      setShowRecurringActionModal(false);
-      
-      // Show alert for delete errors (since we don't have an error state in EventModal)
       alert('Failed to delete event. Please try again.');
-      
-      // Re-throw to let RecurringEventActionModal know there was an error
-      throw err;
     }
+    setShowRecurringActionModal(false);
+    setShowDeleteConfirm(false);
   };
 
   const confirmSingleDelete = async () => {
