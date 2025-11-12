@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavig
 import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Calendar from './pages/Calendar';
+import Lists from './pages/Lists';
+import ListView from './pages/ListView';
 import Connections from './pages/Connections';
 import TeamSnapConnection from './pages/connections/TeamSnapConnection';
 import TeamSnapCallback from './pages/connections/TeamSnapCallback';
@@ -354,6 +356,20 @@ const AppContent: React.FC<AppContentProps> = ({ fcmToken, fcmRegistered }) => {
         <ProtectedRoute>
           <Layout>
             <Calendar />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/lists" element={
+        <ProtectedRoute>
+          <Layout>
+            <Lists />
+          </Layout>
+        </ProtectedRoute>
+      } />
+      <Route path="/lists/:listId" element={
+        <ProtectedRoute>
+          <Layout>
+            <ListView />
           </Layout>
         </ProtectedRoute>
       } />

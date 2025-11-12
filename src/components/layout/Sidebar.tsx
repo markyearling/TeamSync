@@ -13,7 +13,8 @@ import {
   HelpCircle,
   Shield,
   Eye,
-  MessageCircle
+  MessageCircle,
+  ListChecks
 } from 'lucide-react';
 import { useProfiles } from '../../context/ProfilesContext';
 import { useCapacitor } from '../../hooks/useCapacitor';
@@ -31,9 +32,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
   const navigation = [
     { name: 'Dashboard', icon: Home, href: '/dashboard' },
     { name: 'Calendar', icon: Calendar, href: '/calendar' },
-    { 
-      name: 'Connections', 
-      icon: LinkIcon, 
+    { name: 'Lists', icon: ListChecks, href: '/lists' },
+    {
+      name: 'Connections',
+      icon: LinkIcon,
       href: '/connections',
       hasSubItems: true,
       subItems: [
