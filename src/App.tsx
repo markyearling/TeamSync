@@ -34,6 +34,7 @@ import { AppProvider } from './context/AppContext';
 import { ModalProvider } from './context/ModalContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ProfilesProvider } from './context/ProfilesContext';
+import { PageRefreshProvider } from './context/PageRefreshContext';
 import { useAuth } from './hooks/useAuth';
 import { useCapacitor } from './hooks/useCapacitor';
 import { useScheduledNotifications } from './hooks/useScheduledNotifications';
@@ -453,11 +454,13 @@ export default function App() {
             <AppProvider>
               <ModalProvider>
                 <ProfilesProvider>
-                  <MobileOptimizations>
-                    <Suspense fallback={<LoadingSpinner />}>
-                      <AppContent fcmToken={fcmToken} fcmRegistered={fcmRegistered} />
-                    </Suspense>
-                  </MobileOptimizations>
+                  <PageRefreshProvider>
+                    <MobileOptimizations>
+                      <Suspense fallback={<LoadingSpinner />}>
+                        <AppContent fcmToken={fcmToken} fcmRegistered={fcmRegistered} />
+                      </Suspense>
+                    </MobileOptimizations>
+                  </PageRefreshProvider>
                 </ProfilesProvider>
               </ModalProvider>
             </AppProvider>

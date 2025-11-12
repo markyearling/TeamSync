@@ -13,6 +13,7 @@ import { DateTime } from 'luxon';
 import { getSportDetails } from '../utils/sports';
 import { useCapacitor } from '../hooks/useCapacitor';
 import EventModal from '../components/events/EventModal';
+import { usePageRefresh } from '../context/PageRefreshContext';
 
 // Define libraries outside component to prevent recreation on each render
 const libraries: Libraries = ['places', 'marker'];
@@ -23,6 +24,7 @@ const MIN_REFRESH_INTERVAL = 5000;
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { profiles, friendsProfiles, fetchAllProfiles } = useProfiles();
+  const { registerRefreshHandler, unregisterRefreshHandler } = usePageRefresh();
   const [events, setEvents] = useState<Event[]>([]);
   const [friendsEvents, setFriendsEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -310,6 +312,13 @@ const Dashboard: React.FC = () => {
       console.error('Error refreshing dashboard events:', error);
     }
   }, [fetchOwnEvents, fetchFriendsEvents]);
+
+  useEffect(() => {
+    registerRefreshHandler(refreshDashboardEvents);
+    return () => {
+      unregisterRefreshHandler();
+    };
+  }, [registerRefreshHandler, unregisterRefreshHandler, refreshDashboardEvents]);
 
   // Separate effect to determine onboarding completion status
   useEffect(() => {

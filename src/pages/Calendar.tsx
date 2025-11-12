@@ -20,6 +20,7 @@ import { useLoadScript, Libraries } from '@react-google-maps/api';
 import EventModal from '../components/events/EventModal';
 import { DateTime } from 'luxon';
 import { getSportDetails } from '../utils/sports';
+import { usePageRefresh } from '../context/PageRefreshContext';
 
 // Define libraries outside component to prevent recreation on each render
 const libraries: Libraries = ['places', 'marker'];
@@ -28,6 +29,7 @@ type ViewType = 'month' | 'week' | 'day' | 'agenda';
 
 const Calendar: React.FC = () => {
   const { profiles, friendsProfiles } = useProfiles();
+  const { registerRefreshHandler, unregisterRefreshHandler } = usePageRefresh();
   const location = useLocation();
   const [events, setEvents] = useState<Event[]>([]);
   const [friendsEvents, setFriendsEvents] = useState<Event[]>([]);
@@ -181,6 +183,13 @@ const Calendar: React.FC = () => {
       console.error('Error refreshing calendar events:', error);
     }
   }, [fetchOwnEvents, fetchFriendsEvents]);
+
+  useEffect(() => {
+    registerRefreshHandler(refreshCalendarEvents);
+    return () => {
+      unregisterRefreshHandler();
+    };
+  }, [registerRefreshHandler, unregisterRefreshHandler, refreshCalendarEvents]);
 
   // Define fetchAllData at component level
   const fetchAllData = useCallback(async () => {

@@ -15,6 +15,7 @@ import { useCapacitor } from '../../hooks/useCapacitor';
 import { getSportDetails } from '../../utils/sports';
 import { useProfiles } from '../../context/ProfilesContext';
 import { useLoadScript, Libraries } from '@react-google-maps/api';
+import { usePageRefresh } from '../../context/PageRefreshContext';
 
 const libraries: Libraries = ['places', 'marker'];
 
@@ -42,6 +43,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const { user: authUser } = useAuth();
   const { isIOS, isNative } = useCapacitor();
   const { profiles } = useProfiles();
+  const { triggerRefresh } = usePageRefresh();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [friends, setFriends] = useState<Friend[]>([]);
@@ -598,6 +600,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
   const handleEventAdded = () => {
     setAddEventProfileId(null);
+    triggerRefresh();
   };
 
   const handleEventSelect = (event: Event) => {
