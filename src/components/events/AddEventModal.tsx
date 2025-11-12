@@ -8,6 +8,7 @@ import { availableSports, getSportDetails } from '../../utils/sports';
 import { getLocationNameFromPlace, geocodeAddress } from '../../utils/geocoding';
 import ModalPortal from '../ModalPortal';
 import { RecurrencePattern } from '../../types';
+import { DateTime } from 'luxon';
 
 interface AddEventModalProps {
   profileId: string;
@@ -125,7 +126,12 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     e.preventDefault();
 
     try {
-      const startDateTime = new Date(`${formData.date}T${formData.time}`);
+      const startDateTimeInUserTz = DateTime.fromFormat(
+        `${formData.date} ${formData.time}`,
+        'yyyy-MM-dd HH:mm',
+        { zone: userTimezone }
+      );
+      const startDateTime = startDateTimeInUserTz.toJSDate();
       const endDateTime = new Date(startDateTime.getTime() + parseInt(formData.duration) * 60000);
       const sportDetails = getSportDetails(formData.sport);
 
@@ -146,9 +152,15 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
 
       if (formData.isRecurring && formData.recurrenceEndDate) {
         const recurringGroupId = crypto.randomUUID();
+        const recurrenceEndDateTimeInUserTz = DateTime.fromFormat(
+          `${formData.recurrenceEndDate} ${formData.time}`,
+          'yyyy-MM-dd HH:mm',
+          { zone: userTimezone }
+        );
+        const recurrenceEndDateTime = recurrenceEndDateTimeInUserTz.toJSDate();
         const eventDates = generateRecurringEvents(
           startDateTime,
-          new Date(`${formData.recurrenceEndDate}T${formData.time}`),
+          recurrenceEndDateTime,
           formData.recurrencePattern,
           parseInt(formData.duration)
         );
@@ -171,7 +183,7 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
             is_recurring: true,
             recurring_group_id: recurringGroupId,
             recurrence_pattern: formData.recurrencePattern,
-            recurrence_end_date: new Date(`${formData.recurrenceEndDate}T${formData.time}`).toISOString(),
+            recurrence_end_date: recurrenceEndDateTime.toISOString(),
             parent_event_id: index === 0 ? null : undefined
           };
         });

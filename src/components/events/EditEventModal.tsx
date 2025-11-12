@@ -9,6 +9,7 @@ import ModalPortal from '../ModalPortal';
 import { availableSports, getSportDetails } from '../../utils/sports';
 import { getLocationNameFromPlace, geocodeAddress } from '../../utils/geocoding';
 import RecurringEventActionModal from './RecurringEventActionModal';
+import { DateTime } from 'luxon';
 
 interface EditEventModalProps {
   event: Event;
@@ -19,19 +20,21 @@ interface EditEventModalProps {
   userTimezone?: string;
 }
 
-const EditEventModal: React.FC<EditEventModalProps> = ({ 
-  event, 
-  onClose, 
-  onEventUpdated, 
-  mapsLoaded, 
+const EditEventModal: React.FC<EditEventModalProps> = ({
+  event,
+  onClose,
+  onEventUpdated,
+  mapsLoaded,
   mapsLoadError,
   userTimezone = 'UTC'
 }) => {
+  const eventDateTimeInUserTz = DateTime.fromJSDate(event.startTime).setZone(userTimezone);
+
   const [formData, setFormData] = useState({
     title: event.title,
     description: event.description || '',
-    date: event.startTime.toISOString().split('T')[0],
-    time: event.startTime.toTimeString().slice(0, 5),
+    date: eventDateTimeInUserTz.toFormat('yyyy-MM-dd'),
+    time: eventDateTimeInUserTz.toFormat('HH:mm'),
     duration: Math.round((event.endTime.getTime() - event.startTime.getTime()) / 60000).toString(),
     location: event.location || '',
     locationName: event.location_name || '',
@@ -105,7 +108,12 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     setError(null);
 
     try {
-      const startDateTime = new Date(`${formData.date}T${formData.time}`);
+      const startDateTimeInUserTz = DateTime.fromFormat(
+        `${formData.date} ${formData.time}`,
+        'yyyy-MM-dd HH:mm',
+        { zone: userTimezone }
+      );
+      const startDateTime = startDateTimeInUserTz.toJSDate();
       const endDateTime = new Date(startDateTime.getTime() + parseInt(formData.duration) * 60000);
       const sportDetails = getSportDetails(formData.sport);
 
@@ -139,13 +147,51 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
       console.log('[EditEventModal] About to update database. applyToAll:', applyToAll, 'recurring_group_id:', event.recurring_group_id);
       if (applyToAll && event.recurring_group_id) {
         console.log('[EditEventModal] Updating all events in series');
-        const { error: updateError } = await supabase
-          .from('events')
-          .update(updateData)
-          .eq('recurring_group_id', event.recurring_group_id)
-          .gte('start_time', event.startTime.toISOString());
 
-        if (updateError) throw updateError;
+        const { data: seriesEvents, error: fetchError } = await supabase
+          .from('events')
+          .select('id, start_time, end_time')
+          .eq('recurring_group_id', event.recurring_group_id)
+          .gte('start_time', event.startTime.toISOString())
+          .order('start_time', { ascending: true });
+
+        if (fetchError) throw fetchError;
+        if (!seriesEvents || seriesEvents.length === 0) {
+          throw new Error('No events found in recurring series');
+        }
+
+        const originalStartTime = event.startTime.getTime();
+        const newStartTime = startDateTime.getTime();
+        const timeShift = newStartTime - originalStartTime;
+        const durationMs = parseInt(formData.duration) * 60000;
+
+        const updates = seriesEvents.map(evt => {
+          const evtStartTime = new Date(evt.start_time).getTime();
+          const newEvtStartTime = new Date(evtStartTime + timeShift);
+          const newEvtEndTime = new Date(newEvtStartTime.getTime() + durationMs);
+
+          return supabase
+            .from('events')
+            .update({
+              title: formData.title,
+              description: formData.description,
+              start_time: newEvtStartTime.toISOString(),
+              end_time: newEvtEndTime.toISOString(),
+              location: formData.location,
+              location_name: locationName || null,
+              sport: formData.sport,
+              color: sportDetails.color,
+              visibility: formData.visibility
+            })
+            .eq('id', evt.id);
+        });
+
+        const results = await Promise.all(updates);
+        const errors = results.filter(r => r.error).map(r => r.error);
+        if (errors.length > 0) {
+          console.error('[EditEventModal] Errors updating series:', errors);
+          throw errors[0];
+        }
       } else {
         console.log('[EditEventModal] Updating single event with id:', event.id);
         const { error: updateError } = await supabase

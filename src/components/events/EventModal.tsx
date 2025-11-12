@@ -61,41 +61,78 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
   const confirmDelete = async (applyToAll: boolean): Promise<void> => {
     try {
+      console.log('[EventModal] confirmDelete called with applyToAll:', applyToAll);
+      console.log('[EventModal] Event details:', {
+        id: event.id,
+        recurring_group_id: event.recurring_group_id,
+        is_recurring: event.is_recurring,
+        startTime: event.startTime.toISOString()
+      });
+
       if (applyToAll && event.recurring_group_id) {
-        const { error } = await supabase
+        console.log('[EventModal] Deleting all events in series with recurring_group_id:', event.recurring_group_id);
+        console.log('[EventModal] Filtering events >= start_time:', event.startTime.toISOString());
+
+        const { data: eventsToDelete, error: fetchError } = await supabase
           .from('events')
-          .delete()
+          .select('id, title, start_time')
           .eq('recurring_group_id', event.recurring_group_id)
           .gte('start_time', event.startTime.toISOString());
 
-        if (error) throw error;
+        if (fetchError) {
+          console.error('[EventModal] Error fetching events to delete:', fetchError);
+          throw fetchError;
+        }
+
+        console.log('[EventModal] Found', eventsToDelete?.length || 0, 'events to delete:', eventsToDelete);
+
+        if (!eventsToDelete || eventsToDelete.length === 0) {
+          throw new Error('No events found to delete in recurring series');
+        }
+
+        const { error: deleteError, count } = await supabase
+          .from('events')
+          .delete({ count: 'exact' })
+          .eq('recurring_group_id', event.recurring_group_id)
+          .gte('start_time', event.startTime.toISOString());
+
+        if (deleteError) {
+          console.error('[EventModal] Error deleting events:', deleteError);
+          throw deleteError;
+        }
+
+        console.log('[EventModal] Successfully deleted', count, 'events');
       } else {
-        const { error } = await supabase
+        console.log('[EventModal] Deleting single event with id:', event.id);
+        const { error: deleteError } = await supabase
           .from('events')
           .delete()
           .eq('id', event.id);
 
-        if (error) throw error;
+        if (deleteError) {
+          console.error('[EventModal] Error deleting single event:', deleteError);
+          throw deleteError;
+        }
+
+        console.log('[EventModal] Successfully deleted single event');
       }
 
-      // Close recurring action modal
+      console.log('[EventModal] Delete operation completed successfully');
+
       setShowRecurringActionModal(false);
-      
-      // Notify parent and close
+
       if (onEventUpdated) {
         onEventUpdated();
       }
       onClose();
     } catch (err) {
-      console.error('Failed to delete event:', err);
-      
-      // Close recurring action modal to return user to event view
+      console.error('[EventModal] Failed to delete event:', err);
+
       setShowRecurringActionModal(false);
-      
-      // Show alert for delete errors (since we don't have an error state in EventModal)
-      alert('Failed to delete event. Please try again.');
-      
-      // Re-throw to let RecurringEventActionModal know there was an error
+
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete event. Please try again.';
+      alert(errorMessage);
+
       throw err;
     }
   };
