@@ -33,6 +33,7 @@ const ListView: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [touchStartY, setTouchStartY] = useState<number>(0);
   const [touchedItemId, setTouchedItemId] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const newItemInputRef = useRef<HTMLInputElement>(null);
   const { isNative } = useCapacitor();
 
@@ -232,7 +233,9 @@ const ListView: React.FC = () => {
 
   const handleDragStart = (e: React.DragEvent, itemId: string) => {
     setDraggedItemId(itemId);
+    setIsDragging(true);
     e.dataTransfer.effectAllowed = 'move';
+    document.body.style.overflow = 'hidden';
   };
 
   const handleDragOver = (e: React.DragEvent, targetItemId: string) => {
@@ -270,6 +273,8 @@ const ListView: React.FC = () => {
     }
 
     setDraggedItemId(null);
+    setIsDragging(false);
+    document.body.style.overflow = '';
   };
 
   const handleTouchStart = async (e: React.TouchEvent, itemId: string) => {
@@ -277,6 +282,8 @@ const ListView: React.FC = () => {
 
     setTouchStartY(e.touches[0].clientY);
     setTouchedItemId(itemId);
+    setIsDragging(true);
+    document.body.style.overflow = 'hidden';
 
     try {
       await Haptics.impact({ style: ImpactStyle.Light });
@@ -344,6 +351,8 @@ const ListView: React.FC = () => {
 
     setTouchedItemId(null);
     setTouchStartY(0);
+    setIsDragging(false);
+    document.body.style.overflow = '';
   };
 
   if (loading) {
@@ -361,7 +370,7 @@ const ListView: React.FC = () => {
   const checkedCount = items.filter(i => i.is_checked).length;
 
   return (
-    <div className={`w-full ${isNative ? 'px-2 py-4' : 'md:max-w-4xl md:mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
+    <div className={`w-full ${isNative ? 'px-4 py-2' : 'md:max-w-4xl md:mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
       {!isNative && (
         <button
           onClick={() => navigate('/lists')}
@@ -373,7 +382,7 @@ const ListView: React.FC = () => {
       )}
 
       <div className={`${isNative ? '' : 'bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700'}`}>
-        <div className={`${isNative ? 'px-2 py-2 mb-3' : 'px-4 sm:px-6 py-4'} ${!isNative && 'border-b border-gray-200 dark:border-gray-700'}`}>
+        <div className={`${isNative ? 'px-0 py-1 mb-2' : 'px-4 sm:px-6 py-4'} ${!isNative && 'border-b border-gray-200 dark:border-gray-700'}`}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center min-w-0">
               {isNative && (
@@ -424,7 +433,7 @@ const ListView: React.FC = () => {
           </div>
         </div>
 
-        <div className={isNative ? 'px-2' : 'p-6'}>
+        <div className={isNative ? 'px-0' : 'p-6'}>
           <div className={isNative ? 'mb-4' : 'mb-6'}>
             <div className="flex items-center space-x-2">
               <input
@@ -460,18 +469,24 @@ const ListView: React.FC = () => {
                 <div
                   key={item.id}
                   data-item-id={item.id}
-                  draggable={!editingItemId && !isNative}
-                  onDragStart={(e) => handleDragStart(e, item.id)}
                   onDragOver={(e) => handleDragOver(e, item.id)}
-                  onDragEnd={handleDragEnd}
-                  onTouchStart={(e) => handleTouchStart(e, item.id)}
-                  onTouchMove={(e) => handleTouchMove(e, item.id)}
-                  onTouchEnd={handleTouchEnd}
-                  className={`flex items-center ${isNative ? 'space-x-2 p-2.5' : 'space-x-3 p-3'} bg-gray-50 dark:bg-gray-700 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${
-                    draggedItemId === item.id || touchedItemId === item.id ? 'opacity-50' : ''
+                  className={`flex items-center ${isNative ? 'space-x-2 p-2.5' : 'space-x-3 p-3'} bg-gray-50 dark:bg-gray-700 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-600 transition-all ${
+                    draggedItemId === item.id || touchedItemId === item.id
+                      ? 'opacity-90 shadow-lg ring-2 ring-blue-500 dark:ring-blue-400 scale-105 z-50'
+                      : isDragging
+                        ? 'opacity-40'
+                        : ''
                   }`}
                 >
-                  <div className="cursor-move text-gray-400 dark:text-gray-500">
+                  <div
+                    className="cursor-move text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors active:scale-110"
+                    draggable={!editingItemId && !isNative}
+                    onDragStart={(e) => handleDragStart(e, item.id)}
+                    onDragEnd={handleDragEnd}
+                    onTouchStart={(e) => handleTouchStart(e, item.id)}
+                    onTouchMove={(e) => handleTouchMove(e, item.id)}
+                    onTouchEnd={handleTouchEnd}
+                  >
                     <GripVertical className={isNative ? 'h-4 w-4' : 'h-5 w-5'} />
                   </div>
 
