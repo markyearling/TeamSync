@@ -43,15 +43,26 @@ Deno.serve(async (req: Request) => {
     const token = url.searchParams.get('token');
 
     if (!token) {
+      console.error('Missing token parameter in request');
       return new Response('Missing token parameter', {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
       });
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    console.log('Calendar feed requested for token:', token);
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase environment variables');
+      throw new Error('Server configuration error');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+    console.log('Validating token...');
 
     // Validate token and get user_id
     const { data: tokenData, error: tokenError } = await supabase
@@ -60,12 +71,23 @@ Deno.serve(async (req: Request) => {
       .eq('token', token)
       .maybeSingle();
 
-    if (tokenError || !tokenData) {
+    if (tokenError) {
+      console.error('Error validating token:', tokenError);
+      return new Response('Error validating calendar feed token', {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
+      });
+    }
+
+    if (!tokenData) {
+      console.error('Token not found in database:', token);
       return new Response('Invalid calendar feed token', {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'text/plain' },
       });
     }
+
+    console.log('Token validated for user:', tokenData.user_id);
 
     const userId = tokenData.user_id;
 
