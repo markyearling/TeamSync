@@ -49,6 +49,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   // Handle clicks outside the modal
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+    // Don't close if recurring action modal is open
+    if (showRecurringActionModal) return;
+
     const target = e.target as Node;
 
     // Ignore clicks on the Autocomplete dropdown
@@ -64,7 +67,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [onClose]);
+  }, [onClose, showRecurringActionModal]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
