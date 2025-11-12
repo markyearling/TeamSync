@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  RefreshCw, 
-  CheckCircle, 
+import {
+  Plus,
+  RefreshCw,
+  CheckCircle,
   XCircle,
   AlertTriangle,
   ExternalLink,
@@ -14,6 +14,8 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Platform } from '../types';
+import CalendarImports from '../components/connections/CalendarImports';
+import AddCalendarImportModal from '../components/connections/AddCalendarImportModal';
 
 const Connections: React.FC = () => {
   const location = useLocation();
@@ -25,6 +27,7 @@ const Connections: React.FC = () => {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showAddCalendarModal, setShowAddCalendarModal] = useState(false);
   
   // Define all supported platforms
   const allPlatforms: Platform[] = [
@@ -570,6 +573,10 @@ const Connections: React.FC = () => {
         </div>
       )}
       
+      <div className="mb-8">
+        <CalendarImports onAddClick={() => setShowAddCalendarModal(true)} />
+      </div>
+
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm overflow-hidden">
         <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-medium text-gray-900 dark:text-white">Available Platforms</h2>
@@ -648,6 +655,14 @@ const Connections: React.FC = () => {
           )}
         </div>
       </div>
+
+      <AddCalendarImportModal
+        isOpen={showAddCalendarModal}
+        onClose={() => setShowAddCalendarModal(false)}
+        onSuccess={() => {
+          setShowAddCalendarModal(false);
+        }}
+      />
     </div>
   );
 };
