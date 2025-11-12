@@ -4,6 +4,7 @@ import { ArrowLeft, Plus, Check, X as XIcon, Trash2, CheckSquare, Square, GripVe
 import { supabase } from '../lib/supabase';
 import DeleteConfirmationModal from '../components/lists/DeleteConfirmationModal';
 import { useCapacitor } from '../hooks/useCapacitor';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
 interface ListItem {
   id: string;
@@ -30,6 +31,8 @@ const ListView: React.FC = () => {
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [touchStartY, setTouchStartY] = useState<number>(0);
+  const [touchedItemId, setTouchedItemId] = useState<string | null>(null);
   const newItemInputRef = useRef<HTMLInputElement>(null);
   const { isNative } = useCapacitor();
 
@@ -269,6 +272,80 @@ const ListView: React.FC = () => {
     setDraggedItemId(null);
   };
 
+  const handleTouchStart = async (e: React.TouchEvent, itemId: string) => {
+    if (!isNative || editingItemId) return;
+
+    setTouchStartY(e.touches[0].clientY);
+    setTouchedItemId(itemId);
+
+    try {
+      await Haptics.impact({ style: ImpactStyle.Light });
+    } catch (error) {
+      console.log('Haptics not available:', error);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent, itemId: string) => {
+    if (!isNative || !touchedItemId || editingItemId) return;
+
+    e.preventDefault();
+    const touchY = e.touches[0].clientY;
+    const currentIndex = items.findIndex(i => i.id === touchedItemId);
+
+    if (currentIndex === -1) return;
+
+    const itemElements = document.querySelectorAll('[data-item-id]');
+    let targetIndex = currentIndex;
+
+    itemElements.forEach((element, index) => {
+      const rect = element.getBoundingClientRect();
+      if (touchY >= rect.top && touchY <= rect.bottom) {
+        targetIndex = index;
+      }
+    });
+
+    if (targetIndex !== currentIndex && targetIndex >= 0 && targetIndex < items.length) {
+      const newItems = [...items];
+      const [movedItem] = newItems.splice(currentIndex, 1);
+      newItems.splice(targetIndex, 0, movedItem);
+      setItems(newItems);
+      setTouchedItemId(movedItem.id);
+
+      try {
+        Haptics.impact({ style: ImpactStyle.Light });
+      } catch (error) {
+        console.log('Haptics not available:', error);
+      }
+    }
+  };
+
+  const handleTouchEnd = async () => {
+    if (!isNative || !touchedItemId) return;
+
+    try {
+      const updates = items.map((item, index) =>
+        supabase
+          .from('list_items')
+          .update({ sort_order: index })
+          .eq('id', item.id)
+      );
+
+      await Promise.all(updates);
+
+      try {
+        await Haptics.impact({ style: ImpactStyle.Medium });
+      } catch (error) {
+        console.log('Haptics not available:', error);
+      }
+    } catch (error) {
+      console.error('Error updating sort order:', error);
+      fetchListAndItems();
+    }
+
+    setTouchedItemId(null);
+    setTouchStartY(0);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -285,18 +362,29 @@ const ListView: React.FC = () => {
 
   return (
     <div className={`w-full ${isNative ? 'px-2 py-4' : 'md:max-w-4xl md:mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
-      <button
-        onClick={() => navigate('/lists')}
-        className={`flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white ${isNative ? 'mb-3' : 'mb-6'}`}
-      >
-        <ArrowLeft className={`${isNative ? 'h-4 w-4 mr-1.5' : 'h-5 w-5 mr-2'}`} />
-        <span className={isNative ? 'text-sm' : ''}>Back to Lists</span>
-      </button>
+      {!isNative && (
+        <button
+          onClick={() => navigate('/lists')}
+          className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6"
+        >
+          <ArrowLeft className="h-5 w-5 mr-2" />
+          <span>Back to Lists</span>
+        </button>
+      )}
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className={`${isNative ? 'px-3 py-3' : 'px-4 sm:px-6 py-4'} border-b border-gray-200 dark:border-gray-700`}>
+      <div className={`${isNative ? '' : 'bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700'}`}>
+        <div className={`${isNative ? 'px-2 py-2 mb-3' : 'px-4 sm:px-6 py-4'} ${!isNative && 'border-b border-gray-200 dark:border-gray-700'}`}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center min-w-0">
+              {isNative && (
+                <button
+                  onClick={() => navigate('/lists')}
+                  className="flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mr-2 flex-shrink-0"
+                  aria-label="Back to Lists"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
+              )}
               <div
                 className={`${isNative ? 'w-2.5 h-2.5 mr-2' : 'w-3 h-3 mr-3'} rounded-full flex-shrink-0`}
                 style={{ backgroundColor: list.color }}
@@ -336,7 +424,7 @@ const ListView: React.FC = () => {
           </div>
         </div>
 
-        <div className={isNative ? 'p-3' : 'p-6'}>
+        <div className={isNative ? 'px-2' : 'p-6'}>
           <div className={isNative ? 'mb-4' : 'mb-6'}>
             <div className="flex items-center space-x-2">
               <input
@@ -371,12 +459,16 @@ const ListView: React.FC = () => {
               items.map((item) => (
                 <div
                   key={item.id}
-                  draggable={!editingItemId}
+                  data-item-id={item.id}
+                  draggable={!editingItemId && !isNative}
                   onDragStart={(e) => handleDragStart(e, item.id)}
                   onDragOver={(e) => handleDragOver(e, item.id)}
                   onDragEnd={handleDragEnd}
+                  onTouchStart={(e) => handleTouchStart(e, item.id)}
+                  onTouchMove={(e) => handleTouchMove(e, item.id)}
+                  onTouchEnd={handleTouchEnd}
                   className={`flex items-center ${isNative ? 'space-x-2 p-2.5' : 'space-x-3 p-3'} bg-gray-50 dark:bg-gray-700 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${
-                    draggedItemId === item.id ? 'opacity-50' : ''
+                    draggedItemId === item.id || touchedItemId === item.id ? 'opacity-50' : ''
                   }`}
                 >
                   <div className="cursor-move text-gray-400 dark:text-gray-500">

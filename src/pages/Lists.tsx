@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, ListChecks, Trash2, Edit2, MoreVertical } from 'lucide-react';
+import { Plus, ListChecks, Trash2, Edit2, Menu } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CreateListModal from '../components/lists/CreateListModal';
 import EditListModal from '../components/lists/EditListModal';
@@ -144,7 +144,7 @@ const Lists: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className={`${isNative ? 'w-full px-2 py-4' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Lists</h1>
@@ -179,7 +179,7 @@ const Lists: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${isNative ? 'gap-2' : 'gap-4'}`}>
           {lists.map((list) => (
             <div
               key={list.id}
@@ -187,9 +187,9 @@ const Lists: React.FC = () => {
               className="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700 cursor-pointer group"
             >
               <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center mb-4">
                   <div
-                    className="w-12 h-12 rounded-lg flex items-center justify-center"
+                    className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
                     style={{ backgroundColor: list.color + '20' }}
                   >
                     <ListChecks
@@ -197,6 +197,44 @@ const Lists: React.FC = () => {
                       style={{ color: list.color }}
                     />
                   </div>
+                  {isNative && (
+                    <div className="ml-auto menu-button" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleMenu(list.id);
+                        }}
+                        className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <Menu className="h-5 w-5" />
+                      </button>
+
+                      {activeMenuId === list.id && (
+                        <div className="absolute right-2 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditList(list);
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-md"
+                          >
+                            <Edit2 className="h-4 w-4 mr-2" />
+                            Edit List
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteList(list);
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 last:rounded-b-md"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete List
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                   {list.name}
@@ -216,44 +254,44 @@ const Lists: React.FC = () => {
                 </div>
               </div>
 
-              <div className="absolute top-4 right-4 menu-button" onClick={(e) => e.stopPropagation()}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleMenu(list.id);
-                  }}
-                  className={`p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-opacity ${
-                    isNative ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                  }`}
-                >
-                  <MoreVertical className="h-5 w-5" />
-                </button>
+              {!isNative && (
+                <div className="absolute top-4 right-4 menu-button" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleMenu(list.id);
+                    }}
+                    className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-opacity opacity-0 group-hover:opacity-100"
+                  >
+                    <Menu className="h-5 w-5" />
+                  </button>
 
-                {activeMenuId === list.id && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditList(list);
-                      }}
-                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-md"
-                    >
-                      <Edit2 className="h-4 w-4 mr-2" />
-                      Edit List
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteList(list);
-                      }}
-                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 last:rounded-b-md"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete List
-                    </button>
-                  </div>
-                )}
-              </div>
+                  {activeMenuId === list.id && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditList(list);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-md"
+                      >
+                        <Edit2 className="h-4 w-4 mr-2" />
+                        Edit List
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteList(list);
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 last:rounded-b-md"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete List
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>
