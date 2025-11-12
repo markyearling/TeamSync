@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, CheckCircle, AlertCircle, RefreshCw, Share2, ExternalLink } from 'lucide-react';
+import { X, Copy, CheckCircle, AlertCircle, RefreshCw, Share2, ExternalLink, TestTube } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 
 interface ShareCalendarModalProps {
@@ -8,10 +8,12 @@ interface ShareCalendarModalProps {
 
 const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
   const [calendarUrl, setCalendarUrl] = useState<string>('');
+  const [httpsUrl, setHttpsUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [showHttpsUrl, setShowHttpsUrl] = useState(false);
 
   useEffect(() => {
     fetchOrCreateCalendarToken();
@@ -57,8 +59,11 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
       }
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const feedUrl = `${supabaseUrl}/functions/v1/generate-calendar-feed?token=${token}`;
-      setCalendarUrl(feedUrl);
+      const httpsBaseUrl = `${supabaseUrl}/functions/v1/generate-calendar-feed?token=${token}`;
+      const webcalUrl = httpsBaseUrl.replace('https://', 'webcal://');
+
+      setHttpsUrl(httpsBaseUrl);
+      setCalendarUrl(webcalUrl);
     } catch (err) {
       console.error('Error fetching calendar token:', err);
       setError('Failed to generate calendar feed URL');
@@ -67,14 +72,18 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
     }
   };
 
-  const handleCopyToClipboard = async () => {
+  const handleCopyToClipboard = async (url?: string) => {
     try {
-      await navigator.clipboard.writeText(calendarUrl);
+      await navigator.clipboard.writeText(url || calendarUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
     }
+  };
+
+  const handleTestFeed = () => {
+    window.open(httpsUrl, '_blank');
   };
 
   const handleRegenerateToken = async () => {
@@ -149,15 +158,17 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
                   </h3>
                   <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1 ml-6 list-disc">
                     <li>Keep this URL private - anyone with it can view your calendar</li>
-                    <li>Events update automatically when synced by your calendar app</li>
+                    <li>Google Calendar may take up to 24 hours for initial sync, then updates every few hours</li>
+                    <li>Apple Calendar typically updates every 15-60 minutes</li>
+                    <li>Outlook refresh intervals vary by account type</li>
                     <li>Regenerate the URL if you believe it has been compromised</li>
                   </ul>
                 </div>
 
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Calendar Feed URL
+                  Calendar Feed URL (webcal://)
                 </label>
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 mb-3">
                   <input
                     type="text"
                     readOnly
@@ -166,7 +177,7 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
                     onClick={(e) => e.currentTarget.select()}
                   />
                   <button
-                    onClick={handleCopyToClipboard}
+                    onClick={() => handleCopyToClipboard()}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
                     title="Copy to clipboard"
                   >
@@ -183,6 +194,41 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
                     )}
                   </button>
                 </div>
+                <div className="flex items-center justify-between mb-3">
+                  <button
+                    onClick={() => setShowHttpsUrl(!showHttpsUrl)}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                  >
+                    {showHttpsUrl ? 'Hide' : 'Show'} HTTPS URL (for testing)
+                  </button>
+                  <button
+                    onClick={handleTestFeed}
+                    className="flex items-center space-x-2 px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                    title="Test feed in browser"
+                  >
+                    <TestTube className="h-4 w-4" />
+                    <span>Test Feed</span>
+                  </button>
+                </div>
+                {showHttpsUrl && (
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={httpsUrl}
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
+                      onClick={(e) => e.currentTarget.select()}
+                    />
+                    <button
+                      onClick={() => handleCopyToClipboard(httpsUrl)}
+                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
+                      title="Copy HTTPS URL"
+                    >
+                      <Copy className="h-4 w-4" />
+                      <span>Copy</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="mb-6">
@@ -199,7 +245,8 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
                       <li>Open Google Calendar on your computer</li>
                       <li>Click the + next to "Other calendars"</li>
                       <li>Select "From URL"</li>
-                      <li>Paste the calendar URL and click "Add calendar"</li>
+                      <li>Paste the webcal:// URL and click "Add calendar"</li>
+                      <li>Note: Initial sync may take several hours</li>
                     </ol>
                   </div>
 
@@ -211,8 +258,9 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
                     <ol className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-8 list-decimal">
                       <li>Open Calendar on your Mac</li>
                       <li>Go to File → New Calendar Subscription</li>
-                      <li>Paste the calendar URL and click Subscribe</li>
-                      <li>Choose update frequency and click OK</li>
+                      <li>Paste the webcal:// URL and click Subscribe</li>
+                      <li>Set auto-refresh to "Every 15 minutes" for best results</li>
+                      <li>Click OK to complete</li>
                     </ol>
                   </div>
 
@@ -224,8 +272,9 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
                     <ol className="text-sm text-gray-600 dark:text-gray-400 space-y-1 ml-8 list-decimal">
                       <li>Open Outlook and go to Calendar</li>
                       <li>Click "Add calendar" → "Subscribe from web"</li>
-                      <li>Paste the calendar URL</li>
+                      <li>Paste the webcal:// URL</li>
                       <li>Name your calendar and click Import</li>
+                      <li>Updates sync based on your Outlook account type</li>
                     </ol>
                   </div>
                 </div>
