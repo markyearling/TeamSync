@@ -89,12 +89,6 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
                   Recurring
                 </span>
               )}
-              {event.calendar_name && (
-                <span className="px-1.5 py-0.5 bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-200 text-xs font-medium rounded flex items-center gap-1">
-                  <Download className="h-3 w-3" />
-                  Synced from {event.calendar_name}
-                </span>
-              )}
               {event.is_cancelled && (
                 <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 text-xs font-bold rounded flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
@@ -129,11 +123,19 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
             )}
           </div>
         </div>
-        {!event.isOwnEvent && event.ownerName && (
-          <div className="mt-2 self-end bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
-            {event.ownerName}'s schedule
-          </div>
-        )}
+        <div className="mt-2 flex items-center justify-end gap-2 flex-wrap">
+          {!event.isOwnEvent && event.ownerName && (
+            <div className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
+              {event.ownerName}'s schedule
+            </div>
+          )}
+          {event.calendar_name && (
+            <div className="bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-200 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+              <Download className="h-3 w-3" />
+              Synced from {event.calendar_name}
+            </div>
+          )}
+        </div>
       </div>
   );
 };
