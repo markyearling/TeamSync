@@ -25,11 +25,15 @@ const RecurringEventActionModal: React.FC<RecurringEventActionModalProps> = ({
   const actionVerbCapitalized = actionType === 'edit' ? 'Edit' : 'Delete';
 
   const handleConfirm = async (applyToAll: boolean) => {
+    console.log('[RecurringEventActionModal] handleConfirm called with applyToAll:', applyToAll);
     setIsProcessing(true);
     try {
+      console.log('[RecurringEventActionModal] Calling onConfirm...');
       await onConfirm(applyToAll);
+      console.log('[RecurringEventActionModal] onConfirm completed successfully');
       // Modal will be closed by parent component on success
     } catch (error) {
+      console.error('[RecurringEventActionModal] onConfirm failed with error:', error);
       // Error handling is done in parent component
       // Just reset processing state
       setIsProcessing(false);

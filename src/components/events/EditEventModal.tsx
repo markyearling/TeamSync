@@ -97,6 +97,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   };
 
   const performUpdate = async (applyToAll: boolean): Promise<void> => {
+    console.log('[EditEventModal] performUpdate called with applyToAll:', applyToAll);
     setSaving(true);
     setError(null);
 
@@ -132,7 +133,9 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         visibility: formData.visibility
       };
 
+      console.log('[EditEventModal] About to update database. applyToAll:', applyToAll, 'recurring_group_id:', event.recurring_group_id);
       if (applyToAll && event.recurring_group_id) {
+        console.log('[EditEventModal] Updating all events in series');
         const { error: updateError } = await supabase
           .from('events')
           .update(updateData)
@@ -141,6 +144,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
 
         if (updateError) throw updateError;
       } else {
+        console.log('[EditEventModal] Updating single event with id:', event.id);
         const { error: updateError } = await supabase
           .from('events')
           .update(updateData)
@@ -149,6 +153,7 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         if (updateError) throw updateError;
       }
 
+      console.log('[EditEventModal] Update successful, closing modals');
       // Close recurring action modal if it was open
       setShowRecurringActionModal(false);
       
