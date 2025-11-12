@@ -297,8 +297,8 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   // Handle click outside to close modal
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-      // Only close if edit modal, messages modal, and share modal are not open
-      if (!showEditModal && !showMessagesModal && !showShareModal && modalRef.current && !modalRef.current.contains(e.target as Node)) {
+      // Only close if no child modals are open
+      if (!showEditModal && !showMessagesModal && !showShareModal && !showDeleteConfirm && !showRecurringActionModal && modalRef.current && !modalRef.current.contains(e.target as Node)) {
         // Add a small delay to ensure button clicks are processed first
         setTimeout(() => {
           onClose();
@@ -312,7 +312,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
     return () => {
       document.removeEventListener(eventType, handleClickOutside);
     };
-  }, [onClose, showEditModal, showMessagesModal, showShareModal, isNative]);
+  }, [onClose, showEditModal, showMessagesModal, showShareModal, showDeleteConfirm, showRecurringActionModal, isNative]);
 
   const handleMapLoad = (map: google.maps.Map) => {
     setMapRef(map);
@@ -697,8 +697,14 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
       {showDeleteConfirm && (
         <ModalPortal>
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[220]">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+          <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[220]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Delete Event</h3>
               </div>
@@ -709,13 +715,19 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
               </div>
               <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">
                 <button
-                  onClick={() => setShowDeleteConfirm(false)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteConfirm(false);
+                  }}
                   className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={confirmSingleDelete}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    confirmSingleDelete();
+                  }}
                   className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   Delete

@@ -42,8 +42,14 @@ const RecurringEventActionModal: React.FC<RecurringEventActionModalProps> = ({
 
   return (
     <ModalPortal>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[220]">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+      <div
+        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[220]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
             <div className="flex items-center">
               <AlertCircle className="h-6 w-6 text-blue-600 mr-2" />
@@ -67,7 +73,10 @@ const RecurringEventActionModal: React.FC<RecurringEventActionModalProps> = ({
 
             <div className="space-y-3">
               <button
-                onClick={() => handleConfirm(false)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleConfirm(false);
+                }}
                 disabled={isProcessing}
                 className="w-full text-left px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-800"
               >
@@ -80,7 +89,10 @@ const RecurringEventActionModal: React.FC<RecurringEventActionModalProps> = ({
               </button>
 
               <button
-                onClick={() => handleConfirm(true)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleConfirm(true);
+                }}
                 disabled={isProcessing}
                 className="w-full text-left px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white dark:disabled:hover:bg-gray-800"
               >
@@ -108,7 +120,10 @@ const RecurringEventActionModal: React.FC<RecurringEventActionModalProps> = ({
 
           <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end">
             <button
-              onClick={onClose}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
               disabled={isProcessing}
               className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
