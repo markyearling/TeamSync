@@ -47,34 +47,36 @@ export default function AddCalendarImportModal({
     setValidationMessage('');
 
     try {
-      const response = await fetch(calendarUrl, {
-        method: 'GET',
-        headers: {
-          'User-Agent': 'FamSink Calendar Validator/1.0',
-        },
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-calendar-url`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ calendar_url: calendarUrl.trim() }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch calendar: ${response.status} ${response.statusText}`);
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
       }
 
-      const contentType = response.headers.get('content-type');
-      if (!contentType?.includes('text/calendar') && !contentType?.includes('text/plain')) {
-        console.warn('Unexpected content type:', contentType);
+      const result = await response.json();
+
+      if (result.success) {
+        setValidationStatus('success');
+        setValidationMessage(result.message);
+        setPreviewEvents(result.event_count);
+
+        if (result.calendar_name && !calendarName.trim()) {
+          setCalendarName(result.calendar_name);
+        }
+      } else {
+        setValidationStatus('error');
+        setValidationMessage(result.error || 'Failed to validate calendar URL');
       }
-
-      const icsData = await response.text();
-
-      if (!icsData.includes('BEGIN:VCALENDAR')) {
-        throw new Error('Invalid calendar format - not a valid ICS file');
-      }
-
-      const eventMatches = icsData.match(/BEGIN:VEVENT/g);
-      const eventCount = eventMatches ? eventMatches.length : 0;
-
-      setValidationStatus('success');
-      setValidationMessage(`Calendar is valid! Found ${eventCount} event${eventCount !== 1 ? 's' : ''}.`);
-      setPreviewEvents(eventCount);
     } catch (error) {
       console.error('Validation error:', error);
       setValidationStatus('error');
