@@ -286,7 +286,7 @@ function generateICSCalendar(
     }
 
     // Categories
-    vevent.updatePropertyWithValue('categories', [event.sport, event.platform]);
+    vevent.updatePropertyWithValue('categories', `${event.sport}, ${event.platform}`);
 
     // Created/Modified timestamps
     const now = ICAL.Time.now();
