@@ -5,7 +5,8 @@ import {
   Filter,
   Calendar as CalendarIcon,
   LayoutGrid,
-  LayoutList
+  LayoutList,
+  Share2
 } from 'lucide-react';
 import { useProfiles } from '../context/ProfilesContext';
 import { supabase } from '../lib/supabase';
@@ -18,6 +19,7 @@ import AgendaView from '../components/calendar/AgendaView';
 import { Event } from '../types';
 import { useLoadScript, Libraries } from '@react-google-maps/api';
 import EventModal from '../components/events/EventModal';
+import ShareCalendarModal from '../components/calendar/ShareCalendarModal';
 import { DateTime } from 'luxon';
 import { getSportDetails } from '../utils/sports';
 import { usePageRefresh } from '../context/PageRefreshContext';
@@ -44,6 +46,7 @@ const Calendar: React.FC = () => {
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [shouldOpenMessages, setShouldOpenMessages] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Centralized Google Maps loading
   const { isLoaded: mapsLoaded, loadError: mapsLoadError } = useLoadScript({
@@ -431,6 +434,15 @@ const Calendar: React.FC = () => {
             <Filter className="h-3 w-3 mr-1" />
             Filter
           </button>
+
+          <button
+            onClick={() => setShowShareModal(true)}
+            className="flex items-center px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm transition-colors"
+            title="Share calendar"
+          >
+            <Share2 className="h-3 w-3 mr-1" />
+            Share
+          </button>
         </div>
       </div>
       
@@ -608,6 +620,10 @@ const Calendar: React.FC = () => {
           onEventUpdated={refreshCalendarEvents}
           shouldOpenMessages={shouldOpenMessages}
         />
+      )}
+
+      {showShareModal && (
+        <ShareCalendarModal onClose={() => setShowShareModal(false)} />
       )}
     </div>
   );
