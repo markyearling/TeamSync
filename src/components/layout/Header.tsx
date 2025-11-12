@@ -643,7 +643,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     <>
       <header className={`bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-10 ${shouldHideHeader ? 'hidden pointer-events-none invisible' : ''}`}>
         <div className="px-4 sm:px-6 lg:px-8">
-          <div className={`flex ${isNative ? 'h-16' : 'h-14'} items-center justify-between pt-[env(safe-area-inset-top)]`}>
+          <div className={`flex ${isNative ? 'h-20' : 'h-14'} items-center justify-between pt-[env(safe-area-inset-top)]`}>
             <div className="flex items-center space-x-3">
               {children}
               <div className="ml-4 md:ml-6">

@@ -388,7 +388,7 @@ const ListView: React.FC = () => {
   const checkedCount = items.filter(i => i.is_checked).length;
 
   return (
-    <div className={`w-full ${isNative ? 'px-0 py-2' : 'md:max-w-4xl md:mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
+    <div className={`w-full ${isNative ? 'px-4 py-2' : 'md:max-w-4xl md:mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
       {!isNative && (
         <button
           onClick={() => navigate('/lists')}
