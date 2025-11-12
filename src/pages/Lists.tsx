@@ -178,9 +178,10 @@ const Lists: React.FC = () => {
           {lists.map((list) => (
             <div
               key={list.id}
+              onClick={() => handleListClick(list.id)}
               className="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700 cursor-pointer group"
             >
-              <div onClick={() => handleListClick(list.id)} className="p-6">
+              <div className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div
                     className="w-12 h-12 rounded-lg flex items-center justify-center"
@@ -210,7 +211,7 @@ const Lists: React.FC = () => {
                 </div>
               </div>
 
-              <div className="absolute top-4 right-4">
+              <div className="absolute top-4 right-4" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -224,14 +225,20 @@ const Lists: React.FC = () => {
                 {activeMenuId === list.id && (
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
                     <button
-                      onClick={() => handleEditList(list)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEditList(list);
+                      }}
                       className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-md"
                     >
                       <Edit2 className="h-4 w-4 mr-2" />
                       Edit List
                     </button>
                     <button
-                      onClick={() => handleDeleteList(list)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteList(list);
+                      }}
                       className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 last:rounded-b-md"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />

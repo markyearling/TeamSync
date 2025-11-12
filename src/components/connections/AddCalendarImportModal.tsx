@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { X, Calendar, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
+import { useCapacitor } from '../../hooks/useCapacitor';
+import ModalPortal from '../ModalPortal';
 
 interface AddCalendarImportModalProps {
   isOpen: boolean;
@@ -15,6 +17,7 @@ export default function AddCalendarImportModal({
   onSuccess,
 }: AddCalendarImportModalProps) {
   const { profiles } = useProfiles();
+  const { isNative } = useCapacitor();
   const [calendarName, setCalendarName] = useState('');
   const [calendarUrl, setCalendarUrl] = useState('');
   const [selectedProfileId, setSelectedProfileId] = useState('');
@@ -143,25 +146,34 @@ export default function AddCalendarImportModal({
 
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <Calendar className="w-6 h-6 text-purple-600" />
-            <h2 className="text-2xl font-bold text-gray-900">Add Calendar Import</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+  const containerClasses = isNative
+    ? "fixed inset-0 bg-white dark:bg-gray-800 z-50"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4";
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+  const contentClasses = isNative
+    ? "flex flex-col h-full w-full bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
+    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto";
+
+  return (
+    <ModalPortal>
+      <div className={containerClasses}>
+        <div className={contentClasses}>
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Add Calendar Import</h2>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className={`space-y-6 ${isNative ? 'flex-1 overflow-y-auto p-6' : 'p-6'}`}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Calendar Name
             </label>
             <input
@@ -169,13 +181,13 @@ export default function AddCalendarImportModal({
               value={calendarName}
               onChange={(e) => setCalendarName(e.target.value)}
               placeholder="e.g., Soccer Practice Schedule"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Calendar URL (ICS Feed)
             </label>
             <input
@@ -187,14 +199,14 @@ export default function AddCalendarImportModal({
                 setValidationMessage('');
               }}
               placeholder="https://calendar.google.com/calendar/ical/..."
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               required
             />
             <button
               type="button"
               onClick={validateCalendarUrl}
               disabled={isValidating || !calendarUrl.trim()}
-              className="mt-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="mt-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {isValidating ? (
                 <>
@@ -222,13 +234,13 @@ export default function AddCalendarImportModal({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Assign to Profile
             </label>
             <select
               value={selectedProfileId}
               onChange={(e) => setSelectedProfileId(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               required
             >
               {profiles.map((profile) => (
@@ -239,9 +251,9 @@ export default function AddCalendarImportModal({
             </select>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-2">How to get your calendar URL:</h3>
-            <div className="space-y-2 text-sm text-blue-800">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <h3 className="font-semibold text-blue-900 dark:text-blue-300 mb-2">How to get your calendar URL:</h3>
+            <div className="space-y-2 text-sm text-blue-800 dark:text-blue-300">
               <div>
                 <strong>Google Calendar:</strong>
                 <ol className="list-decimal list-inside ml-2 mt-1 space-y-1">
@@ -262,11 +274,11 @@ export default function AddCalendarImportModal({
             </div>
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+          <div className={`flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 ${isNative ? 'pb-[env(safe-area-inset-bottom)] px-6' : ''}`}>
             <button
               type="button"
               onClick={onClose}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Cancel
             </button>
@@ -286,7 +298,8 @@ export default function AddCalendarImportModal({
             </button>
           </div>
         </form>
+        </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 }

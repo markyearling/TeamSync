@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Save } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import ModalPortal from '../ModalPortal';
+import { useCapacitor } from '../../hooks/useCapacitor';
 
 interface CreateListModalProps {
   onClose: () => void;
@@ -20,6 +21,7 @@ const PRESET_COLORS = [
 ];
 
 const CreateListModal: React.FC<CreateListModalProps> = ({ onClose, onListCreated }) => {
+  const { isNative } = useCapacitor();
   const [name, setName] = useState('');
   const [color, setColor] = useState(PRESET_COLORS[0]);
   const [saving, setSaving] = useState(false);
@@ -58,11 +60,19 @@ const CreateListModal: React.FC<CreateListModalProps> = ({ onClose, onListCreate
     }
   };
 
+  const containerClasses = isNative
+    ? "fixed inset-0 bg-white dark:bg-gray-800 z-50"
+    : "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50";
+
+  const contentClasses = isNative
+    ? "flex flex-col h-full w-full bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)]"
+    : "bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4";
+
   return (
     <ModalPortal>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
-          <form onSubmit={handleSubmit}>
+      <div className={containerClasses}>
+        <div className={contentClasses}>
+          <form onSubmit={handleSubmit} className="flex flex-col h-full">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                 Create New List
@@ -76,7 +86,7 @@ const CreateListModal: React.FC<CreateListModalProps> = ({ onClose, onListCreate
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
+            <div className={`p-6 space-y-6 ${isNative ? 'flex-1 overflow-y-auto' : ''}`}>
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-md p-4 text-red-700">
                   {error}
@@ -102,13 +112,13 @@ const CreateListModal: React.FC<CreateListModalProps> = ({ onClose, onListCreate
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Color
                 </label>
-                <div className="grid grid-cols-8 gap-2">
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
                   {PRESET_COLORS.map((presetColor) => (
                     <button
                       key={presetColor}
                       type="button"
                       onClick={() => setColor(presetColor)}
-                      className={`w-10 h-10 rounded-lg transition-all ${
+                      className={`w-12 h-12 rounded-lg transition-all ${
                         color === presetColor
                           ? 'ring-2 ring-offset-2 ring-blue-500 dark:ring-offset-gray-800'
                           : 'hover:scale-110'
@@ -120,7 +130,7 @@ const CreateListModal: React.FC<CreateListModalProps> = ({ onClose, onListCreate
               </div>
             </div>
 
-            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3">
+            <div className={`px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3 ${isNative ? 'pb-[env(safe-area-inset-bottom)]' : ''}`}>
               <button
                 type="button"
                 onClick={onClose}

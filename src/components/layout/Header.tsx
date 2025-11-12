@@ -745,7 +745,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               {/* Add Event Button */}
               <button
                 onClick={handleAddEventClick}
-                className="flex items-center px-3 py-1.5 bg-blue-600 dark:bg-blue-500 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors shadow-sm"
+                className="flex items-center justify-center w-8 h-8 md:w-auto md:px-3 md:py-1.5 bg-blue-600 dark:bg-blue-500 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors shadow-sm"
                 title="Add Event"
               >
                 <Plus className="h-4 w-4 md:mr-1.5" />

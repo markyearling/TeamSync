@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, FileEdit as Edit, MessageCircle, AlertCircle, Trash2, Repeat, Download } from 'lucide-react';
+import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, FileEdit as Edit, MessageCircle, AlertCircle, Trash2, Repeat, Download, Menu } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import { GoogleMap } from '@react-google-maps/api';
@@ -33,6 +33,7 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   const [geocodingAttempted, setGeocodingAttempted] = useState(false);
   const [mapRef, setMapRef] = useState<google.maps.Map | null>(null);
   const [canEdit, setCanEdit] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const { isNative } = useCapacitor();
@@ -380,12 +381,12 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
           style={{ zIndex: 201 }}
         >
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center relative" style={{ zIndex: 202 }}>
-            <div className="flex items-center space-x-2 flex-1 min-w-0">
+            <div className="flex items-center space-x-2 flex-1 min-w-0 pr-2">
               <span
                 className="w-3 h-3 rounded-full flex-shrink-0"
                 style={{ backgroundColor: event.child.color }}
               ></span>
-              <div className="flex items-center gap-2 flex-wrap min-w-0">
+              <div className="flex items-center gap-2 flex-wrap min-w-0 flex-1">
                 {event.is_cancelled && (
                   <span className="px-2 py-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 text-xs font-bold rounded flex items-center gap-1 flex-shrink-0">
                     <AlertCircle className="h-3 w-3" />
@@ -397,95 +398,191 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                 </h3>
               </div>
             </div>
-            <div className="flex items-center space-x-2" style={{ position: 'relative', zIndex: 203 }}>
-              {canEdit && (
-                <>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setShowEditModal(true);
-                    }}
-                    onTouchEnd={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setShowEditModal(true);
-                    }}
-                    className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-blue-500 dark:text-gray-500 dark:active:text-blue-400 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
-                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                    title="Edit event"
-                  >
-                    <Edit className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleDelete();
-                    }}
-                    onTouchEnd={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleDelete();
-                    }}
-                    className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-red-500 dark:text-gray-500 dark:active:text-red-400 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
-                    style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                    title="Delete event"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </>
-              )}
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowMessagesModal(true);
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowMessagesModal(true);
-                }}
-                className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-blue-500 dark:text-gray-500 dark:active:text-blue-400 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
-                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-                title="View messages"
-              >
-                <MessageCircle className="h-5 w-5" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowShareModal(true);
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setShowShareModal(true);
-                }}
-                className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-gray-500 dark:text-gray-500 dark:active:text-gray-200 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
-                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-              >
-                <Share2 className="h-5 w-5" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onClose();
-                }}
-                onTouchEnd={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onClose();
-                }}
-                className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-gray-500 dark:text-gray-500 dark:active:text-gray-200 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
-                style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+
+            {isNative ? (
+              <div className="flex items-center space-x-2 flex-shrink-0" style={{ position: 'relative', zIndex: 203 }}>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowMobileMenu(!showMobileMenu);
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowMobileMenu(!showMobileMenu);
+                  }}
+                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-gray-600 dark:text-gray-500 dark:active:text-gray-300 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                  title="Menu"
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-gray-500 dark:text-gray-500 dark:active:text-gray-200 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+
+                {showMobileMenu && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-[250]">
+                    {canEdit && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowMobileMenu(false);
+                            setShowEditModal(true);
+                          }}
+                          className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <Edit className="h-5 w-5 mr-3" />
+                          Edit Event
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setShowMobileMenu(false);
+                            handleDelete();
+                          }}
+                          className="flex items-center w-full px-4 py-3 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          <Trash2 className="h-5 w-5 mr-3" />
+                          Delete Event
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowMobileMenu(false);
+                        setShowMessagesModal(true);
+                      }}
+                      className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <MessageCircle className="h-5 w-5 mr-3" />
+                      View Messages
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowMobileMenu(false);
+                        setShowShareModal(true);
+                      }}
+                      className="flex items-center w-full px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                    >
+                      <Share2 className="h-5 w-5 mr-3" />
+                      Share Event
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2" style={{ position: 'relative', zIndex: 203 }}>
+                {canEdit && (
+                  <>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowEditModal(true);
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowEditModal(true);
+                      }}
+                      className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-blue-500 dark:text-gray-500 dark:active:text-blue-400 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                      style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                      title="Edit event"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDelete();
+                      }}
+                      onTouchEnd={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDelete();
+                      }}
+                      className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-red-500 dark:text-gray-500 dark:active:text-red-400 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                      style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                      title="Delete event"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowMessagesModal(true);
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowMessagesModal(true);
+                  }}
+                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-blue-500 dark:text-gray-500 dark:active:text-blue-400 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                  title="View messages"
+                >
+                  <MessageCircle className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowShareModal(true);
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowShareModal(true);
+                  }}
+                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-gray-500 dark:text-gray-500 dark:active:text-gray-200 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <Share2 className="h-5 w-5" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  className="p-3 min-w-[44px] min-h-[44px] flex items-center justify-center text-gray-400 active:text-gray-500 dark:text-gray-500 dark:active:text-gray-200 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+                  style={{ touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-6">

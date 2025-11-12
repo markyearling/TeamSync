@@ -282,7 +282,7 @@ const ListView: React.FC = () => {
   const checkedCount = items.filter(i => i.is_checked).length;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="w-full md:max-w-4xl md:mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <button
         onClick={() => navigate('/lists')}
         className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6"
@@ -292,42 +292,43 @@ const ListView: React.FC = () => {
       </button>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center">
               <div
-                className="w-3 h-3 rounded-full mr-3"
+                className="w-3 h-3 rounded-full mr-3 flex-shrink-0"
                 style={{ backgroundColor: list.color }}
               />
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
                 {list.name}
               </h1>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={handleCheckAll}
-                className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center"
+                className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center whitespace-nowrap"
                 title="Check all"
               >
                 <CheckSquare className="h-4 w-4 mr-1" />
-                Check All
+                <span className="hidden sm:inline">Check All</span>
               </button>
               <button
                 onClick={handleUncheckAll}
-                className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center"
+                className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center whitespace-nowrap"
                 title="Uncheck all"
               >
                 <Square className="h-4 w-4 mr-1" />
-                Uncheck All
+                <span className="hidden sm:inline">Uncheck All</span>
               </button>
               <button
                 onClick={handleDeleteCheckedClick}
                 disabled={checkedCount === 0}
-                className="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md flex items-center disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 title="Delete checked items"
               >
                 <Trash2 className="h-4 w-4 mr-1" />
-                Delete Checked ({checkedCount})
+                <span className="hidden sm:inline">Delete ({checkedCount})</span>
+                <span className="sm:hidden">Del ({checkedCount})</span>
               </button>
             </div>
           </div>
