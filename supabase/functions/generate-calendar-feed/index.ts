@@ -53,14 +53,15 @@ Deno.serve(async (req: Request) => {
     console.log('Calendar feed requested for token:', token);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
-    if (!supabaseUrl || !supabaseAnonKey) {
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
       console.error('Missing Supabase environment variables');
       throw new Error('Server configuration error');
     }
 
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Use service role key to bypass RLS since this is a public feed accessed via secure token
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     console.log('Validating token...');
 
@@ -92,30 +93,61 @@ Deno.serve(async (req: Request) => {
     const userId = tokenData.user_id;
 
     // Update last accessed time and increment access count
-    await supabase
+    const { error: updateError } = await supabase
       .from('calendar_feed_tokens')
       .update({
         last_accessed_at: new Date().toISOString(),
-        access_count: supabase.rpc('increment', { row_id: token }),
       })
       .eq('token', token);
 
+    if (updateError) {
+      console.error('Error updating token access time:', updateError);
+    }
+
+    // Increment access count separately
+    const { error: incrementError } = await supabase.rpc('increment_access_count', { token_value: token });
+    if (incrementError) {
+      console.error('Error incrementing access count:', incrementError);
+    }
+
     // Get user's timezone
-    const { data: userSettings } = await supabase
+    console.log('Fetching user settings for timezone...');
+    const { data: userSettings, error: settingsError } = await supabase
       .from('user_settings')
       .select('timezone')
       .eq('user_id', userId)
       .maybeSingle();
 
+    if (settingsError) {
+      console.error('Error fetching user settings:', settingsError);
+    }
+
     const timezone = userSettings?.timezone || 'UTC';
+    console.log('Using timezone:', timezone);
 
     // Get all profiles for this user
+    console.log('Fetching profiles for user...');
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, name, user_id')
       .eq('user_id', userId);
 
-    if (profilesError || !profiles || profiles.length === 0) {
+    if (profilesError) {
+      console.error('Error fetching profiles:', profilesError);
+      // Return empty calendar if profiles query fails
+      const calendar = generateEmptyCalendar();
+      return new Response(calendar, {
+        status: 200,
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'text/calendar; charset=utf-8',
+          'Content-Disposition': 'attachment; filename="famsink-calendar.ics"',
+        },
+      });
+    }
+
+    if (!profiles || profiles.length === 0) {
+      console.log('No profiles found for user - returning empty calendar');
       // Return empty calendar if no profiles
       const calendar = generateEmptyCalendar();
       return new Response(calendar, {
@@ -128,9 +160,12 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    console.log(`Found ${profiles.length} profiles:`, profiles.map((p: Profile) => ({ id: p.id, name: p.name })));
+
     const profileIds = profiles.map((p: Profile) => p.id);
 
     // Get all events for these profiles
+    console.log('Fetching events for profiles:', profileIds);
     const { data: events, error: eventsError } = await supabase
       .from('events')
       .select('*')
@@ -138,11 +173,21 @@ Deno.serve(async (req: Request) => {
       .order('start_time', { ascending: true });
 
     if (eventsError) {
+      console.error('Error fetching events:', eventsError);
       throw eventsError;
+    }
+
+    console.log(`Found ${events?.length || 0} events for calendar feed`);
+
+    if (!events || events.length === 0) {
+      console.log('No events found - returning empty calendar');
+    } else {
+      console.log('Sample event:', events[0]);
     }
 
     // Generate ICS calendar
     const calendar = generateICSCalendar(events || [], profiles, timezone);
+    console.log(`Generated ICS calendar with ${events?.length || 0} events`);
 
     return new Response(calendar, {
       status: 200,
