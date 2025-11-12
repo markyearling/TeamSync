@@ -311,6 +311,14 @@ const Dashboard: React.FC = () => {
     }
   }, [fetchOwnEvents, fetchFriendsEvents]);
 
+  // Separate effect to determine onboarding completion status
+  useEffect(() => {
+    const hasProfiles = profiles.length > 0 || friendsProfiles.length > 0;
+    const hasEvents = events.length > 0 || friendsEvents.length > 0;
+    const isOnboardingComplete = hasProfiles && hasEvents;
+    setOnboardingComplete(isOnboardingComplete);
+  }, [profiles, friendsProfiles, events, friendsEvents]);
+
   // Mount-only fetch of last refresh time
   useEffect(() => {
     fetchLastRefreshTime();
@@ -342,11 +350,6 @@ const Dashboard: React.FC = () => {
         });
       } finally {
         if (isMounted) {
-          const hasProfiles = profiles.length > 0 || friendsProfiles.length > 0;
-          const hasEvents = events.length > 0 || friendsEvents.length > 0;
-          const isOnboardingComplete = hasProfiles && hasEvents;
-
-          setOnboardingComplete(isOnboardingComplete);
           setLoading(false);
         }
         
@@ -362,7 +365,7 @@ const Dashboard: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [fetchOwnEvents, fetchFriendsEvents, friendsProfiles, profiles, events, friendsEvents]); // Re-run when friendsProfiles changes
+  }, [fetchOwnEvents, fetchFriendsEvents]); // Only re-fetch when fetch functions change // Re-run when friendsProfiles changes
 
   // Function to sync all platform events
   const syncAllPlatformEvents = async () => {
