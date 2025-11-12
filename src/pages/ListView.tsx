@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Check, X as XIcon, Trash2, CheckSquare, Square, GripVertical } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import DeleteConfirmationModal from '../components/lists/DeleteConfirmationModal';
 
 interface ListItem {
   id: string;
@@ -26,6 +27,8 @@ const ListView: React.FC = () => {
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState('');
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const newItemInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -193,13 +196,18 @@ const ListView: React.FC = () => {
     }
   };
 
-  const handleDeleteChecked = async () => {
+  const handleDeleteCheckedClick = () => {
+    const checkedItems = items.filter(i => i.is_checked);
+    if (checkedItems.length === 0) return;
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDelete = async () => {
     const checkedItems = items.filter(i => i.is_checked);
     if (checkedItems.length === 0) return;
 
-    if (!confirm(`Delete ${checkedItems.length} checked item(s)?`)) return;
-
     try {
+      setIsDeleting(true);
       const deletes = checkedItems.map(item =>
         supabase
           .from('list_items')
@@ -209,8 +217,11 @@ const ListView: React.FC = () => {
 
       await Promise.all(deletes);
       setItems(items.filter(i => !i.is_checked));
+      setShowDeleteModal(false);
     } catch (error) {
       console.error('Error deleting checked items:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -310,7 +321,7 @@ const ListView: React.FC = () => {
                 Uncheck All
               </button>
               <button
-                onClick={handleDeleteChecked}
+                onClick={handleDeleteCheckedClick}
                 disabled={checkedCount === 0}
                 className="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Delete checked items"
@@ -435,6 +446,14 @@ const ListView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleConfirmDelete}
+        itemCount={checkedCount}
+        isProcessing={isDeleting}
+      />
     </div>
   );
 };
