@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, FileEdit as Edit, MessageCircle, AlertCircle, Trash2, Repeat } from 'lucide-react';
+import { X, MapPin, Clock, Calendar, User, Share2, Mail, Send, FileEdit as Edit, MessageCircle, AlertCircle, Trash2, Repeat, Download } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import { GoogleMap } from '@react-google-maps/api';
@@ -205,6 +205,12 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
   useEffect(() => {
     const checkEditPermissions = async () => {
       try {
+        // Calendar imported events are read-only
+        if (event.calendar_import_id || event.is_read_only) {
+          setCanEdit(false);
+          return;
+        }
+
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError || !user) return;
 
@@ -522,6 +528,13 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
                     <div className="flex items-center text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-3 py-2 rounded-lg">
                       <Repeat className="h-5 w-5 mr-2" />
                       <span className="text-sm font-medium">Recurring Event</span>
+                    </div>
+                  )}
+
+                  {event.calendar_name && (
+                    <div className="flex items-center text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-900/20 px-3 py-2 rounded-lg">
+                      <Download className="h-5 w-5 mr-2" />
+                      <span className="text-sm font-medium">Synced from {event.calendar_name}</span>
                     </div>
                   )}
                 </div>

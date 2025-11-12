@@ -54,6 +54,10 @@ export interface Event {
   recurrence_end_date?: Date;
   is_recurring?: boolean;
   parent_event_id?: string;
+  calendar_import_id?: string;
+  calendar_name?: string;
+  is_read_only?: boolean;
+  external_source?: string;
 }
 
 export type RecurrencePattern = 'daily' | 'weekly' | 'biweekly' | 'monthly';

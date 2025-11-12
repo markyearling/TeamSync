@@ -94,7 +94,12 @@ const Calendar: React.FC = () => {
     try {
       const { data: eventData, error } = await supabase
         .from('events')
-        .select('*')
+        .select(`
+          *,
+          calendar_imports (
+            calendar_name
+          )
+        `)
         .in('profile_id', profileIds)
         .order('start_time', { ascending: true });
 
@@ -113,7 +118,8 @@ const Calendar: React.FC = () => {
           platformIcon: CalendarIcon,
           isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
           isOwnEvent: true,
-          is_cancelled: event.is_cancelled || false
+          is_cancelled: event.is_cancelled || false,
+          calendar_name: event.calendar_imports?.calendar_name
         };
       });
 
@@ -143,7 +149,12 @@ const Calendar: React.FC = () => {
       if (friendProfileIds.length > 0) {
         const { data: friendEventData, error: eventsError } = await supabase
           .from('events')
-          .select('*')
+          .select(`
+            *,
+            calendar_imports (
+              calendar_name
+            )
+          `)
           .in('profile_id', friendProfileIds)
           .order('start_time', { ascending: true });
 
@@ -166,7 +177,8 @@ const Calendar: React.FC = () => {
             isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
             isOwnEvent: false,
             ownerName: profile?.ownerName,
-            is_cancelled: event.is_cancelled || false
+            is_cancelled: event.is_cancelled || false,
+            calendar_name: event.calendar_imports?.calendar_name
           };
         });
 

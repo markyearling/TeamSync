@@ -133,7 +133,12 @@ const ChildProfile: React.FC = () => {
           // Fetch events for this profile
           const { data: eventData, error: eventError } = await supabase
             .from('events')
-            .select('*')
+            .select(`
+              *,
+              calendar_imports (
+                calendar_name
+              )
+            `)
             .eq('profile_id', id)
             .order('start_time', { ascending: true });
 
@@ -161,7 +166,8 @@ const ChildProfile: React.FC = () => {
             isOwnEvent: profile.isOwnProfile,
             isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
             ownerName: profile.ownerName,
-            is_cancelled: event.is_cancelled || false
+            is_cancelled: event.is_cancelled || false,
+            calendar_name: event.calendar_imports?.calendar_name
           }));
 
           setEvents(formattedEvents);
@@ -223,7 +229,12 @@ const ChildProfile: React.FC = () => {
       // Refresh events for this profile
       const { data: eventData, error: eventError } = await supabase
         .from('events')
-        .select('*')
+        .select(`
+          *,
+          calendar_imports (
+            calendar_name
+          )
+        `)
         .eq('profile_id', id)
         .order('start_time', { ascending: true });
 
@@ -251,7 +262,8 @@ const ChildProfile: React.FC = () => {
         isOwnEvent: profile.isOwnProfile,
         isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
         ownerName: profile.ownerName,
-        is_cancelled: event.is_cancelled || false
+        is_cancelled: event.is_cancelled || false,
+        calendar_name: event.calendar_imports?.calendar_name
       }));
 
       setEvents(formattedEvents);
@@ -1102,7 +1114,12 @@ const ChildProfile: React.FC = () => {
                 // Refresh events for this profile
                 const { data: eventData, error: eventError } = await supabase
                   .from('events')
-                  .select('*')
+                  .select(`
+                    *,
+                    calendar_imports (
+                      calendar_name
+                    )
+                  `)
                   .eq('profile_id', id)
                   .order('start_time', { ascending: true });
 
@@ -1130,7 +1147,8 @@ const ChildProfile: React.FC = () => {
                   isOwnEvent: profile.isOwnProfile,
                   isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
                   ownerName: profile.ownerName,
-                  is_cancelled: event.is_cancelled || false
+                  is_cancelled: event.is_cancelled || false,
+                  calendar_name: event.calendar_imports?.calendar_name
                 }));
 
                 setEvents(formattedEvents);

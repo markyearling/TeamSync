@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Clock, User, AlertCircle, Repeat } from 'lucide-react';
+import { MapPin, Clock, User, AlertCircle, Repeat, Download } from 'lucide-react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import EventModal from './EventModal';
@@ -87,6 +87,12 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
                 <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 text-xs font-medium rounded flex items-center gap-1">
                   <Repeat className="h-3 w-3" />
                   Recurring
+                </span>
+              )}
+              {event.calendar_name && (
+                <span className="px-1.5 py-0.5 bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-200 text-xs font-medium rounded flex items-center gap-1">
+                  <Download className="h-3 w-3" />
+                  Synced from {event.calendar_name}
                 </span>
               )}
               {event.is_cancelled && (
