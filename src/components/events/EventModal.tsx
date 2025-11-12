@@ -139,22 +139,49 @@ const EventModal: React.FC<EventModalProps> = ({ event, onClose, mapsLoaded, map
 
   const confirmSingleDelete = async () => {
     try {
-      const { error } = await supabase
-        .from('events')
-        .delete()
-        .eq('id', event.id);
+      console.log('[EventModal] confirmSingleDelete called for event:', {
+        id: event.id,
+        profile_id: event.profile_id,
+        title: event.title,
+        child: event.child,
+        isOwnEvent: event.isOwnEvent,
+        user_id: event.child.user_id
+      });
 
-      if (error) throw error;
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('[EventModal] Current user:', user?.id);
+
+      const { data, error, count } = await supabase
+        .from('events')
+        .delete({ count: 'exact' })
+        .eq('id', event.id)
+        .select();
+
+      console.log('[EventModal] Delete result:', { data, error, count });
+
+      if (error) {
+        console.error('[EventModal] Delete error:', error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.warn('[EventModal] No event was deleted. This might indicate an RLS policy issue.');
+        throw new Error('Event was not deleted. You may not have permission to delete this event.');
+      }
+
+      console.log('[EventModal] Successfully deleted event');
+      setShowDeleteConfirm(false);
 
       if (onEventUpdated) {
         onEventUpdated();
       }
       onClose();
     } catch (err) {
-      console.error('Failed to delete event:', err);
-      alert('Failed to delete event. Please try again.');
+      console.error('[EventModal] Failed to delete event:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete event. Please try again.';
+      alert(errorMessage);
+      setShowDeleteConfirm(false);
     }
-    setShowDeleteConfirm(false);
   };
 
   // Open messages modal if shouldOpenMessages is true

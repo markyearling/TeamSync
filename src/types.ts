@@ -30,6 +30,7 @@ export interface Platform {
 export interface UserSettings {
 export interface Event {
   id: string | number;
+  profile_id?: string;
   title: string;
   description?: string;
   startTime: Date;
