@@ -280,10 +280,18 @@ const ListView: React.FC = () => {
   const handleTouchStart = async (e: React.TouchEvent, itemId: string) => {
     if (!isNative || editingItemId) return;
 
+    e.stopPropagation();
     setTouchStartY(e.touches[0].clientY);
     setTouchedItemId(itemId);
     setIsDragging(true);
+
+    const scrollContainer = document.querySelector('.list-items-container');
+    if (scrollContainer) {
+      scrollContainer.classList.add('overflow-hidden');
+    }
     document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
 
     try {
       await Haptics.impact({ style: ImpactStyle.Light });
@@ -296,6 +304,8 @@ const ListView: React.FC = () => {
     if (!isNative || !touchedItemId || editingItemId) return;
 
     e.preventDefault();
+    e.stopPropagation();
+
     const touchY = e.touches[0].clientY;
     const currentIndex = items.findIndex(i => i.id === touchedItemId);
 
@@ -306,7 +316,8 @@ const ListView: React.FC = () => {
 
     itemElements.forEach((element, index) => {
       const rect = element.getBoundingClientRect();
-      if (touchY >= rect.top && touchY <= rect.bottom) {
+      const middle = rect.top + (rect.height / 2);
+      if (Math.abs(touchY - middle) < rect.height / 2) {
         targetIndex = index;
       }
     });
@@ -352,7 +363,14 @@ const ListView: React.FC = () => {
     setTouchedItemId(null);
     setTouchStartY(0);
     setIsDragging(false);
+
+    const scrollContainer = document.querySelector('.list-items-container');
+    if (scrollContainer) {
+      scrollContainer.classList.remove('overflow-hidden');
+    }
     document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
   };
 
   if (loading) {
@@ -370,7 +388,7 @@ const ListView: React.FC = () => {
   const checkedCount = items.filter(i => i.is_checked).length;
 
   return (
-    <div className={`w-full ${isNative ? 'px-4 py-2' : 'md:max-w-4xl md:mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
+    <div className={`w-full ${isNative ? 'px-0 py-2' : 'md:max-w-4xl md:mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
       {!isNative && (
         <button
           onClick={() => navigate('/lists')}
@@ -382,7 +400,7 @@ const ListView: React.FC = () => {
       )}
 
       <div className={`${isNative ? '' : 'bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700'}`}>
-        <div className={`${isNative ? 'px-0 py-1 mb-2' : 'px-4 sm:px-6 py-4'} ${!isNative && 'border-b border-gray-200 dark:border-gray-700'}`}>
+        <div className={`${isNative ? 'px-4 py-1 mb-2' : 'px-4 sm:px-6 py-4'} ${!isNative && 'border-b border-gray-200 dark:border-gray-700'}`}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div className="flex items-center min-w-0">
               {isNative && (
@@ -433,7 +451,7 @@ const ListView: React.FC = () => {
           </div>
         </div>
 
-        <div className={isNative ? 'px-0' : 'p-6'}>
+        <div className={isNative ? 'px-4' : 'p-6'}>
           <div className={isNative ? 'mb-4' : 'mb-6'}>
             <div className="flex items-center space-x-2">
               <input
@@ -459,7 +477,7 @@ const ListView: React.FC = () => {
             </div>
           </div>
 
-          <div className={isNative ? 'space-y-1.5' : 'space-y-2'}>
+          <div className={`list-items-container ${isNative ? 'space-y-1.5' : 'space-y-2'}`}>
             {items.length === 0 ? (
               <p className={`text-center text-gray-500 dark:text-gray-400 ${isNative ? 'py-6 text-sm' : 'py-8'}`}>
                 No items yet. Add your first item above!
@@ -472,11 +490,16 @@ const ListView: React.FC = () => {
                   onDragOver={(e) => handleDragOver(e, item.id)}
                   className={`flex items-center ${isNative ? 'space-x-2 p-2.5' : 'space-x-3 p-3'} bg-gray-50 dark:bg-gray-700 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-600 transition-all ${
                     draggedItemId === item.id || touchedItemId === item.id
-                      ? 'opacity-90 shadow-lg ring-2 ring-blue-500 dark:ring-blue-400 scale-105 z-50'
+                      ? 'opacity-100 shadow-2xl ring-4 ring-blue-500 dark:ring-blue-400 scale-110 z-50 bg-blue-50 dark:bg-blue-900/30'
                       : isDragging
-                        ? 'opacity-40'
+                        ? 'opacity-30 blur-[1px]'
                         : ''
                   }`}
+                  style={
+                    draggedItemId === item.id || touchedItemId === item.id
+                      ? { position: 'relative', zIndex: 9999 }
+                      : undefined
+                  }
                 >
                   <div
                     className="cursor-move text-gray-400 dark:text-gray-500 hover:text-blue-500 dark:hover:text-blue-400 transition-colors active:scale-110"
