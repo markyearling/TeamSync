@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Check, X as XIcon, Trash2, CheckSquare, Square, GripVertical } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import DeleteConfirmationModal from '../components/lists/DeleteConfirmationModal';
+import { useCapacitor } from '../hooks/useCapacitor';
 
 interface ListItem {
   id: string;
@@ -30,6 +31,7 @@ const ListView: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const newItemInputRef = useRef<HTMLInputElement>(null);
+  const { isNative } = useCapacitor();
 
   useEffect(() => {
     if (listId) {
@@ -282,60 +284,60 @@ const ListView: React.FC = () => {
   const checkedCount = items.filter(i => i.is_checked).length;
 
   return (
-    <div className="w-full md:max-w-4xl md:mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className={`w-full ${isNative ? 'px-2 py-4' : 'md:max-w-4xl md:mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
       <button
         onClick={() => navigate('/lists')}
-        className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6"
+        className={`flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white ${isNative ? 'mb-3' : 'mb-6'}`}
       >
-        <ArrowLeft className="h-5 w-5 mr-2" />
-        Back to Lists
+        <ArrowLeft className={`${isNative ? 'h-4 w-4 mr-1.5' : 'h-5 w-5 mr-2'}`} />
+        <span className={isNative ? 'text-sm' : ''}>Back to Lists</span>
       </button>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center">
+        <div className={`${isNative ? 'px-3 py-3' : 'px-4 sm:px-6 py-4'} border-b border-gray-200 dark:border-gray-700`}>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center min-w-0">
               <div
-                className="w-3 h-3 rounded-full mr-3 flex-shrink-0"
+                className={`${isNative ? 'w-2.5 h-2.5 mr-2' : 'w-3 h-3 mr-3'} rounded-full flex-shrink-0`}
                 style={{ backgroundColor: list.color }}
               />
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h1 className={`${isNative ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 dark:text-white truncate`}>
                 {list.name}
               </h1>
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <button
                 onClick={handleCheckAll}
-                className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center whitespace-nowrap"
+                className={`${isNative ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center whitespace-nowrap`}
                 title="Check all"
               >
-                <CheckSquare className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Check All</span>
+                <CheckSquare className={`${isNative ? 'h-3.5 w-3.5' : 'h-4 w-4 mr-1'} ${!isNative && 'mr-1'}`} />
+                <span className={isNative ? 'ml-1' : 'hidden sm:inline'}>Check All</span>
               </button>
               <button
                 onClick={handleUncheckAll}
-                className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center whitespace-nowrap"
+                className={`${isNative ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center whitespace-nowrap`}
                 title="Uncheck all"
               >
-                <Square className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Uncheck All</span>
+                <Square className={`${isNative ? 'h-3.5 w-3.5' : 'h-4 w-4 mr-1'} ${!isNative && 'mr-1'}`} />
+                <span className={isNative ? 'ml-1' : 'hidden sm:inline'}>Uncheck All</span>
               </button>
               <button
                 onClick={handleDeleteCheckedClick}
                 disabled={checkedCount === 0}
-                className="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md flex items-center disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                className={`${isNative ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md flex items-center disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap`}
                 title="Delete checked items"
               >
-                <Trash2 className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Delete ({checkedCount})</span>
-                <span className="sm:hidden">Del ({checkedCount})</span>
+                <Trash2 className={`${isNative ? 'h-3.5 w-3.5' : 'h-4 w-4 mr-1'} ${!isNative && 'mr-1'}`} />
+                <span className={isNative ? 'ml-1' : 'hidden sm:inline'}>Delete ({checkedCount})</span>
+                {!isNative && <span className="sm:hidden">Del ({checkedCount})</span>}
               </button>
             </div>
           </div>
         </div>
 
-        <div className="p-6">
-          <div className="mb-6">
+        <div className={isNative ? 'p-3' : 'p-6'}>
+          <div className={isNative ? 'mb-4' : 'mb-6'}>
             <div className="flex items-center space-x-2">
               <input
                 ref={newItemInputRef}
@@ -348,21 +350,21 @@ const ListView: React.FC = () => {
                   }
                 }}
                 placeholder="Add new item..."
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                className={`flex-1 ${isNative ? 'px-3 py-2 text-sm' : 'px-4 py-2'} border border-gray-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white`}
               />
               <button
                 onClick={handleAddItem}
                 disabled={!newItemText.trim()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className={`${isNative ? 'px-3 py-2' : 'px-4 py-2'} bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center`}
               >
-                <Plus className="h-5 w-5" />
+                <Plus className={isNative ? 'h-4 w-4' : 'h-5 w-5'} />
               </button>
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className={isNative ? 'space-y-1.5' : 'space-y-2'}>
             {items.length === 0 ? (
-              <p className="text-center text-gray-500 dark:text-gray-400 py-8">
+              <p className={`text-center text-gray-500 dark:text-gray-400 ${isNative ? 'py-6 text-sm' : 'py-8'}`}>
                 No items yet. Add your first item above!
               </p>
             ) : (
@@ -373,12 +375,12 @@ const ListView: React.FC = () => {
                   onDragStart={(e) => handleDragStart(e, item.id)}
                   onDragOver={(e) => handleDragOver(e, item.id)}
                   onDragEnd={handleDragEnd}
-                  className={`flex items-center space-x-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${
+                  className={`flex items-center ${isNative ? 'space-x-2 p-2.5' : 'space-x-3 p-3'} bg-gray-50 dark:bg-gray-700 rounded-lg group hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors ${
                     draggedItemId === item.id ? 'opacity-50' : ''
                   }`}
                 >
                   <div className="cursor-move text-gray-400 dark:text-gray-500">
-                    <GripVertical className="h-5 w-5" />
+                    <GripVertical className={isNative ? 'h-4 w-4' : 'h-5 w-5'} />
                   </div>
 
                   <button
@@ -386,9 +388,9 @@ const ListView: React.FC = () => {
                     className="flex-shrink-0"
                   >
                     {item.is_checked ? (
-                      <CheckSquare className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                      <CheckSquare className={isNative ? 'h-4 w-4' : 'h-5 w-5'} style={{ color: list.color }} />
                     ) : (
-                      <Square className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                      <Square className={`${isNative ? 'h-4 w-4' : 'h-5 w-5'} text-gray-400 dark:text-gray-500`} />
                     )}
                   </button>
 
@@ -405,27 +407,27 @@ const ListView: React.FC = () => {
                             handleCancelEdit();
                           }
                         }}
-                        className="flex-1 px-3 py-1 border border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                        className={`flex-1 ${isNative ? 'px-2 py-1 text-sm' : 'px-3 py-1'} border border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:text-white`}
                         autoFocus
                       />
                       <button
                         onClick={() => handleSaveEdit(item.id)}
                         className="text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300"
                       >
-                        <Check className="h-5 w-5" />
+                        <Check className={isNative ? 'h-4 w-4' : 'h-5 w-5'} />
                       </button>
                       <button
                         onClick={handleCancelEdit}
                         className="text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                       >
-                        <XIcon className="h-5 w-5" />
+                        <XIcon className={isNative ? 'h-4 w-4' : 'h-5 w-5'} />
                       </button>
                     </>
                   ) : (
                     <>
                       <span
                         onClick={() => handleStartEdit(item)}
-                        className={`flex-1 cursor-pointer ${
+                        className={`flex-1 cursor-pointer ${isNative ? 'text-sm' : ''} ${
                           item.is_checked
                             ? 'line-through text-gray-500 dark:text-gray-400'
                             : 'text-gray-900 dark:text-white'
@@ -435,9 +437,9 @@ const ListView: React.FC = () => {
                       </span>
                       <button
                         onClick={() => handleDeleteItem(item.id)}
-                        className="opacity-0 group-hover:opacity-100 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-opacity"
+                        className={`${isNative ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-opacity`}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className={isNative ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
                       </button>
                     </>
                   )}

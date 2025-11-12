@@ -4,6 +4,7 @@ import { Plus, ListChecks, Trash2, Edit2, MoreVertical } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CreateListModal from '../components/lists/CreateListModal';
 import EditListModal from '../components/lists/EditListModal';
+import { useCapacitor } from '../hooks/useCapacitor';
 
 interface List {
   id: string;
@@ -25,6 +26,7 @@ const Lists: React.FC = () => {
   const [listToDelete, setListToDelete] = useState<List | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { isNative } = useCapacitor();
 
   useEffect(() => {
     fetchLists();
@@ -122,7 +124,10 @@ const Lists: React.FC = () => {
     }
   };
 
-  const handleListClick = (listId: string) => {
+  const handleListClick = (listId: string, e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.menu-button')) {
+      return;
+    }
     navigate(`/lists/${listId}`);
   };
 
@@ -178,7 +183,7 @@ const Lists: React.FC = () => {
           {lists.map((list) => (
             <div
               key={list.id}
-              onClick={() => handleListClick(list.id)}
+              onClick={(e) => handleListClick(list.id, e)}
               className="relative bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-700 cursor-pointer group"
             >
               <div className="p-6">
@@ -211,13 +216,15 @@ const Lists: React.FC = () => {
                 </div>
               </div>
 
-              <div className="absolute top-4 right-4" onClick={(e) => e.stopPropagation()}>
+              <div className="absolute top-4 right-4 menu-button" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleMenu(list.id);
                   }}
-                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className={`p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-opacity ${
+                    isNative ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  }`}
                 >
                   <MoreVertical className="h-5 w-5" />
                 </button>
