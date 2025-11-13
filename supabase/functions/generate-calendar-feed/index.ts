@@ -22,6 +22,7 @@ interface Event {
   recurrence_pattern: string | null;
   recurrence_end_date: string | null;
   profile_id: string;
+  all_day?: boolean;
 }
 
 interface Profile {
@@ -60,12 +61,10 @@ Deno.serve(async (req: Request) => {
       throw new Error('Server configuration error');
     }
 
-    // Use service role key to bypass RLS since this is a public feed accessed via secure token
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     console.log('Validating token...');
 
-    // Validate token and get user_id
     const { data: tokenData, error: tokenError } = await supabase
       .from('calendar_feed_tokens')
       .select('user_id')
@@ -92,7 +91,6 @@ Deno.serve(async (req: Request) => {
 
     const userId = tokenData.user_id;
 
-    // Update last accessed time and increment access count
     const { error: updateError } = await supabase
       .from('calendar_feed_tokens')
       .update({
@@ -104,13 +102,11 @@ Deno.serve(async (req: Request) => {
       console.error('Error updating token access time:', updateError);
     }
 
-    // Increment access count separately
     const { error: incrementError } = await supabase.rpc('increment_access_count', { token_value: token });
     if (incrementError) {
       console.error('Error incrementing access count:', incrementError);
     }
 
-    // Get user's timezone
     console.log('Fetching user settings for timezone...');
     const { data: userSettings, error: settingsError } = await supabase
       .from('user_settings')
@@ -125,7 +121,6 @@ Deno.serve(async (req: Request) => {
     const timezone = userSettings?.timezone || 'UTC';
     console.log('Using timezone:', timezone);
 
-    // Get all profiles for this user
     console.log('Fetching profiles for user...');
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
@@ -134,7 +129,6 @@ Deno.serve(async (req: Request) => {
 
     if (profilesError) {
       console.error('Error fetching profiles:', profilesError);
-      // Return empty calendar if profiles query fails
       const calendar = generateEmptyCalendar();
       return new Response(calendar, {
         status: 200,
@@ -148,7 +142,6 @@ Deno.serve(async (req: Request) => {
 
     if (!profiles || profiles.length === 0) {
       console.log('No profiles found for user - returning empty calendar');
-      // Return empty calendar if no profiles
       const calendar = generateEmptyCalendar();
       return new Response(calendar, {
         status: 200,
@@ -164,7 +157,6 @@ Deno.serve(async (req: Request) => {
 
     const profileIds = profiles.map((p: Profile) => p.id);
 
-    // Calculate date boundaries: 90 days in the past, 365 days in the future
     const now = new Date();
     const pastCutoff = new Date(now);
     pastCutoff.setDate(pastCutoff.getDate() - 90);
@@ -176,9 +168,6 @@ Deno.serve(async (req: Request) => {
       future: futureCutoff.toISOString(),
     });
 
-    // Get events for these profiles, excluding calendar imports and filtering by date range
-    // Only include: Manual events and Platform-synced events (TeamSnap, SportsEngine, Playmetrics, GameChanger)
-    // Exclude: Events imported from external calendar feeds (external_source = 'calendar_import')
     console.log('Fetching events for profiles:', profileIds);
     const { data: events, error: eventsError } = await supabase
       .from('events')
@@ -204,7 +193,6 @@ Deno.serve(async (req: Request) => {
       console.log(`Events excluded: Calendar imports (external_source = 'calendar_import')`);
     }
 
-    // Generate ICS calendar
     const calendar = generateICSCalendar(events || [], profiles, timezone);
     console.log(`Generated ICS calendar with ${events?.length || 0} events`);
 
@@ -259,10 +247,10 @@ function generateICSCalendar(
   cal.updatePropertyWithValue('x-wr-timezone', timezone);
   cal.updatePropertyWithValue('x-wr-caldesc', 'Your FamSink family events calendar');
 
-  // Create a timezone component
-  const vtimezone = new ICAL.Component('vtimezone');
-  vtimezone.updatePropertyWithValue('tzid', timezone);
-  cal.addSubcomponent(vtimezone);
+  const vtimezone = createTimezoneComponent(timezone);
+  if (vtimezone) {
+    cal.addSubcomponent(vtimezone);
+  }
 
   events.forEach((event: Event) => {
     const profile = profiles.find((p: Profile) => p.id === event.profile_id);
@@ -270,53 +258,58 @@ function generateICSCalendar(
 
     const vevent = new ICAL.Component('vevent');
 
-    // UID - unique identifier for the event
     vevent.updatePropertyWithValue('uid', `${event.id}@famsink.com`);
 
-    // Summary (title)
     const summary = `${event.title} - ${profileName}`;
     vevent.updatePropertyWithValue('summary', summary);
 
-    // Description
     let description = `Child: ${profileName}\nSport: ${event.sport}\nPlatform: ${event.platform}`;
     if (event.description) {
       description += `\n\n${event.description}`;
     }
     vevent.updatePropertyWithValue('description', description);
 
-    // Start time
-    const startTime = ICAL.Time.fromDateTimeString(event.start_time);
-    vevent.updatePropertyWithValue('dtstart', startTime);
+    const isAllDay = isAllDayEvent(event.start_time, event.end_time);
 
-    // End time
-    const endTime = ICAL.Time.fromDateTimeString(event.end_time);
-    vevent.updatePropertyWithValue('dtend', endTime);
+    if (isAllDay) {
+      const startDate = ICAL.Time.fromDateTimeString(event.start_time);
+      startDate.isDate = true;
+      const startProp = vevent.updatePropertyWithValue('dtstart', startDate);
+      startProp.setParameter('value', 'DATE');
 
-    // Location
+      const endDate = ICAL.Time.fromDateTimeString(event.end_time);
+      endDate.isDate = true;
+      const endProp = vevent.updatePropertyWithValue('dtend', endDate);
+      endProp.setParameter('value', 'DATE');
+    } else {
+      const startTime = ICAL.Time.fromDateTimeString(event.start_time);
+      const startProp = vevent.updatePropertyWithValue('dtstart', startTime);
+      startProp.setParameter('tzid', timezone);
+
+      const endTime = ICAL.Time.fromDateTimeString(event.end_time);
+      const endProp = vevent.updatePropertyWithValue('dtend', endTime);
+      endProp.setParameter('tzid', timezone);
+    }
+
     if (event.location_name || event.location) {
       vevent.updatePropertyWithValue('location', event.location_name || event.location || '');
     }
 
-    // Status - mark cancelled events
     if (event.is_cancelled) {
       vevent.updatePropertyWithValue('status', 'CANCELLED');
     } else {
       vevent.updatePropertyWithValue('status', 'CONFIRMED');
     }
 
-    // Categories
     vevent.updatePropertyWithValue('categories', `${event.sport}, ${event.platform}`);
 
-    // Created/Modified timestamps
     const now = ICAL.Time.now();
     vevent.updatePropertyWithValue('dtstamp', now);
     vevent.updatePropertyWithValue('created', now);
     vevent.updatePropertyWithValue('last-modified', now);
 
-    // Add organizer
     vevent.updatePropertyWithValue('organizer', `mailto:noreply@famsink.com`);
 
-    // Handle recurring events
     if (event.recurring_group_id && event.recurrence_pattern && !event.is_cancelled) {
       const rrule = generateRecurrenceRule(event.recurrence_pattern, event.recurrence_end_date);
       if (rrule) {
@@ -330,11 +323,70 @@ function generateICSCalendar(
   return cal.toString();
 }
 
+function isAllDayEvent(startTime: string, endTime: string): boolean {
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+
+  const startAtMidnight = start.getUTCHours() === 0 && start.getUTCMinutes() === 0 && start.getUTCSeconds() === 0;
+
+  const endAtMidnight = end.getUTCHours() === 0 && end.getUTCMinutes() === 0 && end.getUTCSeconds() === 0;
+
+  const durationMs = end.getTime() - start.getTime();
+  const durationHours = durationMs / (1000 * 60 * 60);
+  const isFullDays = durationHours % 24 === 0;
+
+  return startAtMidnight && endAtMidnight && isFullDays;
+}
+
+function createTimezoneComponent(tzid: string): ICAL.Component | null {
+  try {
+    const vtimezone = new ICAL.Component('vtimezone');
+    vtimezone.updatePropertyWithValue('tzid', tzid);
+
+    const now = new Date();
+    const year = now.getFullYear();
+
+    if (tzid === 'America/Chicago' || tzid === 'America/New_York' ||
+        tzid === 'America/Los_Angeles' || tzid === 'America/Denver') {
+
+      const offsetMap: Record<string, { standard: string; daylight: string }> = {
+        'America/New_York': { standard: '-0500', daylight: '-0400' },
+        'America/Chicago': { standard: '-0600', daylight: '-0500' },
+        'America/Denver': { standard: '-0700', daylight: '-0600' },
+        'America/Los_Angeles': { standard: '-0800', daylight: '-0700' },
+      };
+
+      const offsets = offsetMap[tzid];
+      if (offsets) {
+        const daylight = new ICAL.Component('daylight');
+        daylight.updatePropertyWithValue('tzoffsetfrom', offsets.standard);
+        daylight.updatePropertyWithValue('tzoffsetto', offsets.daylight);
+        daylight.updatePropertyWithValue('dtstart', `${year}0310T020000`);
+        daylight.updatePropertyWithValue('rrule', { freq: 'YEARLY', bymonth: 3, byday: '2SU' });
+        daylight.updatePropertyWithValue('tzname', 'CDT');
+        vtimezone.addSubcomponent(daylight);
+
+        const standard = new ICAL.Component('standard');
+        standard.updatePropertyWithValue('tzoffsetfrom', offsets.daylight);
+        standard.updatePropertyWithValue('tzoffsetto', offsets.standard);
+        standard.updatePropertyWithValue('dtstart', `${year}1103T020000`);
+        standard.updatePropertyWithValue('rrule', { freq: 'YEARLY', bymonth: 11, byday: '1SU' });
+        standard.updatePropertyWithValue('tzname', 'CST');
+        vtimezone.addSubcomponent(standard);
+      }
+    }
+
+    return vtimezone;
+  } catch (error) {
+    console.error('Error creating timezone component:', error);
+    return null;
+  }
+}
+
 function generateRecurrenceRule(pattern: string, endDate: string | null): any {
   const freq = pattern.toUpperCase();
   const rule: any = { freq };
 
-  // Map patterns to ICAL frequency
   switch (pattern.toLowerCase()) {
     case 'daily':
       rule.freq = 'DAILY';
@@ -353,7 +405,6 @@ function generateRecurrenceRule(pattern: string, endDate: string | null): any {
       return null;
   }
 
-  // Add end date if specified
   if (endDate) {
     const until = ICAL.Time.fromDateTimeString(endDate);
     rule.until = until;
