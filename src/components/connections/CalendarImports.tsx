@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useProfiles } from '../../context/ProfilesContext';
 import { Calendar, Plus, Trash2, RefreshCw, AlertCircle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import DeleteCalendarConfirmModal from './DeleteCalendarConfirmModal';
 
 interface CalendarImport {
   id: string;
@@ -24,6 +25,9 @@ export default function CalendarImports({ onAddClick }: CalendarImportsProps) {
   const [calendarImports, setCalendarImports] = useState<CalendarImport[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncingIds, setSyncingIds] = useState<Set<string>>(new Set());
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [calendarToDelete, setCalendarToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadCalendarImports();
@@ -82,22 +86,31 @@ export default function CalendarImports({ onAddClick }: CalendarImportsProps) {
     }
   };
 
-  const handleDelete = async (importId: string, calendarName: string) => {
-    if (!confirm(`Are you sure you want to delete "${calendarName}"? All imported events will be removed.`)) {
-      return;
-    }
+  const handleDelete = (importId: string, calendarName: string) => {
+    setCalendarToDelete({ id: importId, name: calendarName });
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!calendarToDelete) return;
 
     try {
+      setIsDeleting(true);
       const { error } = await supabase
         .from('calendar_imports')
         .delete()
-        .eq('id', importId);
+        .eq('id', calendarToDelete.id);
 
       if (error) throw error;
+
       await loadCalendarImports();
+      setDeleteModalOpen(false);
+      setCalendarToDelete(null);
     } catch (error) {
       console.error('Error deleting calendar import:', error);
       alert('Failed to delete calendar import. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -243,6 +256,17 @@ export default function CalendarImports({ onAddClick }: CalendarImportsProps) {
           </div>
         </div>
       )}
+
+      <DeleteCalendarConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => {
+          setDeleteModalOpen(false);
+          setCalendarToDelete(null);
+        }}
+        onConfirm={confirmDelete}
+        calendarName={calendarToDelete?.name || ''}
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }
