@@ -247,11 +247,6 @@ function generateICSCalendar(
   cal.updatePropertyWithValue('x-wr-timezone', timezone);
   cal.updatePropertyWithValue('x-wr-caldesc', 'Your FamSink family events calendar');
 
-  const vtimezone = createTimezoneComponent(timezone);
-  if (vtimezone) {
-    cal.addSubcomponent(vtimezone);
-  }
-
   events.forEach((event: Event) => {
     const profile = profiles.find((p: Profile) => p.id === event.profile_id);
     const profileName = profile?.name || 'Unknown';
@@ -274,21 +269,19 @@ function generateICSCalendar(
     if (isAllDay) {
       const startDate = ICAL.Time.fromDateTimeString(event.start_time);
       startDate.isDate = true;
-      const startProp = vevent.updatePropertyWithValue('dtstart', startDate);
-      startProp.setParameter('value', 'DATE');
+      vevent.updatePropertyWithValue('dtstart', startDate);
 
       const endDate = ICAL.Time.fromDateTimeString(event.end_time);
       endDate.isDate = true;
-      const endProp = vevent.updatePropertyWithValue('dtend', endDate);
-      endProp.setParameter('value', 'DATE');
+      vevent.updatePropertyWithValue('dtend', endDate);
     } else {
       const startTime = ICAL.Time.fromDateTimeString(event.start_time);
-      const startProp = vevent.updatePropertyWithValue('dtstart', startTime);
-      startProp.setParameter('tzid', timezone);
+      startTime.zone = ICAL.Timezone.utcTimezone;
+      vevent.updatePropertyWithValue('dtstart', startTime);
 
       const endTime = ICAL.Time.fromDateTimeString(event.end_time);
-      const endProp = vevent.updatePropertyWithValue('dtend', endTime);
-      endProp.setParameter('tzid', timezone);
+      endTime.zone = ICAL.Timezone.utcTimezone;
+      vevent.updatePropertyWithValue('dtend', endTime);
     }
 
     if (event.location_name || event.location) {
@@ -304,6 +297,7 @@ function generateICSCalendar(
     vevent.updatePropertyWithValue('categories', `${event.sport}, ${event.platform}`);
 
     const now = ICAL.Time.now();
+    now.zone = ICAL.Timezone.utcTimezone;
     vevent.updatePropertyWithValue('dtstamp', now);
     vevent.updatePropertyWithValue('created', now);
     vevent.updatePropertyWithValue('last-modified', now);
@@ -338,50 +332,6 @@ function isAllDayEvent(startTime: string, endTime: string): boolean {
   return startAtMidnight && endAtMidnight && isFullDays;
 }
 
-function createTimezoneComponent(tzid: string): ICAL.Component | null {
-  try {
-    const vtimezone = new ICAL.Component('vtimezone');
-    vtimezone.updatePropertyWithValue('tzid', tzid);
-
-    const now = new Date();
-    const year = now.getFullYear();
-
-    if (tzid === 'America/Chicago' || tzid === 'America/New_York' ||
-        tzid === 'America/Los_Angeles' || tzid === 'America/Denver') {
-
-      const offsetMap: Record<string, { standard: string; daylight: string }> = {
-        'America/New_York': { standard: '-0500', daylight: '-0400' },
-        'America/Chicago': { standard: '-0600', daylight: '-0500' },
-        'America/Denver': { standard: '-0700', daylight: '-0600' },
-        'America/Los_Angeles': { standard: '-0800', daylight: '-0700' },
-      };
-
-      const offsets = offsetMap[tzid];
-      if (offsets) {
-        const daylight = new ICAL.Component('daylight');
-        daylight.updatePropertyWithValue('tzoffsetfrom', offsets.standard);
-        daylight.updatePropertyWithValue('tzoffsetto', offsets.daylight);
-        daylight.updatePropertyWithValue('dtstart', `${year}0310T020000`);
-        daylight.updatePropertyWithValue('rrule', { freq: 'YEARLY', bymonth: 3, byday: '2SU' });
-        daylight.updatePropertyWithValue('tzname', 'CDT');
-        vtimezone.addSubcomponent(daylight);
-
-        const standard = new ICAL.Component('standard');
-        standard.updatePropertyWithValue('tzoffsetfrom', offsets.daylight);
-        standard.updatePropertyWithValue('tzoffsetto', offsets.standard);
-        standard.updatePropertyWithValue('dtstart', `${year}1103T020000`);
-        standard.updatePropertyWithValue('rrule', { freq: 'YEARLY', bymonth: 11, byday: '1SU' });
-        standard.updatePropertyWithValue('tzname', 'CST');
-        vtimezone.addSubcomponent(standard);
-      }
-    }
-
-    return vtimezone;
-  } catch (error) {
-    console.error('Error creating timezone component:', error);
-    return null;
-  }
-}
 
 function generateRecurrenceRule(pattern: string, endDate: string | null): any {
   const freq = pattern.toUpperCase();
@@ -407,6 +357,7 @@ function generateRecurrenceRule(pattern: string, endDate: string | null): any {
 
   if (endDate) {
     const until = ICAL.Time.fromDateTimeString(endDate);
+    until.zone = ICAL.Timezone.utcTimezone;
     rule.until = until;
   }
 
