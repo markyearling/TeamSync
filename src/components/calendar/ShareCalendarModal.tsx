@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, CheckCircle, AlertCircle, RefreshCw, Share2, ExternalLink, TestTube, ChevronLeft } from 'lucide-react';
+import { X, Copy, CheckCircle, AlertCircle, RefreshCw, Share2, ExternalLink, TestTube, ChevronLeft, Calendar } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useCapacitor } from '../../hooks/useCapacitor';
 
@@ -13,9 +13,9 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
   const [httpsUrl, setHttpsUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
-  const [copied, setCopied] = useState(false);
+  const [copiedHttps, setCopiedHttps] = useState(false);
+  const [copiedWebcal, setCopiedWebcal] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
-  const [showHttpsUrl, setShowHttpsUrl] = useState(false);
 
   useEffect(() => {
     fetchOrCreateCalendarToken();
@@ -74,11 +74,16 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
     }
   };
 
-  const handleCopyToClipboard = async (url?: string) => {
+  const handleCopyToClipboard = async (url: string, type: 'https' | 'webcal') => {
     try {
-      await navigator.clipboard.writeText(url || calendarUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(url);
+      if (type === 'https') {
+        setCopiedHttps(true);
+        setTimeout(() => setCopiedHttps(false), 2000);
+      } else {
+        setCopiedWebcal(true);
+        setTimeout(() => setCopiedWebcal(false), 2000);
+      }
     } catch (err) {
       console.error('Failed to copy:', err);
     }
@@ -170,70 +175,88 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
                     </ul>
                   </div>
 
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Calendar Feed URL (webcal://)
-                  </label>
-                  <div className="flex flex-col space-y-2 mb-3">
-                    <input
-                      type="text"
-                      readOnly
-                      value={calendarUrl}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
-                      onClick={(e) => e.currentTarget.select()}
-                    />
-                    <button
-                      onClick={() => handleCopyToClipboard()}
-                      className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center space-x-2 transition-colors"
-                      title="Copy to clipboard"
-                    >
-                      {copied ? (
-                        <>
-                          <CheckCircle className="h-5 w-5" />
-                          <span>Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-5 w-5" />
-                          <span>Copy URL</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <div className="flex flex-col space-y-2 mb-3">
-                    <button
-                      onClick={() => setShowHttpsUrl(!showHttpsUrl)}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 text-left"
-                    >
-                      {showHttpsUrl ? 'Hide' : 'Show'} HTTPS URL (for testing)
-                    </button>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                        <Calendar className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400" />
+                        HTTPS URL
+                      </label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        Best for Google Calendar, Outlook, and most calendar apps
+                      </p>
+                      <div className="flex flex-col space-y-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={httpsUrl}
+                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
+                          onClick={(e) => e.currentTarget.select()}
+                        />
+                        <button
+                          onClick={() => handleCopyToClipboard(httpsUrl, 'https')}
+                          className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                          title="Copy HTTPS URL"
+                        >
+                          {copiedHttps ? (
+                            <>
+                              <CheckCircle className="h-5 w-5" />
+                              <span>Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-5 w-5" />
+                              <span>Copy HTTPS URL</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                        <Calendar className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
+                        Webcal URL
+                      </label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        Optimized for Apple Calendar
+                      </p>
+                      <div className="flex flex-col space-y-2">
+                        <input
+                          type="text"
+                          readOnly
+                          value={calendarUrl}
+                          className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
+                          onClick={(e) => e.currentTarget.select()}
+                        />
+                        <button
+                          onClick={() => handleCopyToClipboard(calendarUrl, 'webcal')}
+                          className="w-full px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center justify-center space-x-2 transition-colors"
+                          title="Copy Webcal URL"
+                        >
+                          {copiedWebcal ? (
+                            <>
+                              <CheckCircle className="h-5 w-5" />
+                              <span>Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-5 w-5" />
+                              <span>Copy Webcal URL</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
                     <button
                       onClick={handleTestFeed}
                       className="w-full flex items-center justify-center space-x-2 px-4 py-3 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
                       title="Test feed in browser"
                     >
                       <TestTube className="h-5 w-5" />
-                      <span>Test Feed</span>
+                      <span>Test Feed in Browser</span>
                     </button>
                   </div>
-                  {showHttpsUrl && (
-                    <div className="flex flex-col space-y-2">
-                      <input
-                        type="text"
-                        readOnly
-                        value={httpsUrl}
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
-                        onClick={(e) => e.currentTarget.select()}
-                      />
-                      <button
-                        onClick={() => handleCopyToClipboard(httpsUrl)}
-                        className="w-full px-4 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center justify-center space-x-2 transition-colors"
-                        title="Copy HTTPS URL"
-                      >
-                        <Copy className="h-5 w-5" />
-                        <span>Copy HTTPS URL</span>
-                      </button>
-                    </div>
-                  )}
                 </div>
 
                 <div className="mb-6">
@@ -371,70 +394,88 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
                   </ul>
                 </div>
 
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Calendar Feed URL (webcal://)
-                </label>
-                <div className="flex space-x-2 mb-3">
-                  <input
-                    type="text"
-                    readOnly
-                    value={calendarUrl}
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
-                    onClick={(e) => e.currentTarget.select()}
-                  />
-                  <button
-                    onClick={() => handleCopyToClipboard()}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
-                    title="Copy to clipboard"
-                  >
-                    {copied ? (
-                      <>
-                        <CheckCircle className="h-4 w-4" />
-                        <span>Copied!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-4 w-4" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <div className="flex items-center justify-between mb-3">
-                  <button
-                    onClick={() => setShowHttpsUrl(!showHttpsUrl)}
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-                  >
-                    {showHttpsUrl ? 'Hide' : 'Show'} HTTPS URL (for testing)
-                  </button>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                      <Calendar className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400" />
+                      HTTPS URL
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      Best for Google Calendar, Outlook, and most calendar apps
+                    </p>
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={httpsUrl}
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
+                        onClick={(e) => e.currentTarget.select()}
+                      />
+                      <button
+                        onClick={() => handleCopyToClipboard(httpsUrl, 'https')}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
+                        title="Copy HTTPS URL"
+                      >
+                        {copiedHttps ? (
+                          <>
+                            <CheckCircle className="h-4 w-4" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center">
+                      <Calendar className="h-4 w-4 mr-2 text-gray-600 dark:text-gray-400" />
+                      Webcal URL
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      Optimized for Apple Calendar
+                    </p>
+                    <div className="flex space-x-2">
+                      <input
+                        type="text"
+                        readOnly
+                        value={calendarUrl}
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
+                        onClick={(e) => e.currentTarget.select()}
+                      />
+                      <button
+                        onClick={() => handleCopyToClipboard(calendarUrl, 'webcal')}
+                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
+                        title="Copy Webcal URL"
+                      >
+                        {copiedWebcal ? (
+                          <>
+                            <CheckCircle className="h-4 w-4" />
+                            <span>Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4" />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
                   <button
                     onClick={handleTestFeed}
-                    className="flex items-center space-x-2 px-3 py-1 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
                     title="Test feed in browser"
                   >
                     <TestTube className="h-4 w-4" />
-                    <span>Test Feed</span>
+                    <span>Test Feed in Browser</span>
                   </button>
                 </div>
-                {showHttpsUrl && (
-                  <div className="flex space-x-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={httpsUrl}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm font-mono"
-                      onClick={(e) => e.currentTarget.select()}
-                    />
-                    <button
-                      onClick={() => handleCopyToClipboard(httpsUrl)}
-                      className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
-                      title="Copy HTTPS URL"
-                    >
-                      <Copy className="h-4 w-4" />
-                      <span>Copy</span>
-                    </button>
-                  </div>
-                )}
               </div>
 
               <div className="mb-6">
