@@ -164,12 +164,29 @@ Deno.serve(async (req: Request) => {
 
     const profileIds = profiles.map((p: Profile) => p.id);
 
-    // Get all events for these profiles
+    // Calculate date boundaries: 90 days in the past, 365 days in the future
+    const now = new Date();
+    const pastCutoff = new Date(now);
+    pastCutoff.setDate(pastCutoff.getDate() - 90);
+    const futureCutoff = new Date(now);
+    futureCutoff.setDate(futureCutoff.getDate() + 365);
+
+    console.log('Date range filter:', {
+      past: pastCutoff.toISOString(),
+      future: futureCutoff.toISOString(),
+    });
+
+    // Get events for these profiles, excluding calendar imports and filtering by date range
+    // Only include: Manual events and Platform-synced events (TeamSnap, SportsEngine, Playmetrics, GameChanger)
+    // Exclude: Events imported from external calendar feeds (external_source = 'calendar_import')
     console.log('Fetching events for profiles:', profileIds);
     const { data: events, error: eventsError } = await supabase
       .from('events')
       .select('*')
       .in('profile_id', profileIds)
+      .is('calendar_import_id', null)
+      .gte('start_time', pastCutoff.toISOString())
+      .lte('start_time', futureCutoff.toISOString())
       .order('start_time', { ascending: true });
 
     if (eventsError) {
@@ -177,12 +194,14 @@ Deno.serve(async (req: Request) => {
       throw eventsError;
     }
 
-    console.log(`Found ${events?.length || 0} events for calendar feed`);
+    console.log(`Found ${events?.length || 0} events for calendar feed (after filtering)`);
 
     if (!events || events.length === 0) {
       console.log('No events found - returning empty calendar');
     } else {
       console.log('Sample event:', events[0]);
+      console.log(`Events included: Manual and platform-synced (TeamSnap, SportsEngine, Playmetrics, GameChanger)`);
+      console.log(`Events excluded: Calendar imports (external_source = 'calendar_import')`);
     }
 
     // Generate ICS calendar
