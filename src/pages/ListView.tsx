@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Check, X as XIcon, Trash2, CheckSquare, Square, GripVertical } from 'lucide-react';
+import { ArrowLeft, Plus, Check, X as XIcon, Trash2, CheckSquare, Square, GripVertical, MoreVertical } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import DeleteConfirmationModal from '../components/lists/DeleteConfirmationModal';
 import { useCapacitor } from '../hooks/useCapacitor';
@@ -34,6 +34,7 @@ const ListView: React.FC = () => {
   const [touchStartY, setTouchStartY] = useState<number>(0);
   const [touchedItemId, setTouchedItemId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const newItemInputRef = useRef<HTMLInputElement>(null);
   const { isNative } = useCapacitor();
 
@@ -387,17 +388,159 @@ const ListView: React.FC = () => {
 
   const checkedCount = items.filter(i => i.is_checked).length;
 
+  if (isNative) {
+    return (
+      <div 
+        className="w-full h-full flex flex-col bg-white dark:bg-gray-900 overflow-x-hidden"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        {/* Static Header */}
+        <div className="flex-shrink-0">
+          <div 
+            className="flex flex-col gap-3 pb-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700"
+            style={{ paddingTop: 'env(safe-area-inset-top)' }}
+          >
+            <div className="flex items-center justify-between px-4">
+              <div className="flex items-center min-w-0">
+                <button
+                  onClick={() => navigate('/lists')}
+                  className="flex items-center justify-center text-gray-600 dark:text-gray-400 mr-3"
+                  aria-label="Back to Lists"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
+                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: list.color }} />
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white truncate ml-3">{list.name}</h1>
+              </div>
+              <div className="relative">
+                <button
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="p-2 text-gray-600 dark:text-gray-400"
+                >
+                  <MoreVertical className="h-5 w-5" />
+                </button>
+                {isMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="py-1">
+                      <button
+                        onClick={() => { handleCheckAll(); setIsMenuOpen(false); }}
+                        className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <CheckSquare className="h-4 w-4 mr-3" />
+                        Check All
+                      </button>
+                      <button
+                        onClick={() => { handleUncheckAll(); setIsMenuOpen(false); }}
+                        className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <Square className="h-4 w-4 mr-3" />
+                        Uncheck All
+                      </button>
+                      <button
+                        onClick={() => { handleDeleteCheckedClick(); setIsMenuOpen(false); }}
+                        disabled={checkedCount === 0}
+                        className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+                      >
+                        <Trash2 className="h-4 w-4 mr-3" />
+                        Delete ({checkedCount})
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Static Add Item Input */}
+        <div className="py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0 px-4">
+          <div className="flex items-center space-x-2">
+            <input
+              ref={newItemInputRef}
+              type="text"
+              value={newItemText}
+              onChange={(e) => setNewItemText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAddItem()}
+              placeholder="Add new item..."
+              className="flex-1 px-4 py-2 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+            />
+            <button onClick={handleAddItem} disabled={!newItemText.trim()} className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center">
+              <Plus className="h-5 w-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable List Items */}
+        <div className="list-items-container flex-1 overflow-y-auto">
+          {items.length === 0 ? (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-8 text-base px-4">No items yet. Add your first item above!</p>
+          ) : (
+            items.map((item) => (
+              <div
+                key={item.id}
+                data-item-id={item.id}
+                className={`flex items-center space-x-3 py-3 px-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 group transition-all ${
+                  touchedItemId === item.id ? 'opacity-100 shadow-2xl ring-2 ring-blue-500 scale-105 z-50 bg-blue-50 dark:bg-blue-900/30' : isDragging ? 'opacity-50' : ''
+                }`}
+                style={touchedItemId === item.id ? { position: 'relative', zIndex: 9999 } : undefined}
+              >
+                <div
+                  className="cursor-move text-gray-400 dark:text-gray-500"
+                  onTouchStart={(e) => handleTouchStart(e, item.id)}
+                  onTouchMove={(e) => handleTouchMove(e, item.id)}
+                  onTouchEnd={handleTouchEnd}
+                >
+                  <GripVertical className="h-5 w-5" />
+                </div>
+
+                <button onClick={() => handleToggleCheck(item)} className="flex-shrink-0">
+                  {item.is_checked ? <CheckSquare className="h-5 w-5" style={{ color: list.color }} /> : <Square className="h-5 w-5 text-gray-400 dark:text-gray-500" />}
+                </button>
+
+                {editingItemId === item.id ? (
+                  <>
+                    <input
+                      type="text"
+                      value={editingText}
+                      onChange={(e) => setEditingText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveEdit(item.id);
+                        else if (e.key === 'Escape') handleCancelEdit();
+                      }}
+                      className="flex-1 px-2 py-1 text-base border border-gray-300 dark:border-gray-600 rounded focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                      autoFocus
+                    />
+                    <button onClick={() => handleSaveEdit(item.id)} className="text-green-600 px-2"><Check className="h-5 w-5" /></button>
+                    <button onClick={handleCancelEdit} className="text-gray-600 px-2"><XIcon className="h-5 w-5" /></button>
+                  </>
+                ) : (
+                  <>
+                    <span onClick={() => handleStartEdit(item)} className={`flex-1 cursor-pointer text-base ${item.is_checked ? 'line-through text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}>
+                      {item.item_text}
+                    </span>
+                    <button onClick={() => handleDeleteItem(item.id)} className="text-red-600 dark:text-red-400 px-2">
+                      <Trash2 className="h-5 w-5" />
+                    </button>
+                  </>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+        <DeleteConfirmationModal isOpen={showDeleteModal} onClose={() => setShowDeleteModal(false)} onConfirm={handleConfirmDelete} itemCount={checkedCount} isProcessing={isDeleting} />
+      </div>
+    );
+  }
+
   return (
-    <div className={`w-full ${isNative ? 'px-4 py-2' : 'md:max-w-4xl md:mx-auto px-4 sm:px-6 lg:px-8 py-8'}`}>
-      {!isNative && (
-        <button
-          onClick={() => navigate('/lists')}
-          className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6"
-        >
-          <ArrowLeft className="h-5 w-5 mr-2" />
-          <span>Back to Lists</span>
-        </button>
-      )}
+    <div className="md:max-w-7xl md:mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+      <button
+        onClick={() => navigate('/lists')}
+        className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6"
+      >
+        <ArrowLeft className="h-5 w-5 mr-2" />
+        <span>Back to Lists</span>
+      </button>
 
       <div className={`${isNative ? '' : 'bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700'}`}>
         <div className={`${isNative ? 'px-4 py-1 mb-2' : 'px-4 sm:px-6 py-4'} ${!isNative && 'border-b border-gray-200 dark:border-gray-700'}`}>

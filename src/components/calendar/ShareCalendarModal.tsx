@@ -119,25 +119,25 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
 
   if (isNative) {
     return (
-      <div className="fixed inset-0 bg-white dark:bg-gray-800 z-[9999] flex flex-col">
-        <div className={`bg-blue-600 dark:bg-blue-700 ${isIOS ? 'safe-area-top' : ''}`}>
-          <div className="flex items-center p-4 border-b border-blue-700 dark:border-blue-800">
-            <button
-              onClick={onClose}
-              className="mr-3 p-2 -ml-2 text-white hover:bg-blue-700 dark:hover:bg-blue-800 rounded-lg transition-colors"
-            >
-              <ChevronLeft className="h-6 w-6" />
-            </button>
+      <div className="fixed inset-0 bg-white dark:bg-gray-800 z-[9999] flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+          <div className="flex items-center p-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center space-x-2 flex-1">
-              <Share2 className="h-6 w-6 text-white" />
-              <h2 className="text-xl font-bold text-white">
+              <Share2 className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 Share Your Calendar
               </h2>
             </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+            >
+              <X className="h-6 w-6" />
+            </button>
           </div>
         </div>
 
-        <div className={`flex-1 overflow-y-auto ${isIOS ? 'safe-area-bottom' : ''}`}>
+        <div className="flex-1 overflow-y-auto">
           <div className="p-6">
             {loading ? (
               <div className="flex items-center justify-center py-8">
@@ -308,6 +308,14 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
               </>
             )}
           </div>
+        </div>
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={onClose}
+            className="w-full px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     );

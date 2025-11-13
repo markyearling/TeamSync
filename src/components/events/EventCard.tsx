@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { Event } from '../../types';
 import EventModal from './EventModal';
 import { DateTime } from 'luxon';
+import { useCapacitor } from '../../hooks/useCapacitor';
 
 interface EventCardProps {
   event: Event;
@@ -14,6 +15,7 @@ interface EventCardProps {
 }
 
 const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoadError, userTimezone = 'UTC', onClick }) => {
+  const { isNative } = useCapacitor();
   // Format time with user's timezone using Luxon
   const formatTime = (date: Date) => {
     return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString({
@@ -86,7 +88,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
               {event.is_recurring && (
                 <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 text-xs font-medium rounded flex items-center gap-1">
                   <Repeat className="h-3 w-3" />
-                  Recurring
+                  {!isNative && <span className="ml-1">Recurring</span>}
                 </span>
               )}
               {event.is_cancelled && (
