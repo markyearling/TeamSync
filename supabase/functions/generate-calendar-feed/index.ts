@@ -356,9 +356,21 @@ function generateRecurrenceRule(pattern: string, endDate: string | null): any {
   }
 
   if (endDate) {
-    const until = ICAL.Time.fromDateTimeString(endDate);
-    until.zone = ICAL.Timezone.utcTimezone;
-    rule.until = until;
+    const date = new Date(endDate);
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    const hours = String(date.getUTCHours()).padStart(2, '0');
+    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+
+    const isDateOnly = hours === '00' && minutes === '00' && seconds === '00';
+
+    if (isDateOnly) {
+      rule.until = `${year}${month}${day}`;
+    } else {
+      rule.until = `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+    }
   }
 
   return rule;
