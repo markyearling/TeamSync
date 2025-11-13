@@ -305,9 +305,13 @@ function generateICSCalendar(
     vevent.updatePropertyWithValue('organizer', `mailto:noreply@famsink.com`);
 
     if (event.recurring_group_id && event.recurrence_pattern && !event.is_cancelled) {
-      const rrule = generateRecurrenceRule(event.recurrence_pattern, event.recurrence_end_date);
-      if (rrule) {
-        vevent.updatePropertyWithValue('rrule', rrule);
+      try {
+        const rrule = generateRecurrenceRule(event.recurrence_pattern, event.recurrence_end_date);
+        if (rrule) {
+          vevent.updatePropertyWithValue('rrule', rrule);
+        }
+      } catch (error) {
+        console.error(`Failed to generate RRULE for event ${event.id}:`, error);
       }
     }
 
@@ -355,21 +359,31 @@ function generateRecurrenceRule(pattern: string, endDate: string | null): any {
       return null;
   }
 
-  if (endDate) {
-    const date = new Date(endDate);
-    const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(date.getUTCDate()).padStart(2, '0');
-    const hours = String(date.getUTCHours()).padStart(2, '0');
-    const minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+  if (endDate && endDate.trim() !== '') {
+    try {
+      const date = new Date(endDate);
 
-    const isDateOnly = hours === '00' && minutes === '00' && seconds === '00';
+      if (isNaN(date.getTime())) {
+        console.error(`Invalid recurrence end date: ${endDate}`);
+        return rule;
+      }
 
-    if (isDateOnly) {
-      rule.until = `${year}${month}${day}`;
-    } else {
-      rule.until = `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+      const year = date.getUTCFullYear();
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      const hours = String(date.getUTCHours()).padStart(2, '0');
+      const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+
+      const isDateOnly = hours === '00' && minutes === '00' && seconds === '00';
+
+      if (isDateOnly) {
+        rule.until = `${year}${month}${day}`;
+      } else {
+        rule.until = `${year}${month}${day}T${hours}${minutes}${seconds}Z`;
+      }
+    } catch (error) {
+      console.error(`Error parsing recurrence end date "${endDate}":`, error);
     }
   }
 
