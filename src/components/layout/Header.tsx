@@ -1,5 +1,5 @@
 import React, { ReactNode, useState, useEffect, useRef } from 'react';
-import { Plus, User, Search, Moon, Sun, LogOut, Users } from 'lucide-react';
+import { Plus, User, Search, Moon, Sun, LogOut, Users, Calendar as CalendarIcon } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useTheme } from '../../context/ThemeContext';
@@ -503,7 +503,13 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
               id,
               name,
               color,
-              user_id
+              user_id,
+              photo_url,
+              date_of_birth,
+              notes
+            ),
+            calendar_imports (
+              calendar_name
             )
           `)
           .in('profile_id', profileIds)
@@ -526,22 +532,33 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             startTime: new Date(event.start_time),
             endTime: new Date(event.end_time),
             location: event.location || '',
+            location_name: event.location_name || '',
             sport: event.sport,
             color: event.color,
             platform: event.platform,
             sportIcon: sportDetails.icon,
             platformColor: event.platform_color,
-            platformIcon: () => null, // This will be replaced with the actual icon component
+            platformIcon: CalendarIcon,
             child: {
               id: event.profiles.id,
               name: event.profiles.name,
               color: event.profiles.color,
               user_id: event.profiles.user_id,
+              photo_url: event.profiles.photo_url,
+              date_of_birth: event.profiles.date_of_birth,
+              notes: event.profiles.notes,
               sports: [],
               eventCount: 0
             },
             isOwnEvent,
-            isToday: new Date(event.start_time).toDateString() === new Date().toDateString()
+            isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
+            is_cancelled: event.is_cancelled || false,
+            is_recurring: event.is_recurring || false,
+            recurring_group_id: event.recurring_group_id,
+            calendar_import_id: event.calendar_import_id,
+            calendar_name: event.calendar_imports?.calendar_name,
+            is_read_only: event.is_read_only || false,
+            external_source: event.external_source
           };
         });
 
@@ -860,8 +877,9 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
         <EventModal
           event={selectedEvent}
           onClose={handleCloseEventModal}
-          mapsLoaded={true}
-          mapsLoadError={undefined}
+          mapsLoaded={mapsLoaded}
+          mapsLoadError={mapsLoadError}
+          userTimezone={userTimezone}
         />
       )}
 
