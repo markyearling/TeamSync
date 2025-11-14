@@ -461,7 +461,7 @@ const Calendar: React.FC = () => {
       {filterOpen && (
         <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md mb-4 grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your Children</h3>
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Your Profiles</h3>
             <div className="space-y-2">
               {profiles.map(profile => (
                 <div key={profile.id} className="flex items-center">
@@ -494,7 +494,7 @@ const Calendar: React.FC = () => {
           </div>
 
           <div>
-            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Friends' Children</h3>
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Friends' Profiles</h3>
             <div className="space-y-2">
               <div className="flex items-center mb-2">
                 <input 
@@ -543,7 +543,7 @@ const Calendar: React.FC = () => {
                 </div>
               ))}
               {!showFriendsEvents && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">Enable to see friends' children</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Enable to see friends' profiles</p>
               )}
             </div>
           </div>

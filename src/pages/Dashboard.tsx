@@ -1062,7 +1062,7 @@ const Dashboard: React.FC = () => {
               <div className="bg-violet-100 dark:bg-violet-900/30 p-2 rounded-lg mr-3">
                 <Users className="h-5 w-5 text-violet-600 dark:text-violet-400" />
               </div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Children's Activities</h2>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Profile Activities</h2>
             </div>
             <Link to="/profiles" className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white flex items-center transition-colors">
               View all <ArrowRight className="ml-1 h-4 w-4" />

@@ -141,13 +141,13 @@ const Profiles: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Children Profiles</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Profiles</h1>
         <button
           onClick={() => setShowAddForm(true)}
           className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 flex items-center"
         >
           <Plus className="h-5 w-5 mr-2" />
-          Add Child
+          Add Profile
         </button>
       </div>
 
@@ -155,7 +155,7 @@ const Profiles: React.FC = () => {
       {allProfiles.length > 0 && (
         <div>
           <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">
-            Your Children {friendsProfiles.length > 0 && `& Administrator Access (${friendsProfiles.length})`}
+            Your Profiles {friendsProfiles.length > 0 && `& Administrator Access (${friendsProfiles.length})`}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {allProfiles.map(child => (
@@ -277,7 +277,7 @@ const Profiles: React.FC = () => {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-auto">
             <form onSubmit={handleSubmit}>
               <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Add New Child</h3>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Add New Profile</h3>
                 <button
                   type="button"
                   onClick={() => setShowAddForm(false)}
@@ -307,7 +307,7 @@ const Profiles: React.FC = () => {
                         name="name"
                         value={formData.name}
                         onChange={handleInputChange}
-                        placeholder="Enter child's name"
+                        placeholder="Enter profile's name"
                         className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                         required
                         autoComplete="off"
@@ -411,7 +411,7 @@ const Profiles: React.FC = () => {
                     value={formData.notes}
                     onChange={handleInputChange}
                     rows={3}
-                    placeholder="Enter any important information about your child..."
+                    placeholder="Enter any important information about your profile..."
                     className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                   ></textarea>
                 </div>

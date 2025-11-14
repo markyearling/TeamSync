@@ -169,7 +169,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onClose }) => {
       {/* Own Children */}
       {profiles.length > 0 && (
         <div className="mt-8">
-          <h3 className="px-3 text-sm font-medium text-gray-500 dark:text-gray-400">Your Children</h3>
+          <h3 className="px-3 text-sm font-medium text-gray-500 dark:text-gray-400">Your Profiles</h3>
           <div className="mt-1 space-y-1 px-3">
             {profiles.map((child) => (
               <button 

@@ -19,10 +19,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   // Check if the current page is the ListView on native to apply a special layout
   const isNativeListView = isNative && location.pathname.startsWith('/lists/');
 
-  // Determine if we are on a page that should have a constrained, centered layout.
-  // This is true for all web pages, and for native pages that are NOT the list view.
-  const useConstrainedLayout = !isNative || (isNative && !isNativeListView);
-
   return (
     <div className="flex h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
       {/* Mobile sidebar */}
@@ -37,7 +33,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-shrink-0">
+      <div className="hidden lg:flex lg:w-50 lg:flex-shrink-0">
         <div className="flex h-full flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
           <Sidebar onClose={() => {}} />
         </div>
@@ -56,8 +52,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </button>
           </Header>
         )}
-        <main className={`flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 ${useConstrainedLayout ? 'p-4 md:p-6' : ''}`}>
-          <div className={useConstrainedLayout ? "container mx-auto max-w-7xl" : 'h-full'}>
+        <main className={`flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 ${isNativeListView ? '' : 'p-4 sm:p-6 lg:p-8'}`}>
+          <div className={isNativeListView ? 'h-full' : ""}>
             {children}
           </div>
           
