@@ -131,12 +131,12 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
               {event.ownerName}'s schedule
             </div>
           )}
-          {event.calendar_name && (
+          {/* {event.calendar_name && (
             <div className="bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-200 text-xs px-2 py-1 rounded-full flex items-center gap-1">
               <Download className="h-3 w-3" />
               Synced from {event.calendar_name}
             </div>
-          )}
+          )} */}
         </div>
       </div>
   );

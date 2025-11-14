@@ -248,14 +248,6 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
                       </div>
                     </div>
 
-                    <button
-                      onClick={handleTestFeed}
-                      className="w-full flex items-center justify-center space-x-2 px-4 py-3 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-                      title="Test feed in browser"
-                    >
-                      <TestTube className="h-5 w-5" />
-                      <span>Test Feed in Browser</span>
-                    </button>
                   </div>
                 </div>
 
@@ -466,15 +458,7 @@ const ShareCalendarModal: React.FC<ShareCalendarModalProps> = ({ onClose }) => {
                       </button>
                     </div>
                   </div>
-
-                  <button
-                    onClick={handleTestFeed}
-                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-                    title="Test feed in browser"
-                  >
-                    <TestTube className="h-4 w-4" />
-                    <span>Test Feed in Browser</span>
-                  </button>
+         
                 </div>
               </div>
 

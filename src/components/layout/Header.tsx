@@ -58,6 +58,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [profileSelectionOpen, setProfileSelectionOpen] = useState(false);
   const [addEventProfileId, setAddEventProfileId] = useState<string | null>(null);
+  const [showSearchModal, setShowSearchModal] = useState(false);
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
   const searchRef = useRef<HTMLDivElement>(null);
   const friendsDropdownRef = useRef<HTMLDivElement>(null);
@@ -654,7 +655,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   }, []);
 
   // Determine if header should be hidden (when full-screen modals are open)
-  const shouldHideHeader = selectedFriend !== null || selectedEvent !== null || profileSelectionOpen || addEventProfileId !== null;
+  const shouldHideHeader = selectedFriend !== null || selectedEvent !== null || profileSelectionOpen || addEventProfileId !== null || (isNative && showSearchModal);
 
   return (
     <>
@@ -759,6 +760,16 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             </div>
 
             <div className="ml-auto flex items-center space-x-3">
+              {/* Search button for native */}
+              {isNative && (
+                <button
+                  onClick={() => setShowSearchModal(true)}
+                  className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-transparent text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  title="Search"
+                >
+                  <Search className="h-5 w-5" />
+                </button>
+              )}
               {/* Add Event Button */}
               <button
                 onClick={handleAddEventClick}
@@ -902,6 +913,94 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
           mapsLoadError={mapsLoadError}
           userTimezone={userTimezone}
         />
+      )}
+
+      {/* Native Search Modal */}
+      {isNative && showSearchModal && (
+        <div className="fixed inset-0 bg-white dark:bg-gray-800 z-50 flex flex-col" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <div style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+            <div className="flex items-center p-3 border-b border-gray-200 dark:border-gray-700">
+              <div className="relative flex-1">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                  <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search events..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  autoFocus
+                  className="block w-full rounded-md border-0 bg-gray-100 dark:bg-gray-700 py-2 pl-10 pr-3 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500"
+                />
+                {isSearching && (
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 dark:border-blue-400 border-t-transparent"></div>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setShowSearchModal(false)}
+                className="ml-2 px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {searchResults.length > 0 && (
+              <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                {searchResults.map(event => (
+                  <div
+                    key={event.id}
+                    className="p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                    onClick={() => handleEventSelect(event)}
+                  >
+                    <div className="flex items-center mb-1">
+                      <span
+                        className="w-2 h-2 rounded-full mr-2 flex-shrink-0"
+                        style={{ backgroundColor: event.color }}
+                      ></span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {event.title}
+                      </span>
+                      {!event.isOwnEvent && (
+                        <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded-full flex-shrink-0">
+                          Friend's
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <div className="flex items-center">
+                        <span
+                          className="w-2 h-2 rounded-full mr-1.5"
+                          style={{ backgroundColor: event.child.color }}
+                        ></span>
+                        <span>{event.child.name}</span>
+                      </div>
+                      <div>
+                        {formatEventDate(event.startTime)} • {event.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                      </div>
+                    </div>
+                    {event.location && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+                        {event.location}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
+              <div className="p-8 text-center">
+                <Search className="h-8 w-8 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+                <p className="text-base font-medium text-gray-600 dark:text-gray-300">No events found</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Try a different search term.</p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </>
   );
