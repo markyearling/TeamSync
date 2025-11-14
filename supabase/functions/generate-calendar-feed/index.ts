@@ -121,14 +121,14 @@ Deno.serve(async (req: Request) => {
     const timezone = userSettings?.timezone || 'UTC';
     console.log('Using timezone:', timezone);
 
-    console.log('Fetching profiles for user...');
-    const { data: profiles, error: profilesError } = await supabase
+    console.log('Fetching own profiles for user...');
+    const { data: ownProfiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, name, user_id')
       .eq('user_id', userId);
 
     if (profilesError) {
-      console.error('Error fetching profiles:', profilesError);
+      console.error('Error fetching own profiles:', profilesError);
       const calendar = generateEmptyCalendar();
       return new Response(calendar, {
         status: 200,
@@ -140,8 +140,48 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (!profiles || profiles.length === 0) {
-      console.log('No profiles found for user - returning empty calendar');
+    console.log(`Found ${ownProfiles?.length || 0} own profiles`);
+
+    // Fetch friendships where current user has been granted viewer or administrator access
+    console.log('Fetching friendships where user has been granted access...');
+    const { data: friendships, error: friendshipsError } = await supabase
+      .from('friendships')
+      .select('user_id, role')
+      .eq('friend_id', userId)
+      .in('role', ['viewer', 'administrator']);
+
+    if (friendshipsError) {
+      console.error('Error fetching friendships:', friendshipsError);
+    }
+
+    console.log(`Found ${friendships?.length || 0} friendships with viewer/administrator access`);
+
+    let friendProfiles: Profile[] = [];
+
+    if (friendships && friendships.length > 0) {
+      // Get user IDs of friends who granted us access
+      const friendUserIds = friendships.map(f => f.user_id);
+      console.log('Fetching profiles for friend users:', friendUserIds);
+
+      // Fetch all profiles belonging to those users
+      const { data: friendProfilesData, error: friendProfilesError } = await supabase
+        .from('profiles')
+        .select('id, name, user_id')
+        .in('user_id', friendUserIds);
+
+      if (friendProfilesError) {
+        console.error('Error fetching friend profiles:', friendProfilesError);
+      } else {
+        friendProfiles = friendProfilesData || [];
+        console.log(`Found ${friendProfiles.length} friend profiles`);
+      }
+    }
+
+    // Combine own profiles and friend profiles
+    const allProfiles = [...(ownProfiles || []), ...friendProfiles];
+
+    if (allProfiles.length === 0) {
+      console.log('No profiles found (own or friends) - returning empty calendar');
       const calendar = generateEmptyCalendar();
       return new Response(calendar, {
         status: 200,
@@ -153,9 +193,10 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    console.log(`Found ${profiles.length} profiles:`, profiles.map((p: Profile) => ({ id: p.id, name: p.name })));
+    console.log(`Total profiles (own + friends): ${allProfiles.length}`);
+    console.log(`Profile breakdown: ${ownProfiles?.length || 0} own, ${friendProfiles.length} friends`);
 
-    const profileIds = profiles.map((p: Profile) => p.id);
+    const profileIds = allProfiles.map((p: Profile) => p.id);
 
     const now = new Date();
     const pastCutoff = new Date(now);
@@ -168,7 +209,7 @@ Deno.serve(async (req: Request) => {
       future: futureCutoff.toISOString(),
     });
 
-    console.log('Fetching events for profiles:', profileIds);
+    console.log('Fetching events for all profiles (own + friends):', profileIds.length);
     const { data: events, error: eventsError } = await supabase
       .from('events')
       .select('*')
@@ -191,9 +232,10 @@ Deno.serve(async (req: Request) => {
       console.log('Sample event:', events[0]);
       console.log(`Events included: Manual and platform-synced (TeamSnap, SportsEngine, Playmetrics, GameChanger)`);
       console.log(`Events excluded: Calendar imports (external_source = 'calendar_import')`);
+      console.log(`Events include: Own events and events shared by friends with viewer/administrator access`);
     }
 
-    const calendar = generateICSCalendar(events || [], profiles, timezone);
+    const calendar = generateICSCalendar(events || [], allProfiles, timezone);
     console.log(`Generated ICS calendar with ${events?.length || 0} events`);
 
     return new Response(calendar, {
