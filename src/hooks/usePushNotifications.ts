@@ -70,29 +70,49 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
         osVersion: deviceInfo.osVersion
       });
 
-      // Check if this device already exists with the same token
-      console.log('[saveFCMTokenToSupabase] Checking existing device in database...');
+      // Check if this FCM token already exists for this user (regardless of device_id)
+      console.log('[saveFCMTokenToSupabase] Checking if FCM token already exists in database...');
       const { data: existingDevice, error: fetchError } = await supabase
         .from('user_devices')
-        .select('fcm_token')
+        .select('device_id, fcm_token, device_name')
         .eq('user_id', authenticatedUser.id)
-        .eq('device_id', deviceId)
+        .eq('fcm_token', tokenToSave)
         .maybeSingle();
 
       if (fetchError) {
         console.error('[saveFCMTokenToSupabase] Error fetching existing device:', fetchError);
       }
 
-      // Only update if the token is different from what's already stored
-      if (existingDevice?.fcm_token === tokenToSave) {
-        console.log('[saveFCMTokenToSupabase] FCM token already matches database, skipping update.');
-        return;
+      // If this exact token is already registered for this user
+      if (existingDevice) {
+        if (existingDevice.device_id === deviceId) {
+          console.log('[saveFCMTokenToSupabase] FCM token and device_id already match in database, skipping update.');
+          return;
+        } else {
+          console.log(`[saveFCMTokenToSupabase] FCM token exists but device_id changed: ${existingDevice.device_id.substring(0, 20)}... -> ${deviceId.substring(0, 20)}...`);
+          console.log('[saveFCMTokenToSupabase] This typically happens after OS update. Will delete old record and create new one.');
+
+          // Delete the old device record with the same FCM token but different device_id
+          const { error: deleteError } = await supabase
+            .from('user_devices')
+            .delete()
+            .eq('user_id', authenticatedUser.id)
+            .eq('fcm_token', tokenToSave);
+
+          if (deleteError) {
+            console.error('[saveFCMTokenToSupabase] Error deleting old device record:', deleteError);
+          } else {
+            console.log('[saveFCMTokenToSupabase] Successfully deleted old device record');
+          }
+        }
       }
 
-      console.log('[saveFCMTokenToSupabase] Attempting upsert to user_devices table...');
+      // Insert the new device record
+      // Note: We use insert instead of upsert because we want to ensure clean replacement
+      console.log('[saveFCMTokenToSupabase] Inserting device record to user_devices table...');
       const { error } = await supabase
         .from('user_devices')
-        .upsert({
+        .insert({
           user_id: authenticatedUser.id,
           device_id: deviceId,
           device_name: deviceName,
@@ -102,15 +122,12 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
           fcm_token: tokenToSave,
           last_active: new Date().toISOString(),
           updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'user_id,device_id',
-          ignoreDuplicates: false
         });
 
       if (error) {
-        console.error('[saveFCMTokenToSupabase] *** UPSERT ERROR ***');
+        console.error('[saveFCMTokenToSupabase] *** INSERT ERROR ***');
         console.error('[saveFCMTokenToSupabase] Error saving FCM token to Supabase:', error);
-        console.log('[saveFCMTokenToSupabase] Supabase upsert failed:', error.message);
+        console.log('[saveFCMTokenToSupabase] Supabase insert failed:', error.message);
         console.error('[saveFCMTokenToSupabase] Error details:', {
           message: error.message,
           details: error.details,
@@ -118,7 +135,7 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
           code: error.code
         });
       } else {
-        console.log('[saveFCMTokenToSupabase] *** UPSERT SUCCESS ***');
+        console.log('[saveFCMTokenToSupabase] *** INSERT SUCCESS ***');
         console.log('[saveFCMTokenToSupabase] FCM token saved to user_devices table successfully');
         console.log('[saveFCMTokenToSupabase] Device registered for multi-device notifications');
 
@@ -126,9 +143,9 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
         console.log('[saveFCMTokenToSupabase] Verifying token was saved...');
         const { data: verifyData, error: verifyError } = await supabase
           .from('user_devices')
-          .select('fcm_token, device_name, platform')
+          .select('fcm_token, device_name, platform, device_id')
           .eq('user_id', authenticatedUser.id)
-          .eq('device_id', deviceId)
+          .eq('fcm_token', tokenToSave)
           .maybeSingle();
 
         if (verifyError) {
@@ -137,6 +154,7 @@ export const usePushNotifications = (user: User | null, authLoading: boolean) =>
           console.log('[saveFCMTokenToSupabase] Token verification result:', {
             tokenSaved: !!verifyData?.fcm_token,
             tokenMatches: verifyData?.fcm_token === tokenToSave,
+            deviceIdMatches: verifyData?.device_id === deviceId,
             deviceName: verifyData?.device_name,
             platform: verifyData?.platform
           });
