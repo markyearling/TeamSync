@@ -461,6 +461,18 @@ export class TeamSnapService {
 
       // Transform and store events for the specific profile
       const eventsToInsert = teamEvents.map(event => {
+        // Debug: Log first event to see all available location fields
+        if (teamEvents.indexOf(event) === 0) {
+          console.log('TeamSnap event sample (first event):', JSON.stringify({
+            location_name: event.location_name,
+            location: event.location,
+            location_address: event.location_address,
+            location_id: event.location_id,
+            arrival_date: event.arrival_date,
+            uniform: event.uniform
+          }, null, 2));
+        }
+
         // Format the title based on event type and is_game flag
         let title = 'TeamSnap Event';
         
@@ -488,18 +500,25 @@ export class TeamSnapService {
           description = event.notes;
         }
 
+        // Map location fields properly:
+        // - location_name -> location_name (friendly venue name)
+        // - location or location_address -> location (full address for geocoding)
+        const locationAddress = event.location || event.location_address || '';
+        const locationName = event.location_name || '';
+
         return {
           title: title,
           description: description,
           start_time: event.start_date,
           end_time: event.end_date || event.start_date,
-          location: event.location_name || '',
+          location: locationAddress,
+          location_name: locationName,
           sport: platformTeam.sport || 'Unknown',
           color: '#F97316', // TeamSnap orange
           platform: 'TeamSnap',
           platform_color: '#F97316',
           platform_team_id: teamId,
-          profile_id: profileId // This is the key - we now have a valid profile_id
+          profile_id: profileId
         };
       }).filter(event => event.start_time); // Only include events with valid start times
 
