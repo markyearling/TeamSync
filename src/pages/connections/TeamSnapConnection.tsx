@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getOAuthRedirectUri } from '../../utils/oauth';
 import { 
   Users, 
   AlertCircle, 
@@ -48,9 +49,10 @@ const TeamSnapConnection: React.FC = () => {
   const location = useLocation();
   const { profiles, friendsProfiles } = useProfiles();
 
+  const redirectUri = getOAuthRedirectUri('teamsnap');
   const teamSnap = new TeamSnapService({
     clientId: import.meta.env.VITE_TEAMSNAP_CLIENT_ID,
-    redirectUri: `${window.location.origin}/connections/teamsnap/callback`
+    redirectUri
   });
 
   const features = [
@@ -225,7 +227,7 @@ const TeamSnapConnection: React.FC = () => {
       setIsConnecting(true);
       setError(null);
       const authUrl = await teamSnap.initiateOAuth();
-      window.location.href = authUrl;
+      await teamSnap.openOAuthBrowser(authUrl);
     } catch (error) {
       console.error('Failed to initiate OAuth:', error);
       setError('Failed to initiate connection');

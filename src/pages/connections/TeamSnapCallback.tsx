@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, CheckCircle } from 'lucide-react';
 import { TeamSnapService } from '../../services/teamsnap';
+import { getOAuthRedirectUri } from '../../utils/oauth';
 
 const TeamSnapCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -19,14 +20,18 @@ const TeamSnapCallback: React.FC = () => {
       }
 
       try {
+        const redirectUri = getOAuthRedirectUri('teamsnap');
         const teamSnap = new TeamSnapService({
           clientId: import.meta.env.VITE_TEAMSNAP_CLIENT_ID,
-          redirectUri: `${window.location.origin}/connections/teamsnap/callback`
+          redirectUri
         });
 
         // Handle OAuth callback and get access token
         await teamSnap.handleCallback(code);
         setStatus('syncing');
+
+        // Close the in-app browser if on native platform
+        await teamSnap.closeBrowser();
         
         // Wait a moment to show success message before redirecting
         setTimeout(() => {

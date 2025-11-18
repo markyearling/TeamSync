@@ -1,4 +1,6 @@
 import { supabase } from '../lib/supabase';
+import { Browser } from '@capacitor/browser';
+import { Capacitor } from '@capacitor/core';
 
 const TEAMSNAP_AUTH_URL = 'https://auth.teamsnap.com/oauth/authorize';
 const TEAMSNAP_TOKEN_URL = 'https://auth.teamsnap.com/oauth/token';
@@ -51,10 +53,10 @@ export class TeamSnapService {
       // Generate PKCE challenge using browser crypto API
       const codeVerifier = this.generateCodeVerifier();
       const codeChallenge = await this.generateCodeChallenge(codeVerifier);
-      
+
       // Store code verifier in localStorage
       localStorage.setItem('teamsnap_code_verifier', codeVerifier);
-      
+
       // Build authorization URL
       const params = new URLSearchParams({
         client_id: this.clientId,
@@ -72,6 +74,34 @@ export class TeamSnapService {
     } catch (error) {
       console.error('Error initiating OAuth:', error);
       throw new Error('Failed to initiate OAuth flow');
+    }
+  }
+
+  async openOAuthBrowser(authUrl: string): Promise<void> {
+    const isNative = Capacitor.isNativePlatform();
+
+    if (isNative) {
+      console.log('Opening OAuth in native browser:', authUrl);
+      await Browser.open({
+        url: authUrl,
+        presentationStyle: 'popover',
+        windowName: '_self'
+      });
+    } else {
+      console.log('Opening OAuth in web browser:', authUrl);
+      window.location.href = authUrl;
+    }
+  }
+
+  async closeBrowser(): Promise<void> {
+    const isNative = Capacitor.isNativePlatform();
+
+    if (isNative) {
+      try {
+        await Browser.close();
+      } catch (error) {
+        console.log('Browser already closed or not available');
+      }
     }
   }
 

@@ -41,6 +41,7 @@ import { useAuth } from './hooks/useAuth';
 import { useCapacitor } from './hooks/useCapacitor';
 import { useScheduledNotifications } from './hooks/useScheduledNotifications';
 import { usePushNotifications } from './hooks/usePushNotifications';
+import { useOAuthCallback } from './hooks/useOAuthCallback';
 import { supabase, testConnection } from './lib/supabase';
 import { App as CapacitorApp } from '@capacitor/app';
 
@@ -207,6 +208,7 @@ const AppContent: React.FC<AppContentProps> = ({ fcmToken, fcmRegistered }) => {
   const { user, loading } = useAuth();
   const { isNative } = useCapacitor();
   const { isInitialized: notificationsInitialized } = useScheduledNotifications(fcmToken, fcmRegistered);
+  useOAuthCallback();
 
   useEffect(() => {
     const initializeConnection = async () => {

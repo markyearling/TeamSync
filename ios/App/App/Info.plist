@@ -67,6 +67,7 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>famsink</string>
+				<string>capacitor</string>
 			</array>
 		</dict>
 	</array>
