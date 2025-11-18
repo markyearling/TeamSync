@@ -42,6 +42,7 @@ import { useCapacitor } from './hooks/useCapacitor';
 import { useScheduledNotifications } from './hooks/useScheduledNotifications';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import { supabase, testConnection } from './lib/supabase';
+import { App as CapacitorApp } from '@capacitor/app';
 
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -204,8 +205,8 @@ const AppContent: React.FC<AppContentProps> = ({ fcmToken, fcmRegistered }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { isNative } = useCapacitor();
   const { isInitialized: notificationsInitialized } = useScheduledNotifications(fcmToken, fcmRegistered);
-
 
   useEffect(() => {
     const initializeConnection = async () => {
@@ -214,7 +215,7 @@ const AppContent: React.FC<AppContentProps> = ({ fcmToken, fcmRegistered }) => {
         if (!isConnected) {
           throw new Error('Failed to connect to the backend services');
         }
-        
+
         setInitialized(true);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to initialize application');
@@ -223,6 +224,39 @@ const AppContent: React.FC<AppContentProps> = ({ fcmToken, fcmRegistered }) => {
 
     initializeConnection();
   }, []);
+
+  useEffect(() => {
+    if (!isNative) return;
+
+    const handleAppUrlOpen = CapacitorApp.addListener('appUrlOpen', (data: any) => {
+      console.log('[Deep Link] App opened with URL:', data.url);
+
+      const url = new URL(data.url);
+      const pathname = url.pathname;
+      const search = url.search;
+
+      console.log('[Deep Link] Pathname:', pathname);
+      console.log('[Deep Link] Search params:', search);
+
+      if (pathname.includes('/connections/teamsnap/callback')) {
+        console.log('[Deep Link] TeamSnap OAuth callback detected');
+        navigate(`/connections/teamsnap/callback${search}`, { replace: true });
+      } else if (pathname.includes('/connections/callback')) {
+        console.log('[Deep Link] SportsEngine OAuth callback detected');
+        navigate(`/connections/callback${search}`, { replace: true });
+      } else if (pathname.includes('/auth/callback')) {
+        console.log('[Deep Link] Auth callback detected');
+        navigate(`/auth/callback${search}`, { replace: true });
+      } else {
+        console.log('[Deep Link] Navigating to:', pathname + search);
+        navigate(pathname + search, { replace: true });
+      }
+    });
+
+    return () => {
+      handleAppUrlOpen.remove();
+    };
+  }, [isNative, navigate]);
 
   // Redirect authenticated users from landing page to dashboard
   useEffect(() => {

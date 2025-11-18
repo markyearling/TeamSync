@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "com.yearling.famsink",
+        "paths": [
+          "/connections/teamsnap/callback",
+          "/connections/callback",
+          "/auth/callback"
+        ]
+      }
+    ]
+  }
+}
