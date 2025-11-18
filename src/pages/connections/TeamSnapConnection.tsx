@@ -43,6 +43,7 @@ const TeamSnapConnection: React.FC = () => {
   const [showMappingModal, setShowMappingModal] = useState<string | null>(null);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
   const [refreshingTeam, setRefreshingTeam] = useState<string | null>(null);
+  const [isSyncingTeams, setIsSyncingTeams] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { profiles, friendsProfiles } = useProfiles();
@@ -485,6 +486,32 @@ const TeamSnapConnection: React.FC = () => {
     );
   };
 
+  const handleSyncTeams = async () => {
+    try {
+      setError(null);
+      setSuccess(null);
+      setIsSyncingTeams(true);
+
+      const result = await teamSnap.refreshTeamsList();
+
+      if (result.newTeams === 0) {
+        setSuccess('No new teams found. Your team list is up to date.');
+      } else if (result.newTeams === 1) {
+        setSuccess('Found 1 new team! It has been added to your list.');
+      } else {
+        setSuccess(`Found ${result.newTeams} new teams! They have been added to your list.`);
+      }
+
+      await fetchTeams();
+    } catch (err) {
+      console.error('Error syncing teams:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to sync teams';
+      setError(errorMessage);
+    } finally {
+      setIsSyncingTeams(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -638,13 +665,31 @@ const TeamSnapConnection: React.FC = () => {
           ) : (
             <div className="p-6">
               <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                <h2 className="text-lg font-medium text-gray-900 dark:text-white">Connected Teams</h2>
-                <button
-                  onClick={handleDisconnect}
-                  className="px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 text-sm font-medium"
-                >
-                  Disconnect TeamSnap
-                </button>
+                <div>
+                  <h2 className="text-lg font-medium text-gray-900 dark:text-white">Connected Teams</h2>
+                  {teams.length > 0 && (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      {teams.length} {teams.length === 1 ? 'team' : 'teams'} connected
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSyncTeams}
+                    disabled={isSyncingTeams}
+                    className="px-4 py-2 border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 rounded-md hover:bg-orange-50 dark:hover:bg-orange-900/30 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                    title="Sync new teams from TeamSnap"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isSyncingTeams ? 'animate-spin' : ''}`} />
+                    {isSyncingTeams ? 'Syncing...' : 'Sync Teams'}
+                  </button>
+                  <button
+                    onClick={handleDisconnect}
+                    className="px-4 py-2 border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/30 text-sm font-medium"
+                  >
+                    Disconnect TeamSnap
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-4">

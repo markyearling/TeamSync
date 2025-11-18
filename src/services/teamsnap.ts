@@ -13,11 +13,16 @@ export class TeamSnapService {
   private clientId: string;
   private redirectUri: string;
   private accessToken: string | null = null;
-  private readonly clientSecret = 'osTEt8nG9LVNoqEHX5GBw2FwxjBCYUijCLfo-H-ihaA';
+  private clientSecret: string;
 
   constructor(config: TeamSnapConfig) {
     this.clientId = config.clientId;
     this.redirectUri = config.redirectUri;
+    this.clientSecret = import.meta.env.VITE_TEAMSNAP_CLIENT_SECRET || '';
+
+    if (!this.clientSecret) {
+      console.error('TeamSnap client secret not configured. Please set VITE_TEAMSNAP_CLIENT_SECRET in your .env file.');
+    }
   }
 
   // Manual PKCE implementation using browser's crypto API
@@ -582,11 +587,76 @@ export class TeamSnapService {
     }
   }
 
-  // Legacy methods for backward compatibility
+  async refreshTeamsList(): Promise<{ newTeams: number; totalTeams: number }> {
+    try {
+      console.log('Refreshing teams list from TeamSnap...');
+
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('No authenticated user');
+
+      const userId = await this.getUserId();
+      const activeTeams = await this.getActiveTeams(userId);
+
+      if (activeTeams.length === 0) {
+        console.log('No active teams found for user');
+        return { newTeams: 0, totalTeams: 0 };
+      }
+
+      const { data: existingTeams, error: existingError } = await supabase
+        .from('platform_teams')
+        .select('team_id')
+        .eq('platform', 'TeamSnap')
+        .eq('user_id', user.id);
+
+      if (existingError) throw existingError;
+
+      const existingTeamIds = new Set(existingTeams?.map(t => t.team_id) || []);
+      let newTeamsCount = 0;
+
+      for (const team of activeTeams) {
+        const teamIdStr = team.id.toString();
+        const isNewTeam = !existingTeamIds.has(teamIdStr);
+
+        const { error: teamError } = await supabase
+          .from('platform_teams')
+          .upsert({
+            platform: 'TeamSnap',
+            team_id: teamIdStr,
+            team_name: team.name,
+            sport: team.sport || 'Unknown',
+            sync_status: 'success',
+            last_synced: new Date().toISOString(),
+            user_id: user.id
+          }, {
+            onConflict: 'user_id,platform,team_id'
+          });
+
+        if (teamError) {
+          console.error('Error storing team:', teamError);
+          continue;
+        }
+
+        if (isNewTeam) {
+          newTeamsCount++;
+          console.log(`Added new team: ${team.name}`);
+        } else {
+          console.log(`Updated existing team: ${team.name}`);
+        }
+      }
+
+      console.log(`Teams refresh completed. New: ${newTeamsCount}, Total: ${activeTeams.length}`);
+      return { newTeams: newTeamsCount, totalTeams: activeTeams.length };
+    } catch (error) {
+      console.error('Error refreshing teams list:', error);
+      throw error;
+    }
+  }
+
   async getTeams(): Promise<any> {
     const userId = await this.getUserId();
     const activeTeams = await this.getActiveTeams(userId);
-    
+
     return {
       collection: {
         items: activeTeams.map(team => ({
