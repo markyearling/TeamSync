@@ -242,6 +242,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
     console.log(`[TeamSnap Sync] Starting event transformation with geocoding...`);
 
+    // Log the first event's complete structure to understand what fields TeamSnap provides
+    if (events.length > 0) {
+      console.log(`[TeamSnap Sync] ========================================`);
+      console.log(`[TeamSnap Sync] SAMPLE EVENT STRUCTURE (First Event):`);
+      console.log(`[TeamSnap Sync] Event ID: ${events[0].id}`);
+      console.log(`[TeamSnap Sync] All location-related fields:`);
+      console.log(`[TeamSnap Sync]   - location: "${events[0].location || 'N/A'}"`);
+      console.log(`[TeamSnap Sync]   - location_address: "${events[0].location_address || 'N/A'}"`);
+      console.log(`[TeamSnap Sync]   - location_name: "${events[0].location_name || 'N/A'}"`);
+      console.log(`[TeamSnap Sync]   - location_id: "${events[0].location_id || 'N/A'}"`);
+      console.log(`[TeamSnap Sync] All fields in event object:`, Object.keys(events[0]).join(', '));
+      console.log(`[TeamSnap Sync] ========================================`);
+    }
+
     // Transform TeamSnap events for database storage
     const eventsToUpsert = await Promise.all(events.filter(event => event.start_date && event.id).map(async (event, index) => {
       console.log(`[TeamSnap Sync] -------- Event ${index + 1}/${events.length} (ID: ${event.id}) --------`);
@@ -279,15 +293,29 @@ Deno.serve(async (req: Request): Promise<Response> => {
       }
 
       // Map location fields from TeamSnap API:
-      // - event.location or event.location_address contains the full address
-      // - event.location_name contains the friendly venue name (but might not exist)
-      const locationAddress = event.location || event.location_address || '';
+      // TeamSnap provides location_name (venue name) but often doesn't provide the full address
+      // We need to handle this by using location_name as both the display name AND the address if no address is available
       const venueNameFromApi = event.location_name || null;
+      let locationAddress = event.location || event.location_address || '';
+
+      // If we have a venue name but no address, use the venue name as the address for geocoding
+      if (venueNameFromApi && !locationAddress) {
+        locationAddress = venueNameFromApi;
+        console.log(`[TeamSnap Sync] Event ${event.id}: No address provided, using venue name as address: "${locationAddress}"`);
+      }
+
       let locationName: string | null = venueNameFromApi;
       let geocodingAttempted = false;
 
-      console.log(`[TeamSnap Sync] Event ${event.id}: location from API: "${locationAddress}"`);
-      console.log(`[TeamSnap Sync] Event ${event.id}: venue name from API: "${venueNameFromApi || 'N/A'}"`);
+      console.log(`[TeamSnap Sync] Event ${event.id}: Raw API data:`, {
+        location: event.location || 'N/A',
+        location_address: event.location_address || 'N/A',
+        location_name: event.location_name || 'N/A'
+      });
+      console.log(`[TeamSnap Sync] Event ${event.id}: Mapped values:`, {
+        locationAddress,
+        venueNameFromApi
+      });
 
       const existingEvent = existingEventsDataMap.get(String(event.id));
       const locationChanged = !existingEvent || existingEvent.location !== locationAddress;
@@ -310,7 +338,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         geocodingStats.needsGeocode++;
         try {
           console.log(`[TeamSnap Sync] Event ${event.id}: Calling geocoding API for: "${locationAddress}"`);
-          const geocodeResult = await geocodeAddress(locationAddress, googleMapsApiKey, supabaseClient);
+          const geocodeResult = await geocodeAddress(locationAddress, googleMapsApiKey, supabaseClient, venueNameFromApi);
           locationName = geocodeResult.locationName;
           geocodingAttempted = true;
           if (locationName) {
@@ -341,8 +369,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
       } else if (!locationAddress || locationAddress.trim() === '') {
         console.log(`[TeamSnap Sync] Event ${event.id}: No location address, skipping geocoding`);
       } else if (venueNameFromApi) {
-        console.log(`[TeamSnap Sync] Event ${event.id}: Using venue name from API, no geocoding needed: "${venueNameFromApi}"`);
-        geocodingAttempted = true; // Mark as attempted since we have the location name from API
+        console.log(`[TeamSnap Sync] Event ${event.id}: Using venue name from API: "${venueNameFromApi}"`);
+        // When we have a venue name from API, we still want to save the location (which is now the venue name)
+        // Mark as attempted since we have the location name from API
+        geocodingAttempted = true;
       }
 
       // Reset geocoding_attempted to false when location changes

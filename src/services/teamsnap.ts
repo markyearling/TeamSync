@@ -491,17 +491,8 @@ export class TeamSnapService {
 
       // Transform and store events for the specific profile
       const eventsToInsert = teamEvents.map(event => {
-        // Debug: Log first event to see all available location fields
-        if (teamEvents.indexOf(event) === 0) {
-          console.log('TeamSnap event sample (first event):', JSON.stringify({
-            location_name: event.location_name,
-            location: event.location,
-            location_address: event.location_address,
-            location_id: event.location_id,
-            arrival_date: event.arrival_date,
-            uniform: event.uniform
-          }, null, 2));
-        }
+        // Debug: Log ALL location-related fields to understand the API response
+        console.log(`TeamSnap Event ID ${event.id} - ALL fields:`, JSON.stringify(event, null, 2));
 
         // Format the title based on event type and is_game flag
         let title = 'TeamSnap Event';
@@ -530,11 +521,18 @@ export class TeamSnapService {
           description = event.notes;
         }
 
-        // Map location fields properly:
-        // - location_name -> location_name (friendly venue name)
-        // - location or location_address -> location (full address for geocoding)
-        const locationAddress = event.location || event.location_address || '';
+        // Map location fields from TeamSnap API
+        // TeamSnap provides: location_name (venue name) and potentially location/location_address (full address)
         const locationName = event.location_name || '';
+        const locationAddress = event.location || event.location_address || '';
+
+        console.log(`Event ${event.id} location mapping:`, {
+          from_api_location_name: event.location_name,
+          from_api_location: event.location,
+          from_api_location_address: event.location_address,
+          mapped_location_name: locationName,
+          mapped_location_address: locationAddress
+        });
 
         return {
           title: title,
