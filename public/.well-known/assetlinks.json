@@ -1,11 +1,13 @@
 [
   {
-    "relation": ["delegate_permission/common.handle_all_urls"],
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
     "target": {
       "namespace": "android_app",
       "package_name": "com.yearling.famsink",
       "sha256_cert_fingerprints": [
-        "REPLACE_WITH_YOUR_SHA256_FINGERPRINT"
+        "90:07:0A:F8:B5:A8:30:06:FD:4B:61:76:16:FA:5D:1D:0B:BD:09:4B:72:1D:C9:73:83:FD:25:DE:BB:B6:10:8C"
       ]
     }
   }
