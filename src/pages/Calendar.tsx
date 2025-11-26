@@ -610,8 +610,8 @@ const Calendar: React.FC = () => {
         </div>
       )}
       
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow flex-1 overflow-hidden">
-        {view !== 'agenda' && (
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow flex-1 overflow-hidden flex flex-col">
+        {view === 'month' && (
           <CalendarHeader view={view} />
         )}
         <div className="flex-1 overflow-auto">
