@@ -88,18 +88,26 @@ const WeekView: React.FC<WeekViewProps> = ({ currentDate, events, userTimezone =
       
       <div className="flex-1 overflow-y-auto">
         <div className="flex h-full">
-          <div className="w-20 flex-shrink-0 border-r border-gray-200 dark:border-gray-700">
-            {timeSlots.map(hour => (
-              <div 
-                key={hour} 
-                className="h-12 text-xs text-gray-500 dark:text-gray-400 text-right pr-2"
-                style={{ marginTop: hour === 0 ? '0' : '-8px' }}
-              >
-                {hour === 0 ? '' : `${hour % 12 === 0 ? '12' : hour % 12}${hour < 12 ? 'am' : 'pm'}`}
-              </div>
-            ))}
+          <div className="w-20 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 relative">
+            {timeSlots.map(hour => {
+              const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+              const period = hour < 12 ? 'AM' : 'PM';
+
+              return (
+                <div
+                  key={hour}
+                  className="absolute text-xs font-medium text-gray-600 dark:text-gray-400 text-right pr-3 w-full"
+                  style={{
+                    top: `${hour * 48 - 8}px`,
+                    height: '16px'
+                  }}
+                >
+                  {displayHour} {period}
+                </div>
+              );
+            })}
           </div>
-          
+
           <div className="flex-1 grid grid-cols-7 relative">
             {/* Time grid lines */}
             {timeSlots.map(hour => (
