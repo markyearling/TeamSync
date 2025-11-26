@@ -92,10 +92,10 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = '
             
             {/* Events */}
             {dayEvents.map((event, eventIndex) => {
-              const startHour = DateTime.fromJSDate(event.startTime).setZone(userTimezone).hour + 
-                               (DateTime.fromJSDate(event.startTime).setZone(userTimezone).minute / 60);
-              const endHour = DateTime.fromJSDate(event.endTime).setZone(userTimezone).hour + 
-                             (DateTime.fromJSDate(event.endTime).setZone(userTimezone).minute / 60);
+              const startHour = DateTime.fromJSDate(event.startTime, { zone: 'utc' }).setZone(userTimezone).hour +
+                               (DateTime.fromJSDate(event.startTime, { zone: 'utc' }).setZone(userTimezone).minute / 60);
+              const endHour = DateTime.fromJSDate(event.endTime, { zone: 'utc' }).setZone(userTimezone).hour +
+                             (DateTime.fromJSDate(event.endTime, { zone: 'utc' }).setZone(userTimezone).minute / 60);
               const duration = endHour - startHour;
               
               return (
