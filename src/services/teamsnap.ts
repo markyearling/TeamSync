@@ -372,7 +372,7 @@ export class TeamSnapService {
     try {
       console.log(`Step 3: Fetching events for team ID: ${teamId}`);
       const eventsResponse = await this.request(`/events/search?team_id=${teamId}`);
-      
+
       // Handle different possible response structures
       let events: any[] = [];
 
@@ -402,6 +402,70 @@ export class TeamSnapService {
       console.error('Error fetching team events:', error);
       throw error;
     }
+  }
+
+  async fetchLocation(locationId: string | number): Promise<any> {
+    try {
+      console.log(`Fetching location details for location ID: ${locationId}`);
+      const locationResponse = await this.request(`/locations/${locationId}`);
+
+      let locationData: any = {};
+
+      if (locationResponse.collection && locationResponse.collection.items && locationResponse.collection.items.length > 0) {
+        const item = locationResponse.collection.items[0];
+        if (item.data && Array.isArray(item.data)) {
+          item.data.forEach((field: any) => {
+            if (field.name && field.value !== undefined) {
+              locationData[field.name] = field.value;
+            }
+          });
+        } else {
+          locationData = item;
+        }
+      } else if (locationResponse.data && Array.isArray(locationResponse.data)) {
+        locationResponse.data.forEach((field: any) => {
+          if (field.name && field.value !== undefined) {
+            locationData[field.name] = field.value;
+          }
+        });
+      } else {
+        locationData = locationResponse;
+      }
+
+      console.log(`Location ${locationId} data:`, locationData);
+      return locationData;
+    } catch (error) {
+      console.error(`Error fetching location ${locationId}:`, error);
+      return null;
+    }
+  }
+
+  private formatLocationAddress(location: any): { fullAddress: string; locationName: string } {
+    const name = location.name || '';
+    const address = location.address || '';
+    const city = location.city || '';
+    const state = location.state || '';
+    const postalCode = location.postal_code || '';
+    const country = location.country || '';
+
+    const addressParts: string[] = [];
+    if (address) addressParts.push(address);
+    if (city) addressParts.push(city);
+    if (state && postalCode) {
+      addressParts.push(`${state} ${postalCode}`);
+    } else if (state) {
+      addressParts.push(state);
+    } else if (postalCode) {
+      addressParts.push(postalCode);
+    }
+    if (country) addressParts.push(country);
+
+    const fullAddress = addressParts.join(', ');
+
+    return {
+      fullAddress,
+      locationName: name
+    };
   }
 
   private async syncTeamsAndEvents(): Promise<void> {
@@ -483,33 +547,46 @@ export class TeamSnapService {
 
       // Fetch events from TeamSnap API
       const teamEvents = await this.getTeamEvents(platformTeam.team_id);
-      
+
       if (teamEvents.length === 0) {
         console.log('No events found for this team');
         return 0;
       }
 
+      // Collect unique location IDs
+      const locationIds = teamEvents
+        .filter(event => event.location_id)
+        .map(event => event.location_id.toString());
+      const uniqueLocationIds = [...new Set(locationIds)];
+
+      console.log(`Fetching ${uniqueLocationIds.length} unique locations...`);
+
+      // Fetch all locations
+      const locationsMap = new Map<string, any>();
+      for (const locationId of uniqueLocationIds) {
+        const location = await this.fetchLocation(locationId);
+        if (location) {
+          locationsMap.set(locationId, location);
+        }
+      }
+
+      console.log(`Successfully fetched ${locationsMap.size} locations`);
+
       // Transform and store events for the specific profile
-      const eventsToInsert = teamEvents.map(event => {
-        // Debug: Log ALL location-related fields to understand the API response
-        console.log(`TeamSnap Event ID ${event.id} - ALL fields:`, JSON.stringify(event, null, 2));
+      const eventsToInsert = await Promise.all(teamEvents.map(async (event) => {
+        console.log(`TeamSnap Event ID ${event.id} - Processing...`);
 
         // Format the title based on event type and is_game flag
         let title = 'TeamSnap Event';
-        
+
         if (event.type) {
-          // Capitalize the first letter of the event type
           title = event.type.charAt(0).toUpperCase() + event.type.slice(1);
-          
-          // If it's a game, append "Game" to the type
           if (event.is_game) {
             title += " Game";
           }
         } else if (event.is_game) {
-          // If there's no type but it is a game
           title = "Game";
         } else if (event.name) {
-          // Fall back to the event name if available
           title = event.name;
         }
 
@@ -521,18 +598,31 @@ export class TeamSnapService {
           description = event.notes;
         }
 
-        // Map location fields from TeamSnap API
-        // TeamSnap provides: location_name (venue name) and potentially location/location_address (full address)
-        const locationName = event.location_name || '';
-        const locationAddress = event.location || event.location_address || '';
+        // Map location fields using fetched location data
+        let locationAddress = '';
+        let locationName = '';
 
-        console.log(`Event ${event.id} location mapping:`, {
-          from_api_location_name: event.location_name,
-          from_api_location: event.location,
-          from_api_location_address: event.location_address,
-          mapped_location_name: locationName,
-          mapped_location_address: locationAddress
-        });
+        if (event.location_id) {
+          const fetchedLocation = locationsMap.get(event.location_id.toString());
+          if (fetchedLocation) {
+            const formatted = this.formatLocationAddress(fetchedLocation);
+            locationAddress = formatted.fullAddress;
+            locationName = formatted.locationName;
+
+            console.log(`Event ${event.id} using fetched location:`, {
+              locationAddress,
+              locationName
+            });
+          } else {
+            console.log(`Event ${event.id}: Location ID ${event.location_id} not found`);
+            locationName = event.location_name || '';
+            locationAddress = locationName;
+          }
+        } else {
+          console.log(`Event ${event.id}: No location_id`);
+          locationName = event.location_name || '';
+          locationAddress = locationName;
+        }
 
         return {
           title: title,
@@ -542,15 +632,17 @@ export class TeamSnapService {
           location: locationAddress,
           location_name: locationName,
           sport: platformTeam.sport || 'Unknown',
-          color: '#F97316', // TeamSnap orange
+          color: '#F97316',
           platform: 'TeamSnap',
           platform_color: '#F97316',
           platform_team_id: teamId,
           profile_id: profileId
         };
-      }).filter(event => event.start_time); // Only include events with valid start times
+      }));
 
-      if (eventsToInsert.length === 0) {
+      const validEvents = eventsToInsert.filter(event => event.start_time);
+
+      if (validEvents.length === 0) {
         console.log('No valid events to insert');
         return 0;
       }
@@ -566,15 +658,15 @@ export class TeamSnapService {
       // Insert new events
       const { error: eventsError } = await supabase
         .from('events')
-        .insert(eventsToInsert);
+        .insert(validEvents);
 
       if (eventsError) {
         console.error('Error storing events:', eventsError);
         throw eventsError;
       }
 
-      console.log(`Successfully stored ${eventsToInsert.length} events for profile ${profileId}`);
-      return eventsToInsert.length;
+      console.log(`Successfully stored ${validEvents.length} events for profile ${profileId}`);
+      return validEvents.length;
     } catch (error) {
       console.error('Error syncing events for team and profile:', error);
       throw error;
