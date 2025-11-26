@@ -20,7 +20,7 @@ const DayView: React.FC<DayViewProps> = ({ currentDate, events, userTimezone = '
   
   // Get events for the current day using Luxon for consistent timezone handling
   const dayEvents = events.filter(event => {
-    const eventDateLuxon = DateTime.fromJSDate(event.startTime).setZone(userTimezone);
+    const eventDateLuxon = DateTime.fromJSDate(event.startTime, { zone: 'utc' }).setZone(userTimezone);
     return eventDateLuxon.hasSame(currentDateLuxon, 'day');
   });
   

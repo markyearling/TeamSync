@@ -455,6 +455,7 @@ Deno.serve(async (req: Request) => {
         .select('id, external_id, location, location_name, geocoding_attempted')
         .eq('platform_team_id', teamId)
         .eq('platform', 'Playmetrics')
+        .eq('profile_id', profileId)
         .not('external_id', 'is', null);
 
       console.log(`[Playmetrics Sync] Found ${existingEventsData?.length || 0} existing events in database`);

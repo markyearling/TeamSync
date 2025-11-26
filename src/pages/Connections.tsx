@@ -525,25 +525,7 @@ const Connections: React.FC = () => {
                       >
                         Manage
                       </button>
-                      
-                      <button
-                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600"
-                        onClick={() => handleRefresh(platform.id)}
-                        disabled={refreshingPlatform === platform.id}
-                      >
-                        {refreshingPlatform === platform.id ? (
-                          <>
-                            <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />
-                            Refreshing...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="h-4 w-4 mr-1.5" />
-                            Refresh
-                          </>
-                        )}
-                      </button>
-                      
+
                       {platform.hasIssue && (
                         <div className="bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs px-2.5 py-1.5 rounded-full flex items-center">
                           <AlertTriangle className="h-3.5 w-3.5 mr-1" />

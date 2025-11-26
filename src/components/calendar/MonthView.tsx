@@ -74,7 +74,7 @@ const MonthView: React.FC<MonthViewProps> = ({ currentDate, events, userTimezone
   // Group events by date using Luxon for consistent timezone handling
   const eventsByDate: Record<string, Event[]> = {};
   events.forEach(event => {
-    const dateKey = DateTime.fromJSDate(event.startTime).setZone(userTimezone).toISODate();
+    const dateKey = DateTime.fromJSDate(event.startTime, { zone: 'utc' }).setZone(userTimezone).toISODate();
     if (!eventsByDate[dateKey]) {
       eventsByDate[dateKey] = [];
     }

@@ -22,7 +22,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
   
   // Filter events for the current month using Luxon for consistent timezone handling
   const monthEvents = events.filter(event => {
-    const eventDateLuxon = DateTime.fromJSDate(event.startTime).setZone(userTimezone);
+    const eventDateLuxon = DateTime.fromJSDate(event.startTime, { zone: 'utc' }).setZone(userTimezone);
     return eventDateLuxon >= startOfMonthLuxon && eventDateLuxon <= endOfMonthLuxon;
   });
   
@@ -32,7 +32,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
   // Group events by date using Luxon for consistent timezone handling
   const eventsByDate: Record<string, Event[]> = {};
   monthEvents.forEach(event => {
-    const dateKey = DateTime.fromJSDate(event.startTime).setZone(userTimezone).toISODate();
+    const dateKey = DateTime.fromJSDate(event.startTime, { zone: 'utc' }).setZone(userTimezone).toISODate();
     if (!eventsByDate[dateKey]) {
       eventsByDate[dateKey] = [];
     }

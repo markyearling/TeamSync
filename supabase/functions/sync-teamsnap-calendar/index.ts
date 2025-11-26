@@ -253,6 +253,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
       .select('id, external_id, location, location_name, geocoding_attempted')
       .eq('platform_team_id', teamId)
       .eq('platform', 'TeamSnap')
+      .eq('profile_id', profileId)
       .not('external_id', 'is', null);
 
     console.log(`[TeamSnap Sync] Found ${existingEventsData?.length || 0} existing events in database`);
@@ -483,6 +484,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         .select('id, external_id')
         .eq('platform_team_id', teamId)
         .eq('platform', 'TeamSnap')
+        .eq('profile_id', profileId)
         .not('external_id', 'is', null); // Only get synced events
 
       if (existingEvents && existingEvents.length > 0) {
@@ -506,13 +508,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
       }
     } else {
-      // No events from API, delete only synced platform events for this team (preserve manual events)
-      console.log('No events from API, deleting synced TeamSnap events for this team...');
+      // No events from API, delete only synced platform events for this team and profile (preserve manual events)
+      console.log('No events from API, deleting synced TeamSnap events for this team and profile...');
       await supabaseClient
         .from('events')
         .delete()
         .eq('platform_team_id', teamId)
         .eq('platform', 'TeamSnap')
+        .eq('profile_id', profileId)
         .not('external_id', 'is', null); // Only delete synced events, preserve manual ones
     }
 
