@@ -663,10 +663,10 @@ const ChildProfile: React.FC = () => {
 
       {/* Upcoming Events */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-6 py-4">
           <h2 className="text-lg font-medium text-gray-900 dark:text-white">Upcoming Events</h2>
         </div>
-        <div className="p-4 space-y-2">
+        <div className="px-3 pb-3 space-y-2">
           {upcomingEvents.map(event => (
             <div key={event.id} className="bg-gray-50 dark:bg-gray-900 rounded-lg shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700">
               <EventCard

@@ -981,7 +981,7 @@ const Dashboard: React.FC = () => {
 
       {/* Today's Schedule */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="px-4 py-4 sm:px-6 flex justify-between items-center bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-4 py-4 sm:px-6 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
           <div className="flex items-center">
             <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-lg mr-3">
               <CalendarIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -992,7 +992,7 @@ const Dashboard: React.FC = () => {
             {upcomingEvents.filter(e => e.isToday).length} Events
           </span>
         </div>
-        <div className="space-y-2">
+        <div className="p-3 space-y-2">
           {upcomingEvents.filter(e => e.isToday).length > 0 ? (
             upcomingEvents
               .filter(e => e.isToday)
@@ -1019,7 +1019,7 @@ const Dashboard: React.FC = () => {
 
       {/* Upcoming Events */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="px-4 py-4 sm:px-6 flex justify-between items-center bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="px-4 py-4 sm:px-6 flex justify-between items-center bg-gray-50 dark:bg-gray-800">
           <div className="flex items-center">
             <div className="bg-gray-200 dark:bg-gray-700 p-2 rounded-lg mr-3">
               <CalendarIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
@@ -1032,7 +1032,7 @@ const Dashboard: React.FC = () => {
             View calendar <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </div>
-        <div className="space-y-2">
+        <div className="p-3 space-y-2">
           {upcomingEvents
             .filter(e => !e.isToday)
             .slice(0, 8)
