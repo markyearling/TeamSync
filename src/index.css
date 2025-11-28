@@ -120,8 +120,9 @@ body.modal-open header {
 
 /* Custom style for vertical text in event cards */
 .vertical-day-text {
-  writing-mode: vertical-lr;
+  writing-mode: vertical-rl;
   text-orientation: mixed;
+  transform: rotate(180deg);
 }
 
 /* Ensure proper z-index stacking for modals */
