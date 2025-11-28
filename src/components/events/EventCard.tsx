@@ -64,11 +64,11 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
 
   return (
       <div
-        className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer flex"
+        className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer flex overflow-hidden"
         onClick={onClick}
       >
         {showDateLabel && (
-          <div className="w-8 sm:w-9 bg-blue-600 dark:bg-blue-700 flex items-center justify-center rounded-l-lg flex-shrink-0 py-2">
+          <div className="w-7 sm:w-8 bg-blue-600 dark:bg-blue-700 flex items-center justify-center flex-shrink-0 py-2">
             <span className="vertical-day-text text-white text-xs font-medium">
               {formatDateLabel(event.startTime)}
             </span>

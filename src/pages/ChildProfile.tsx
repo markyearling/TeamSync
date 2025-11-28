@@ -666,16 +666,17 @@ const ChildProfile: React.FC = () => {
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-medium text-gray-900 dark:text-white">Upcoming Events</h2>
         </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+        <div className="p-4 space-y-2">
           {upcomingEvents.map(event => (
-            <EventCard
-              key={event.id}
-              event={event}
-              mapsLoaded={mapsLoaded}
-              mapsLoadError={mapsLoadError}
-              userTimezone={userTimezone}
-              onClick={() => setSelectedEvent(event)}
-            />
+            <div key={event.id} className="bg-gray-50 dark:bg-gray-900 rounded-lg shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700">
+              <EventCard
+                event={event}
+                mapsLoaded={mapsLoaded}
+                mapsLoadError={mapsLoadError}
+                userTimezone={userTimezone}
+                onClick={() => setSelectedEvent(event)}
+              />
+            </div>
           ))}
           {upcomingEvents.length === 0 && (
             <div className="p-6 text-center">

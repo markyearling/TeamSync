@@ -992,20 +992,20 @@ const Dashboard: React.FC = () => {
             {upcomingEvents.filter(e => e.isToday).length} Events
           </span>
         </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+        <div className="space-y-2">
           {upcomingEvents.filter(e => e.isToday).length > 0 ? (
             upcomingEvents
               .filter(e => e.isToday)
               .map(event => (
-                // Remove the wrapping div here
-                <EventCard
-                  key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`}
-                  event={event}
-                  mapsLoaded={mapsLoaded}
-                  mapsLoadError={mapsLoadError}
-                  userTimezone={userTimezone}
-                  onClick={() => setSelectedEvent(event)}
-                />
+                <div key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`} className="bg-white dark:bg-gray-900 rounded-lg shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700">
+                  <EventCard
+                    event={event}
+                    mapsLoaded={mapsLoaded}
+                    mapsLoadError={mapsLoadError}
+                    userTimezone={userTimezone}
+                    onClick={() => setSelectedEvent(event)}
+                  />
+                </div>
               ))
           ) : (
             <div className="flex flex-col items-center justify-center p-6 text-center">
@@ -1032,19 +1032,20 @@ const Dashboard: React.FC = () => {
             View calendar <ArrowRight className="ml-1 h-4 w-4" />
           </Link>
         </div>
-        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+        <div className="space-y-2">
           {upcomingEvents
             .filter(e => !e.isToday)
             .slice(0, 8)
             .map(event => (
-              <EventCard
-                key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`}
-                event={event}
-                mapsLoaded={mapsLoaded}
-                mapsLoadError={mapsLoadError}
-                userTimezone={userTimezone}
-                onClick={() => setSelectedEvent(event)}
-              />
+              <div key={`${event.isOwnEvent ? 'own' : 'friend'}-${event.id}`} className="bg-white dark:bg-gray-900 rounded-lg shadow-sm overflow-hidden border border-gray-200 dark:border-gray-700">
+                <EventCard
+                  event={event}
+                  mapsLoaded={mapsLoaded}
+                  mapsLoadError={mapsLoadError}
+                  userTimezone={userTimezone}
+                  onClick={() => setSelectedEvent(event)}
+                />
+              </div>
             ))}
           {upcomingEvents.filter(e => !e.isToday).length === 0 && (
             <div className="text-center py-8 text-gray-500 dark:text-gray-400">
