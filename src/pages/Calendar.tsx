@@ -614,7 +614,7 @@ const Calendar: React.FC = () => {
         {view === 'month' && (
           <CalendarHeader view={view} />
         )}
-        <div className="flex-1 overflow-auto">
+        <div className={view === 'month' ? 'flex-1 overflow-auto' : 'h-[600px] overflow-auto'}>
           {renderView()}
         </div>
       </div>
