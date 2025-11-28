@@ -11,18 +11,24 @@ interface EventCardProps {
   mapsLoaded?: boolean;
   mapsLoadError?: Error;
   userTimezone?: string;
-  onClick?: () => void; // Optional click handler for the card
+  onClick?: () => void;
+  showDateLabel?: boolean;
 }
 
-const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoadError, userTimezone = 'UTC', onClick }) => {
+const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoadError, userTimezone = 'UTC', onClick, showDateLabel = true }) => {
   const { isNative } = useCapacitor();
-  // Format time with user's timezone using Luxon
+
   const formatTime = (date: Date) => {
     return DateTime.fromJSDate(date).setZone(userTimezone).toLocaleString({
       hour: 'numeric',
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  const formatDateLabel = (date: Date) => {
+    const dt = DateTime.fromJSDate(date).setZone(userTimezone);
+    return `${dt.toFormat('ccc')} ${dt.toFormat('MMM')} ${dt.toFormat('d')}`;
   };
 
   // Determine how to display the location
@@ -58,11 +64,19 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
 
   return (
       <div
-        className="p-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer flex flex-col"
+        className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer flex"
         onClick={onClick}
       >
-        <div className="flex items-start space-x-4">
-          <div className="flex-1 min-w-0">
+        {showDateLabel && (
+          <div className="w-12 sm:w-14 bg-blue-600 dark:bg-blue-700 flex items-center justify-center rounded-l-lg flex-shrink-0">
+            <span className="vertical-day-text text-white text-xs sm:text-sm font-medium tracking-wide">
+              {formatDateLabel(event.startTime)}
+            </span>
+          </div>
+        )}
+        <div className="flex-1 p-4 flex flex-col">
+          <div className="flex items-start space-x-4">
+            <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 flex-wrap">
               <span
                 className="inline-block h-2 w-2 rounded-full flex-shrink-0"
@@ -123,20 +137,21 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
                 <User className="h-10 w-10 text-gray-500 dark:text-gray-400" />
               </div>
             )}
+            </div>
           </div>
-        </div>
-        <div className="mt-2 flex items-center justify-end gap-2 flex-wrap">
-          {!event.isOwnEvent && event.ownerName && (
-            <div className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
-              {event.ownerName}'s schedule
-            </div>
-          )}
-          {/* {event.calendar_name && (
-            <div className="bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-200 text-xs px-2 py-1 rounded-full flex items-center gap-1">
-              <Download className="h-3 w-3" />
-              Synced from {event.calendar_name}
-            </div>
-          )} */}
+          <div className="mt-2 flex items-center justify-end gap-2 flex-wrap">
+            {!event.isOwnEvent && event.ownerName && (
+              <div className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full">
+                {event.ownerName}'s schedule
+              </div>
+            )}
+            {/* {event.calendar_name && (
+              <div className="bg-teal-100 dark:bg-teal-900 text-teal-700 dark:text-teal-200 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                <Download className="h-3 w-3" />
+                Synced from {event.calendar_name}
+              </div>
+            )} */}
+          </div>
         </div>
       </div>
   );
