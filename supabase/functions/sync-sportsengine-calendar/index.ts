@@ -518,7 +518,14 @@ Deno.serve(async (req: Request) => {
           geocodingStats.needsGeocode++;
           try {
             console.log(`[SportsEngine Sync] Event ${event.external_id}: Calling geocoding API for: "${event.location}"`);
-            const geocodeResult = await geocodeAddress(event.location, googleMapsApiKey, supabaseClient);
+            const geocodeResult = await geocodeAddress(
+              event.location,
+              googleMapsApiKey,
+              supabaseClient,
+              null,
+              profileUserId,
+              null
+            );
             if (geocodeResult.locationName) {
               console.log(`[SportsEngine Sync] Event ${event.external_id}: ✓ Geocoded successfully: "${event.location}" -> "${geocodeResult.locationName}"`);
               geocodingStats.geocoded++;

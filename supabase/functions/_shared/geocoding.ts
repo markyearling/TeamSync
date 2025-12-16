@@ -1,3 +1,5 @@
+import { logGoogleApiCall } from './api-audit-logger.ts';
+
 export interface GeocodeResult {
   locationName: string | null;
   formattedAddress: string | null;
@@ -8,15 +10,29 @@ export interface GeocodeResult {
 const geocodeAddressToCoordinates = async (
   address: string,
   apiKey: string,
-  requestId: string
+  requestId: string,
+  userId?: string,
+  eventId?: number
 ): Promise<{ latitude: number; longitude: number; formattedAddress: string } | null> => {
   try {
     const encodedAddress = encodeURIComponent(address);
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
 
     console.log(`[Step1-Geocode:${requestId}] Converting address to coordinates...`);
+
     const response = await fetch(url);
     const data = await response.json();
+
+    logGoogleApiCall({
+      user_id: userId,
+      api_type: 'geocoding',
+      endpoint_url: url,
+      request_query: address,
+      response_status: data.status || 'UNKNOWN',
+      cache_hit: false,
+      event_id: eventId,
+      request_id: requestId
+    }).catch(err => console.warn('Audit log failed:', err));
 
     if (data.status === 'OK' && data.results && data.results.length > 0) {
       const result = data.results[0];
@@ -47,7 +63,9 @@ const searchPlaceAtAddress = async (
   latitude: number,
   longitude: number,
   apiKey: string,
-  requestId: string
+  requestId: string,
+  userId?: string,
+  eventId?: number
 ): Promise<{ locationName: string | null; latitude: number; longitude: number } | null> => {
   try {
     const textQuery = `place at ${address}`;
@@ -92,6 +110,17 @@ const searchPlaceAtAddress = async (
     });
 
     const data = await response.json();
+
+    logGoogleApiCall({
+      user_id: userId,
+      api_type: 'places',
+      endpoint_url: url,
+      request_query: textQuery,
+      response_status: response.ok ? 'OK' : (data.error?.status || `HTTP_${response.status}`),
+      cache_hit: false,
+      event_id: eventId,
+      request_id: requestId
+    }).catch(err => console.warn('Audit log failed:', err));
 
     console.log(`[Step2-PlaceAt:${requestId}] Response status: ${response.status} (${response.statusText})`);
 
@@ -164,7 +193,9 @@ export const geocodeAddress = async (
   address: string,
   apiKey: string,
   supabaseClient?: any,
-  providedLocationName?: string | null
+  providedLocationName?: string | null,
+  userId?: string,
+  eventId?: number
 ): Promise<GeocodeResult> => {
   const startTime = Date.now();
   const requestId = Math.random().toString(36).substring(7);
@@ -208,6 +239,17 @@ export const geocodeAddress = async (
 
       if (!cacheError && cachedResult) {
         console.log(`[Geocoding:${requestId}] ✓ Cache hit: "${cachedResult.location_name}"`);
+
+        logGoogleApiCall({
+          user_id: userId,
+          api_type: 'geocoding',
+          request_query: address,
+          response_status: 'CACHE_HIT',
+          cache_hit: true,
+          event_id: eventId,
+          request_id: requestId
+        }).catch(err => console.warn('Audit log failed:', err));
+
         const totalTime = Date.now() - startTime;
         console.log(`[Geocoding:${requestId}] ========== END (${totalTime}ms) ==========`);
         return {
@@ -224,7 +266,7 @@ export const geocodeAddress = async (
 
   try {
     console.log(`[Geocoding:${requestId}] STEP 1: Geocoding address to coordinates...`);
-    const geocodeResult = await geocodeAddressToCoordinates(address, apiKey, requestId);
+    const geocodeResult = await geocodeAddressToCoordinates(address, apiKey, requestId, userId, eventId);
 
     if (!geocodeResult) {
       console.log(`[Geocoding:${requestId}] ✗ Geocoding failed`);
@@ -239,7 +281,9 @@ export const geocodeAddress = async (
       geocodeResult.latitude,
       geocodeResult.longitude,
       apiKey,
-      requestId
+      requestId,
+      userId,
+      eventId
     );
 
     let finalResult: GeocodeResult;

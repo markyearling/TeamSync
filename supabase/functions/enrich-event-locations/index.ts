@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
 
     let query = supabaseClient
       .from('events')
-      .select('id, location, location_name, updated_at')
+      .select('id, location, location_name, updated_at, profile_id, profiles!inner(user_id)')
       .not('location', 'is', null)
       .or('location_name.is.null,location_name.eq.')
       .gte('updated_at', recentCutoff)
@@ -134,7 +134,15 @@ Deno.serve(async (req: Request) => {
         }
 
         console.log(`[Enrich:${sessionId}] Event ${event.id}: Calling geocode API with three-tier approach...`);
-        const geocodeResult = await geocodeAddress(event.location, googleMapsApiKey, supabaseClient);
+        const userId = (event as any).profiles?.user_id;
+        const geocodeResult = await geocodeAddress(
+          event.location,
+          googleMapsApiKey,
+          supabaseClient,
+          null,
+          userId,
+          event.id
+        );
         const locationName = geocodeResult.locationName;
 
         console.log(`[Enrich:${sessionId}] Event ${event.id}: Geocode returned locationName: "${locationName}"`);

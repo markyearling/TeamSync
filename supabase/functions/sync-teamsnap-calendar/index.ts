@@ -395,7 +395,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
         geocodingStats.needsGeocode++;
         try {
           console.log(`[TeamSnap Sync] Event ${event.id}: Calling geocoding API for: "${locationAddress}"`);
-          const geocodeResult = await geocodeAddress(locationAddress, googleMapsApiKey, supabaseClient, locationName);
+          const geocodeResult = await geocodeAddress(
+            locationAddress,
+            googleMapsApiKey,
+            supabaseClient,
+            locationName,
+            userId,
+            event.id
+          );
           locationName = geocodeResult.locationName;
           geocodingAttempted = true;
           if (locationName) {
