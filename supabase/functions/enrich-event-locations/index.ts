@@ -8,6 +8,18 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
 };
 
+interface EventRow {
+  id: string;
+  location: string;
+  location_name: string | null;
+  geocoding_attempted: boolean;
+  updated_at: string;
+  profile_id: string;
+  profiles: {
+    user_id: string;
+  };
+}
+
 
 Deno.serve(async (req: Request) => {
   const sessionId = Math.random().toString(36).substring(7);
@@ -60,13 +72,14 @@ Deno.serve(async (req: Request) => {
 
     let query = supabaseClient
       .from('events')
-      .select('id, location, location_name, updated_at, profile_id, profiles!inner(user_id)')
+      .select('id, location, location_name, geocoding_attempted, updated_at, profile_id, profiles!inner(user_id)')
       .not('location', 'is', null)
       .or('location_name.is.null,location_name.eq.')
+      .eq('geocoding_attempted', false)
       .gte('updated_at', recentCutoff)
       .order('updated_at', { ascending: false });
 
-    console.log(`[Enrich:${sessionId}] Query filter: location NOT NULL AND (location_name IS NULL OR location_name = '') AND updated_at >= ${recentCutoff}`);
+    console.log(`[Enrich:${sessionId}] Query filter: location NOT NULL AND (location_name IS NULL OR location_name = '') AND geocoding_attempted = false AND updated_at >= ${recentCutoff}`);
 
     console.log(`[Enrich:${sessionId}] Fetching events from database...`);
     const fetchStart = Date.now();
@@ -99,7 +112,8 @@ Deno.serve(async (req: Request) => {
     console.log(`[Enrich:${sessionId}] Sample events:`, events.slice(0, 3).map(e => ({
       id: e.id,
       location: e.location,
-      location_name: e.location_name
+      location_name: e.location_name,
+      geocoding_attempted: e.geocoding_attempted
     })));
 
     const results = {
@@ -107,7 +121,8 @@ Deno.serve(async (req: Request) => {
       enriched: 0,
       cached: 0,
       failed: 0,
-      skipped: 0
+      skipped: 0,
+      alreadyAttempted: 0
     };
 
     for (let i = 0; i < events.length; i++) {
@@ -125,6 +140,7 @@ Deno.serve(async (req: Request) => {
         console.log(`[Enrich:${sessionId}] Event ${event.id}:`);
         console.log(`[Enrich:${sessionId}]   - location: "${event.location}"`);
         console.log(`[Enrich:${sessionId}]   - location_name: "${event.location_name || 'NULL'}"`);
+        console.log(`[Enrich:${sessionId}]   - geocoding_attempted: ${event.geocoding_attempted}`);
         console.log(`[Enrich:${sessionId}]   - hasValidLocationName: ${hasValidLocationName}`);
 
         if (hasValidLocationName) {
@@ -133,8 +149,14 @@ Deno.serve(async (req: Request) => {
           continue;
         }
 
+        if (event.geocoding_attempted) {
+          console.log(`[Enrich:${sessionId}] Event ${event.id}: Geocoding already attempted, skipping`);
+          results.alreadyAttempted++;
+          continue;
+        }
+
         console.log(`[Enrich:${sessionId}] Event ${event.id}: Calling geocode API with three-tier approach...`);
-        const userId = (event as any).profiles?.user_id;
+        const userId = event.profiles?.user_id;
         const geocodeResult = await geocodeAddress(
           event.location,
           googleMapsApiKey,
@@ -157,7 +179,10 @@ Deno.serve(async (req: Request) => {
             const updateStart = Date.now();
             const { error: updateError } = await supabaseClient
               .from('events')
-              .update({ location_name: locationName })
+              .update({
+                location_name: locationName,
+                geocoding_attempted: true
+              })
               .eq('id', event.id);
             const updateTime = Date.now() - updateStart;
 
@@ -175,6 +200,25 @@ Deno.serve(async (req: Request) => {
           }
         } else {
           console.warn(`[Enrich:${sessionId}] Event ${event.id}: ⚠ No location name found for: "${event.location}"`);
+
+          if (!dryRun) {
+            console.log(`[Enrich:${sessionId}] Event ${event.id}: Marking geocoding as attempted to prevent retry...`);
+            const updateStart = Date.now();
+            const { error: updateError } = await supabaseClient
+              .from('events')
+              .update({ geocoding_attempted: true })
+              .eq('id', event.id);
+            const updateTime = Date.now() - updateStart;
+
+            if (updateError) {
+              console.error(`[Enrich:${sessionId}] Event ${event.id}: ✗ Failed to mark geocoding_attempted (${updateTime}ms):`, updateError.message);
+            } else {
+              console.log(`[Enrich:${sessionId}] Event ${event.id}: ✓ Marked as attempted (${updateTime}ms)`);
+            }
+          } else {
+            console.log(`[Enrich:${sessionId}] Event ${event.id}: [DRY RUN] Would mark geocoding_attempted = true`);
+          }
+          results.failed++;
         }
 
         results.processed++;
@@ -194,6 +238,7 @@ Deno.serve(async (req: Request) => {
     console.log(`[Enrich:${sessionId}]   - Successfully enriched: ${results.enriched}`);
     console.log(`[Enrich:${sessionId}]   - Cache hits: ${results.cached}`);
     console.log(`[Enrich:${sessionId}]   - Skipped: ${results.skipped}`);
+    console.log(`[Enrich:${sessionId}]   - Already attempted: ${results.alreadyAttempted}`);
     console.log(`[Enrich:${sessionId}]   - Failed: ${results.failed}`);
     console.log(`[Enrich:${sessionId}] ========================================`);
 
