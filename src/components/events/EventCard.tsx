@@ -33,33 +33,16 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
 
   // Determine how to display the location
   const displayLocation = () => {
-    if (!event.location) {
-      return null; // No location to display
-    }
-
-    // If location_name exists, show venue name with full address below
-    // Otherwise, just show the full location
+    // Only show location_name if it exists, don't show the address
     if (event.location_name) {
-      return (
-        <>
-          <div className="flex items-center">
-            <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
-            <span>{event.location_name}</span>
-          </div>
-          <div className="flex items-center ml-5">
-            <span className="text-xs text-gray-400 dark:text-gray-500">{event.location}</span>
-          </div>
-        </>
-      );
-    } else {
-      // No venue name, just show full location
       return (
         <div className="flex items-center">
           <MapPin className="h-4 w-4 mr-1 flex-shrink-0" />
-          <span>{event.location}</span>
+          <span>{event.location_name}</span>
         </div>
       );
     }
+    return null; // No location to display
   };
 
   return (
