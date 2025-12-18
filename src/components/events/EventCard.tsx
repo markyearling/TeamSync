@@ -68,13 +68,13 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
         onClick={onClick}
       >
         {showDateLabel && (
-          <div className="w-7 sm:w-8 bg-blue-600 dark:bg-blue-700 flex items-center justify-center flex-shrink-0 py-2">
-            <span className="vertical-day-text text-white text-xs font-medium">
+          <div className="w-7 sm:w-8 bg-blue-600 dark:bg-blue-700 flex items-center justify-center flex-shrink-0 py-1">
+            <span className="vertical-day-text text-white text-xs font-medium uppercase">
               {formatDateLabel(event.startTime)}
             </span>
           </div>
         )}
-        <div className="flex-1 p-4 flex flex-col">
+        <div className="flex-1 p-2 flex flex-col">
           <div className="flex items-start space-x-4">
             <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 flex-wrap">
