@@ -104,6 +104,11 @@ const ChildProfile: React.FC = () => {
     fetchUserTimezone();
   }, []);
 
+  // Initialize selected platforms with all available platforms
+  useEffect(() => {
+    setSelectedPlatforms(['SportsEngine', 'TeamSnap', 'Playmetrics', 'GameChanger', 'Manual']);
+  }, []);
+
   useEffect(() => {
     const fetchProfile = async () => {
       console.log('ChildProfile: Initial fetchProfile/events running');
@@ -186,10 +191,10 @@ const ChildProfile: React.FC = () => {
   // Apply filters when events, selectedPlatforms, or selectedTypes change
   useEffect(() => {
     const filtered = events.filter(event => {
-      if (selectedPlatforms.length > 0 && !selectedPlatforms.includes(event.platform)) {
+      if (!selectedPlatforms.includes(event.platform)) {
         return false;
       }
-      
+
       // Filter by event type (based on title)
       const title = event.title.toLowerCase();
       if (selectedTypes.length > 0) {
@@ -197,20 +202,20 @@ const ChildProfile: React.FC = () => {
           (selectedTypes.includes('game') && (title.includes('game') || title.includes('vs'))) ||
           (selectedTypes.includes('practice') && title.includes('practice')) ||
           (selectedTypes.includes('tournament') && title.includes('tournament')) ||
-          (selectedTypes.includes('other') && 
-            !title.includes('game') && 
-            !title.includes('vs') && 
-            !title.includes('practice') && 
+          (selectedTypes.includes('other') &&
+            !title.includes('game') &&
+            !title.includes('vs') &&
+            !title.includes('practice') &&
             !title.includes('tournament'))
         ) {
           return true;
         }
         return false;
       }
-      
+
       return true;
     });
-    
+
     setFilteredEvents(filtered);
   }, [events, selectedPlatforms, selectedTypes]);
 
@@ -786,10 +791,10 @@ const ChildProfile: React.FC = () => {
               <div className="space-y-2">
                 {['SportsEngine', 'TeamSnap', 'Playmetrics', 'GameChanger', 'Manual'].map(platform => (
                   <div key={platform} className="flex items-center">
-                    <input 
-                      id={`platform-${platform}`} 
-                      type="checkbox" 
-                      checked={selectedPlatforms.length === 0 || selectedPlatforms.includes(platform)}
+                    <input
+                      id={`platform-${platform}`}
+                      type="checkbox"
+                      checked={selectedPlatforms.includes(platform)}
                       onChange={(e) => {
                         if (e.target.checked) {
                           setSelectedPlatforms([...selectedPlatforms, platform]);
@@ -799,8 +804,8 @@ const ChildProfile: React.FC = () => {
                       }}
                       className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
                     />
-                    <label 
-                      htmlFor={`platform-${platform}`} 
+                    <label
+                      htmlFor={`platform-${platform}`}
                       className="ml-2 text-sm text-gray-700 dark:text-gray-300"
                     >
                       {platform}

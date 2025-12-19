@@ -266,7 +266,12 @@ const Calendar: React.FC = () => {
     const allAvailableProfiles = [...profiles.map(p => p.id), ...friendsProfiles.map(p => p.id)];
     setSelectedProfiles(allAvailableProfiles);
   }, [profiles, friendsProfiles]);
-  
+
+  // Initialize selected platforms with all available platforms
+  useEffect(() => {
+    setSelectedPlatforms(['SportsEngine', 'TeamSnap', 'Playmetrics', 'GameChanger', 'Manual']);
+  }, []);
+
   const navigatePrevious = () => {
     const newDate = new Date(currentDate);
     switch (view) {
@@ -332,17 +337,36 @@ const Calendar: React.FC = () => {
   const renderView = () => {
     // Combine and filter events based on selected filters
     const combinedEvents = showFriendsEvents ? [...events, ...friendsEvents] : events;
-    
+
     const filteredEvents = combinedEvents.filter(event => {
       // Filter by selected profiles
       if (!selectedProfiles.includes(event.child.id)) {
         return false;
       }
-      
+
       // Filter by selected platforms
-      if (selectedPlatforms.length > 0 && !selectedPlatforms.includes(event.platform)) {
+      if (!selectedPlatforms.includes(event.platform)) {
         return false;
       }
+
+      // Filter by activity types
+      if (selectedTypes.length > 0) {
+        const title = event.title.toLowerCase();
+        const matchesType =
+          (selectedTypes.includes('game') && (title.includes('game') || title.includes('vs'))) ||
+          (selectedTypes.includes('practice') && title.includes('practice')) ||
+          (selectedTypes.includes('tournament') && title.includes('tournament')) ||
+          (selectedTypes.includes('other') &&
+            !title.includes('game') &&
+            !title.includes('vs') &&
+            !title.includes('practice') &&
+            !title.includes('tournament'));
+
+        if (!matchesType) {
+          return false;
+        }
+      }
+
       return true;
     });
 
@@ -553,12 +577,12 @@ const Calendar: React.FC = () => {
           <div>
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Platforms</h3>
             <div className="space-y-2">
-              {['SportsEngine', 'TeamSnap', 'Playmetrics', 'Manual'].map(platform => (
+              {['SportsEngine', 'TeamSnap', 'Playmetrics', 'GameChanger', 'Manual'].map(platform => (
                 <div key={platform} className="flex items-center">
-                  <input 
-                    id={`platform-${platform}`} 
-                    type="checkbox" 
-                    checked={selectedPlatforms.length === 0 || selectedPlatforms.includes(platform)}
+                  <input
+                    id={`platform-${platform}`}
+                    type="checkbox"
+                    checked={selectedPlatforms.includes(platform)}
                     onChange={(e) => {
                       if (e.target.checked) {
                         setSelectedPlatforms([...selectedPlatforms, platform]);
@@ -568,8 +592,8 @@ const Calendar: React.FC = () => {
                     }}
                     className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700"
                   />
-                  <label 
-                    htmlFor={`platform-${platform}`} 
+                  <label
+                    htmlFor={`platform-${platform}`}
                     className="ml-2 text-sm text-gray-700 dark:text-gray-300"
                   >
                     {platform}
