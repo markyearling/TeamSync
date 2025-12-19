@@ -45,133 +45,6 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
   // Combine own profiles and friends' profiles
   const allProfiles = [...profiles, ...friendsProfiles];
 
-  useEffect(() => {
-    let mounted = true;
-
-    const initializeConnection = async () => {
-      try {
-        const isConnected = await testConnection();
-        if (!isConnected) {
-          throw new Error('Failed to establish connection with Supabase');
-        }
-
-        if (mounted) {
-          const subscription = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-              if (session?.user) {
-                fetchAllProfiles();
-              }
-            } else if (event === 'SIGNED_OUT') {
-              setProfiles([]);
-              setFriendsProfiles([]);
-              setFriendshipCache([]);
-            }
-          });
-
-          // Initial fetch only if we have a session
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session?.user) {
-            await fetchAllProfiles();
-          }
-
-          return () => {
-            subscription.data.subscription.unsubscribe();
-          };
-        }
-      } catch (err) {
-        if (mounted) {
-          const errorMessage = err instanceof Error ? err.message : 'Failed to initialize Supabase connection';
-          setError(errorMessage);
-          console.error('Connection initialization error:', err);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    initializeConnection();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // Set up real-time subscription for friendship changes
-  useEffect(() => {
-    const setupFriendshipSubscription = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      console.log('👥 PROFILES: Setting up real-time friendship subscription for user:', user.id);
-
-      // Subscribe to friendships where current user is the friend_id
-      // This captures when someone grants us access to their profiles
-      const friendshipSubscription = supabase
-        .channel(`profiles_friendships_${user.id}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'friendships',
-            filter: `friend_id=eq.${user.id}`
-          },
-          (payload) => {
-            console.log('👥 PROFILES: Friendship change detected:', payload.eventType, payload);
-            // Refresh all profiles when friendship changes
-            fetchAllProfiles();
-          }
-        )
-        .subscribe((status) => {
-          console.log('👥 PROFILES: Friendship subscription status:', status);
-        });
-
-      return () => {
-        friendshipSubscription.unsubscribe();
-      };
-    };
-
-    setupFriendshipSubscription();
-  }, [fetchAllProfiles]);
-
-  const fetchAllProfiles = useCallback(async () => {
-    try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError) {
-        throw authError;
-      }
-      if (!user) {
-        setProfiles([]);
-        setFriendsProfiles([]);
-        setFriendshipCache([]);
-        return;
-      }
-
-      console.log('🔍 PROFILES: Fetching profiles for user:', user.id);
-
-      // First, fetch and cache all friendships where current user is the friend_id
-      // This tells us what access levels we have been granted by other users
-      const freshFriendshipData = await fetchFriendshipCache(user.id);
-
-      // Fetch own profiles
-      await fetchOwnProfiles(user.id);
-      
-      // Fetch friends' profiles where user has administrator access
-      // Pass the fresh friendship data directly to avoid state timing issues
-      await fetchFriendsProfiles(user.id, freshFriendshipData);
-
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
-      setError(errorMessage);
-      console.error('Error fetching profiles:', err);
-      setProfiles([]);
-      setFriendsProfiles([]);
-      setFriendshipCache([]);
-    }
-  }, []);
-
   const fetchEventCountsForProfiles = async (profileIds: string[]): Promise<Record<string, number>> => {
     if (profileIds.length === 0) {
       return {};
@@ -229,7 +102,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
   const fetchFriendshipCache = async (userId: string): Promise<FriendshipData[]> => {
     try {
       console.log('🤝 PROFILES: Fetching friendship cache for user:', userId);
-      
+
       // CORRECTED QUERY: Look for friendships where current user is the friend_id
       // This shows what access levels we have been granted by other users
       const { data: friendships, error: friendshipsError } = await supabase
@@ -250,7 +123,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
 
       console.log('🤝 PROFILES: Found friendships where user is friend:', friendships?.length || 0);
       console.log('🤝 PROFILES: Friendship details:', friendships);
-      
+
       // Log each friendship's user_id and role for debugging
       friendships?.forEach(friendship => {
         console.log(`🔍 FRIENDSHIP DEBUG: user_id=${friendship.user_id}, role=${friendship.role}`);
@@ -285,10 +158,10 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       });
 
       console.log('✅ PROFILES: Built friendship cache:', friendshipData);
-      console.log('👑 PROFILES: Administrator access to users:', 
+      console.log('👑 PROFILES: Administrator access to users:',
         friendshipData.filter(f => f.role === 'administrator').map(f => f.friend_name)
       );
-      
+
       setFriendshipCache(friendshipData);
       return friendshipData; // Return the fresh data
 
@@ -439,6 +312,133 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       setFriendsProfiles([]);
     }
   };
+
+  const fetchAllProfiles = useCallback(async () => {
+    try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        throw authError;
+      }
+      if (!user) {
+        setProfiles([]);
+        setFriendsProfiles([]);
+        setFriendshipCache([]);
+        return;
+      }
+
+      console.log('🔍 PROFILES: Fetching profiles for user:', user.id);
+
+      // First, fetch and cache all friendships where current user is the friend_id
+      // This tells us what access levels we have been granted by other users
+      const freshFriendshipData = await fetchFriendshipCache(user.id);
+
+      // Fetch own profiles
+      await fetchOwnProfiles(user.id);
+      
+      // Fetch friends' profiles where user has administrator access
+      // Pass the fresh friendship data directly to avoid state timing issues
+      await fetchFriendsProfiles(user.id, freshFriendshipData);
+
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
+      setError(errorMessage);
+      console.error('Error fetching profiles:', err);
+      setProfiles([]);
+      setFriendsProfiles([]);
+      setFriendshipCache([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeConnection = async () => {
+      try {
+        const isConnected = await testConnection();
+        if (!isConnected) {
+          throw new Error('Failed to establish connection with Supabase');
+        }
+
+        if (mounted) {
+          const subscription = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+              if (session?.user) {
+                fetchAllProfiles();
+              }
+            } else if (event === 'SIGNED_OUT') {
+              setProfiles([]);
+              setFriendsProfiles([]);
+              setFriendshipCache([]);
+            }
+          });
+
+          // Initial fetch only if we have a session
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            await fetchAllProfiles();
+          }
+
+          return () => {
+            subscription.data.subscription.unsubscribe();
+          };
+        }
+      } catch (err) {
+        if (mounted) {
+          const errorMessage = err instanceof Error ? err.message : 'Failed to initialize Supabase connection';
+          setError(errorMessage);
+          console.error('Connection initialization error:', err);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeConnection();
+
+    return () => {
+      mounted = false;
+    };
+  }, [fetchAllProfiles]);
+
+  // Set up real-time subscription for friendship changes
+  useEffect(() => {
+    const setupFriendshipSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      console.log('👥 PROFILES: Setting up real-time friendship subscription for user:', user.id);
+
+      // Subscribe to friendships where current user is the friend_id
+      // This captures when someone grants us access to their profiles
+      const friendshipSubscription = supabase
+        .channel(`profiles_friendships_${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'friendships',
+            filter: `friend_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('👥 PROFILES: Friendship change detected:', payload.eventType, payload);
+            // Refresh all profiles when friendship changes
+            fetchAllProfiles();
+          }
+        )
+        .subscribe((status) => {
+          console.log('👥 PROFILES: Friendship subscription status:', status);
+        });
+
+      return () => {
+        friendshipSubscription.unsubscribe();
+      };
+    };
+
+    setupFriendshipSubscription();
+  }, [fetchAllProfiles]);
 
   const getProfile = async (id: string): Promise<Child> => {
     try {
