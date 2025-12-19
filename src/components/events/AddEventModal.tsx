@@ -41,7 +41,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     sport: sports[0]?.name || 'Other',
     isRecurring: false,
     recurrencePattern: 'weekly' as RecurrencePattern,
-    recurrenceEndDate: ''
+    recurrenceEndDate: '',
+    allDay: false
   });
 
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -126,13 +127,28 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
     e.preventDefault();
 
     try {
-      const startDateTimeInUserTz = DateTime.fromFormat(
-        `${formData.date} ${formData.time}`,
-        'yyyy-MM-dd HH:mm',
-        { zone: userTimezone }
-      );
-      const startDateTime = startDateTimeInUserTz.toJSDate();
-      const endDateTime = new Date(startDateTime.getTime() + parseInt(formData.duration) * 60000);
+      let startDateTime: Date;
+      let endDateTime: Date;
+
+      if (formData.allDay) {
+        // For all-day events, set time to noon UTC
+        const dateParts = formData.date.split('-');
+        const year = parseInt(dateParts[0]);
+        const month = parseInt(dateParts[1]) - 1; // JavaScript months are 0-indexed
+        const day = parseInt(dateParts[2]);
+        startDateTime = new Date(Date.UTC(year, month, day, 12, 0, 0));
+        endDateTime = new Date(Date.UTC(year, month, day, 12, 0, 0));
+      } else {
+        // For timed events, use user's timezone
+        const startDateTimeInUserTz = DateTime.fromFormat(
+          `${formData.date} ${formData.time}`,
+          'yyyy-MM-dd HH:mm',
+          { zone: userTimezone }
+        );
+        startDateTime = startDateTimeInUserTz.toJSDate();
+        endDateTime = new Date(startDateTime.getTime() + parseInt(formData.duration) * 60000);
+      }
+
       const sportDetails = getSportDetails(formData.sport);
 
       let locationName = formData.locationName;
@@ -184,7 +200,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
             recurring_group_id: recurringGroupId,
             recurrence_pattern: formData.recurrencePattern,
             recurrence_end_date: recurrenceEndDateTime.toISOString(),
-            parent_event_id: index === 0 ? null : undefined
+            parent_event_id: index === 0 ? null : undefined,
+            all_day: formData.allDay
           };
         });
 
@@ -219,7 +236,8 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
             sport: formData.sport,
             color: sportDetails.color,
             visibility: formData.visibility,
-            is_recurring: false
+            is_recurring: false,
+            all_day: formData.allDay
           });
 
         if (error) throw error;
@@ -342,59 +360,77 @@ const AddEventModal: React.FC<AddEventModalProps> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  id="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="time" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Start Time
-                </label>
-                <input
-                  type="time"
-                  id="time"
-                  name="time"
-                  value={formData.time}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-            </div>
-
             <div>
-              <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Duration (minutes)
+              <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Date
               </label>
-              <select
-                id="duration"
-                name="duration"
-                value={formData.duration}
+              <input
+                type="date"
+                id="date"
+                name="date"
+                value={formData.date}
                 onChange={handleInputChange}
+                required
                 className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="30">30 minutes</option>
-                <option value="45">45 minutes</option>
-                <option value="60">1 hour</option>
-                <option value="90">1.5 hours</option>
-                <option value="120">2 hours</option>
-                <option value="180">3 hours</option>
-                <option value="240">4 hours</option>
-                <option value="1440">1 day</option>
-              </select>
+              />
             </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="allDay"
+                name="allDay"
+                checked={formData.allDay}
+                onChange={handleInputChange}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="allDay" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                All Day Event
+              </label>
+            </div>
+
+            {!formData.allDay && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="time" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      id="time"
+                      name="time"
+                      value={formData.time}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Duration (minutes)
+                    </label>
+                    <select
+                      id="duration"
+                      name="duration"
+                      value={formData.duration}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="30">30 minutes</option>
+                      <option value="45">45 minutes</option>
+                      <option value="60">1 hour</option>
+                      <option value="90">1.5 hours</option>
+                      <option value="120">2 hours</option>
+                      <option value="180">3 hours</option>
+                      <option value="240">4 hours</option>
+                      <option value="1440">1 day</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
               <div className="flex items-center">

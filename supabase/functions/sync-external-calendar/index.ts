@@ -23,6 +23,7 @@ interface ParsedEvent {
   end_time: string;
   location: string | null;
   is_cancelled: boolean;
+  all_day: boolean;
 }
 
 Deno.serve(async (req: Request) => {
@@ -164,6 +165,7 @@ Deno.serve(async (req: Request) => {
         calendar_import_id: calendar_import_id,
         is_read_only: true,
         is_cancelled: event.is_cancelled,
+        all_day: event.all_day,
         visibility: 'public' as const,
         updated_at: new Date().toISOString(),
       };
@@ -236,8 +238,29 @@ function parseICSData(icsData: string): ParsedEvent[] {
       const description = event.description || null;
       const location = event.location || null;
 
-      const startTime = event.startDate.toJSDate();
-      const endTime = event.endDate.toJSDate();
+      // Check if this is an all-day event
+      const isAllDay = event.startDate.isDate === true;
+
+      let startTime: Date;
+      let endTime: Date;
+
+      if (isAllDay) {
+        // For all-day events, store at noon UTC to avoid timezone boundary issues
+        const startYear = event.startDate.year;
+        const startMonth = event.startDate.month - 1; // JavaScript months are 0-indexed
+        const startDay = event.startDate.day;
+
+        const endYear = event.endDate.year;
+        const endMonth = event.endDate.month - 1;
+        const endDay = event.endDate.day;
+
+        startTime = new Date(Date.UTC(startYear, startMonth, startDay, 12, 0, 0));
+        endTime = new Date(Date.UTC(endYear, endMonth, endDay, 12, 0, 0));
+      } else {
+        // Regular timed event
+        startTime = event.startDate.toJSDate();
+        endTime = event.endDate.toJSDate();
+      }
 
       const status = vevent.getFirstPropertyValue('status');
       const isCancelled = status === 'CANCELLED';
@@ -250,6 +273,7 @@ function parseICSData(icsData: string): ParsedEvent[] {
         end_time: endTime.toISOString(),
         location,
         is_cancelled: isCancelled,
+        all_day: isAllDay,
       });
     }
 

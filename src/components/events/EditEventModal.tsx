@@ -28,18 +28,21 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   mapsLoadError,
   userTimezone = 'UTC'
 }) => {
-  const eventDateTimeInUserTz = DateTime.fromJSDate(event.startTime).setZone(userTimezone);
+  const eventDateTimeInUserTz = event.all_day
+    ? DateTime.fromJSDate(event.startTime, { zone: 'utc' })
+    : DateTime.fromJSDate(event.startTime).setZone(userTimezone);
 
   const [formData, setFormData] = useState({
     title: event.title,
     description: event.description || '',
     date: eventDateTimeInUserTz.toFormat('yyyy-MM-dd'),
-    time: eventDateTimeInUserTz.toFormat('HH:mm'),
+    time: event.all_day ? '12:00' : eventDateTimeInUserTz.toFormat('HH:mm'),
     duration: Math.round((event.endTime.getTime() - event.startTime.getTime()) / 60000).toString(),
     location: event.location || '',
     locationName: event.location_name || '',
     visibility: (event.visibility || 'public') as 'public' | 'private',
-    sport: event.sport || 'Other'
+    sport: event.sport || 'Other',
+    allDay: event.all_day || false
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -73,10 +76,12 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
   }, [onClose, showRecurringActionModal]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
+    const checked = (e.target as HTMLInputElement).checked;
+
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? checked : value
     }));
   };
 
@@ -108,13 +113,28 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
     setError(null);
 
     try {
-      const startDateTimeInUserTz = DateTime.fromFormat(
-        `${formData.date} ${formData.time}`,
-        'yyyy-MM-dd HH:mm',
-        { zone: userTimezone }
-      );
-      const startDateTime = startDateTimeInUserTz.toJSDate();
-      const endDateTime = new Date(startDateTime.getTime() + parseInt(formData.duration) * 60000);
+      let startDateTime: Date;
+      let endDateTime: Date;
+
+      if (formData.allDay) {
+        // For all-day events, set time to noon UTC
+        const dateParts = formData.date.split('-');
+        const year = parseInt(dateParts[0]);
+        const month = parseInt(dateParts[1]) - 1; // JavaScript months are 0-indexed
+        const day = parseInt(dateParts[2]);
+        startDateTime = new Date(Date.UTC(year, month, day, 12, 0, 0));
+        endDateTime = new Date(Date.UTC(year, month, day, 12, 0, 0));
+      } else {
+        // For timed events, use user's timezone
+        const startDateTimeInUserTz = DateTime.fromFormat(
+          `${formData.date} ${formData.time}`,
+          'yyyy-MM-dd HH:mm',
+          { zone: userTimezone }
+        );
+        startDateTime = startDateTimeInUserTz.toJSDate();
+        endDateTime = new Date(startDateTime.getTime() + parseInt(formData.duration) * 60000);
+      }
+
       const sportDetails = getSportDetails(formData.sport);
 
       let locationName = formData.locationName;
@@ -141,7 +161,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
         location_name: locationName || null,
         sport: formData.sport,
         color: sportDetails.color,
-        visibility: formData.visibility
+        visibility: formData.visibility,
+        all_day: formData.allDay
       };
 
       console.log('[EditEventModal] About to update database. applyToAll:', applyToAll, 'recurring_group_id:', event.recurring_group_id);
@@ -181,7 +202,8 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               location_name: locationName || null,
               sport: formData.sport,
               color: sportDetails.color,
-              visibility: formData.visibility
+              visibility: formData.visibility,
+              all_day: formData.allDay
             })
             .eq('id', evt.id);
         });
@@ -338,59 +360,77 @@ const EditEventModal: React.FC<EditEventModalProps> = ({
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Date
-                </label>
-                <input
-                  type="date"
-                  id="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="time" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Start Time
-                </label>
-                <input
-                  type="time"
-                  id="time"
-                  name="time"
-                  value={formData.time}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-            </div>
-
             <div>
-              <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Duration (minutes)
+              <label htmlFor="date" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Date
               </label>
-              <select
-                id="duration"
-                name="duration"
-                value={formData.duration}
+              <input
+                type="date"
+                id="date"
+                name="date"
+                value={formData.date}
                 onChange={handleInputChange}
+                required
                 className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option value="30">30 minutes</option>
-                <option value="45">45 minutes</option>
-                <option value="60">1 hour</option>
-                <option value="90">1.5 hours</option>
-                <option value="120">2 hours</option>
-                <option value="180">3 hours</option>
-                <option value="240">4 hours</option>
-                <option value="1440">1 day</option>
-              </select>
+              />
             </div>
+
+            <div className="flex items-center">
+              <input
+                type="checkbox"
+                id="allDay"
+                name="allDay"
+                checked={formData.allDay}
+                onChange={handleInputChange}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="allDay" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                All Day Event
+              </label>
+            </div>
+
+            {!formData.allDay && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="time" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      id="time"
+                      name="time"
+                      value={formData.time}
+                      onChange={handleInputChange}
+                      required
+                      className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="duration" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Duration (minutes)
+                    </label>
+                    <select
+                      id="duration"
+                      name="duration"
+                      value={formData.duration}
+                      onChange={handleInputChange}
+                      className="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                    >
+                      <option value="30">30 minutes</option>
+                      <option value="45">45 minutes</option>
+                      <option value="60">1 hour</option>
+                      <option value="90">1.5 hours</option>
+                      <option value="120">2 hours</option>
+                      <option value="180">3 hours</option>
+                      <option value="240">4 hours</option>
+                      <option value="1440">1 day</option>
+                    </select>
+                  </div>
+                </div>
+              </>
+            )}
 
             <div>
               <label htmlFor="sport" className="block text-sm font-medium text-gray-700 dark:text-gray-300">

@@ -379,12 +379,20 @@ Deno.serve(async (req: Request) => {
           Start: ${startYear}-${startMonth}-${startDay} ${startHour}:${startMinute}:${startSecond}
           End: ${endYear}-${endMonth}-${endDay} ${endHour}:${endMinute}:${endSecond}
           Timezone: ${event.startDate.timezone || 'floating'}
+          IsDate (all-day): ${event.startDate.isDate}
           IsFloating: ${event.startDate.isFloating}`);
-        
+
         let startDateTime, endDateTime;
-        
-        // Robust timezone handling based on ical.js properties
-        if (event.startDate.timezone === 'Z') {
+        let isAllDay = false;
+
+        // Check if this is an all-day event (isDate property is true)
+        if (event.startDate.isDate === true) {
+          // All-day event - store at noon UTC to avoid timezone boundary issues
+          console.log('Event is an all-day event, storing at noon UTC');
+          isAllDay = true;
+          startDateTime = DateTime.utc(startYear, startMonth, startDay, 12, 0, 0);
+          endDateTime = DateTime.utc(endYear, endMonth, endDay, 12, 0, 0);
+        } else if (event.startDate.timezone === 'Z') {
           // This is explicitly UTC
           console.log('Event is in UTC timezone');
           startDateTime = DateTime.utc(startYear, startMonth, startDay, startHour, startMinute, startSecond);
@@ -452,7 +460,8 @@ Deno.serve(async (req: Request) => {
           profile_id: profileId,
           platform_team_id: teamId,
           visibility: 'public', // Platform-synced events default to public
-          is_cancelled: isCancelled
+          is_cancelled: isCancelled,
+          all_day: isAllDay
         };
       });
 

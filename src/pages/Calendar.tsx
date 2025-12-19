@@ -119,6 +119,7 @@ const Calendar: React.FC = () => {
           isToday: new Date(event.start_time).toDateString() === new Date().toDateString(),
           isOwnEvent: true,
           is_cancelled: event.is_cancelled || false,
+          all_day: event.all_day || false,
           calendar_name: event.calendar_imports?.calendar_name
         };
       });
@@ -178,6 +179,7 @@ const Calendar: React.FC = () => {
             isOwnEvent: false,
             ownerName: profile?.ownerName,
             is_cancelled: event.is_cancelled || false,
+            all_day: event.all_day || false,
             calendar_name: event.calendar_imports?.calendar_name
           };
         });

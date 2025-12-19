@@ -99,7 +99,11 @@ const EventCard: React.FC<EventCardProps> = ({ event, mapsLoaded = true, mapsLoa
             <div className={`mt-2 space-y-1 text-sm text-gray-500 dark:text-gray-400 ${event.is_cancelled ? 'line-through' : ''}`}>
               <div className="flex items-center">
                 <Clock className="h-4 w-4 mr-1 flex-shrink-0" />
-                <span>{formatTime(event.startTime)} - {formatTime(event.endTime)}</span>
+                {event.all_day ? (
+                  <span>All Day</span>
+                ) : (
+                  <span>{formatTime(event.startTime)} - {formatTime(event.endTime)}</span>
+                )}
               </div>
               {displayLocation()}
             </div>

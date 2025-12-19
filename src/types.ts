@@ -49,6 +49,7 @@ export interface Event {
   ownerName?: string;
   visibility?: 'public' | 'private';
   is_cancelled?: boolean;
+  all_day?: boolean;
   recurring_group_id?: string;
   recurrence_pattern?: RecurrencePattern;
   recurrence_end_date?: Date;

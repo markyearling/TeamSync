@@ -32,7 +32,12 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
   // Group events by date using Luxon for consistent timezone handling
   const eventsByDate: Record<string, Event[]> = {};
   monthEvents.forEach(event => {
-    const dateKey = DateTime.fromJSDate(event.startTime, { zone: 'utc' }).setZone(userTimezone).toISODate();
+    // For all-day events, use the date directly without timezone conversion
+    // For timed events, convert from UTC to user's timezone
+    const dateKey = event.all_day
+      ? DateTime.fromJSDate(event.startTime, { zone: 'utc' }).toISODate()
+      : DateTime.fromJSDate(event.startTime, { zone: 'utc' }).setZone(userTimezone).toISODate();
+
     if (!eventsByDate[dateKey]) {
       eventsByDate[dateKey] = [];
     }
@@ -121,7 +126,11 @@ const AgendaView: React.FC<AgendaViewProps> = ({ currentDate, events, userTimezo
                         <div className="mt-2 flex flex-col space-y-1">
                           <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                             <Clock className="h-4 w-4 mr-1" />
-                            {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                            {event.all_day ? (
+                              <span>All Day</span>
+                            ) : (
+                              <span>{formatTime(event.startTime)} - {formatTime(event.endTime)}</span>
+                            )}
                           </div>
 
                           {event.location && (
