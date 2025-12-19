@@ -49,7 +49,7 @@ const ChildProfile: React.FC = () => {
     color: '#3B82F6',
     notes: ''
   });
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['SportsEngine', 'TeamSnap', 'Playmetrics', 'GameChanger', 'Manual']);
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['game', 'practice', 'tournament', 'other']);
   const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
 
@@ -102,11 +102,6 @@ const ChildProfile: React.FC = () => {
     };
 
     fetchUserTimezone();
-  }, []);
-
-  // Initialize selected platforms with all available platforms
-  useEffect(() => {
-    setSelectedPlatforms(['SportsEngine', 'TeamSnap', 'Playmetrics', 'GameChanger', 'Manual']);
   }, []);
 
   useEffect(() => {

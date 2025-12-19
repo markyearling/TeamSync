@@ -40,7 +40,7 @@ const Calendar: React.FC = () => {
   const [view, setView] = useState<ViewType>('month');
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedProfiles, setSelectedProfiles] = useState<string[]>([]);
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(['SportsEngine', 'TeamSnap', 'Playmetrics', 'GameChanger', 'Manual']);
   const [selectedTypes, setSelectedTypes] = useState<string[]>(['game', 'practice', 'tournament', 'other']);
   const [showFriendsEvents, setShowFriendsEvents] = useState(true);
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
@@ -266,11 +266,6 @@ const Calendar: React.FC = () => {
     const allAvailableProfiles = [...profiles.map(p => p.id), ...friendsProfiles.map(p => p.id)];
     setSelectedProfiles(allAvailableProfiles);
   }, [profiles, friendsProfiles]);
-
-  // Initialize selected platforms with all available platforms
-  useEffect(() => {
-    setSelectedPlatforms(['SportsEngine', 'TeamSnap', 'Playmetrics', 'GameChanger', 'Manual']);
-  }, []);
 
   const navigatePrevious = () => {
     const newDate = new Date(currentDate);
