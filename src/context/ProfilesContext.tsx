@@ -54,7 +54,7 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
         if (!isConnected) {
           throw new Error('Failed to establish connection with Supabase');
         }
-        
+
         if (mounted) {
           const subscription = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
@@ -97,6 +97,44 @@ export const ProfilesProvider: React.FC<ProfilesProviderProps> = ({ children }) 
       mounted = false;
     };
   }, []);
+
+  // Set up real-time subscription for friendship changes
+  useEffect(() => {
+    const setupFriendshipSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      console.log('👥 PROFILES: Setting up real-time friendship subscription for user:', user.id);
+
+      // Subscribe to friendships where current user is the friend_id
+      // This captures when someone grants us access to their profiles
+      const friendshipSubscription = supabase
+        .channel(`profiles_friendships_${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'friendships',
+            filter: `friend_id=eq.${user.id}`
+          },
+          (payload) => {
+            console.log('👥 PROFILES: Friendship change detected:', payload.eventType, payload);
+            // Refresh all profiles when friendship changes
+            fetchAllProfiles();
+          }
+        )
+        .subscribe((status) => {
+          console.log('👥 PROFILES: Friendship subscription status:', status);
+        });
+
+      return () => {
+        friendshipSubscription.unsubscribe();
+      };
+    };
+
+    setupFriendshipSubscription();
+  }, [fetchAllProfiles]);
 
   const fetchAllProfiles = useCallback(async () => {
     try {

@@ -60,6 +60,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
   const [addEventProfileId, setAddEventProfileId] = useState<string | null>(null);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
+  const [friendRequestCount, setFriendRequestCount] = useState(0);
   const searchRef = useRef<HTMLDivElement>(null);
   const friendsDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -226,12 +227,33 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
     }
   }, [authUser]);
 
+  // Fetch friend request count
+  const fetchFriendRequestCount = React.useCallback(async () => {
+    try {
+      if (!authUser) return;
+
+      const { count, error } = await supabase
+        .from('friend_requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('requested_id', authUser.id)
+        .eq('status', 'pending');
+
+      if (error) throw error;
+
+      console.log('🔔 HEADER: Friend request count:', count);
+      setFriendRequestCount(count || 0);
+    } catch (error) {
+      console.error('Error fetching friend request count:', error);
+    }
+  }, [authUser]);
+
   // Fetch friends on initial mount
   useEffect(() => {
     if (authUser) {
       fetchFriends();
+      fetchFriendRequestCount();
     }
-  }, [authUser, fetchFriends]);
+  }, [authUser, fetchFriends, fetchFriendRequestCount]);
 
   // Set up real-time subscription for conversations to update when last_message_at changes
   useEffect(() => {
@@ -359,7 +381,7 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
             schema: 'public',
             table: 'friendships',
             filter: `friend_id=eq.${authUser.id}`
-          }, 
+          },
           (payload) => {
             console.log('🤝 HEADER: Friendship (friend) channel event:', payload.eventType, payload.new);
             // Refresh friends list when friendships change
@@ -380,6 +402,35 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
 
     setupFriendRequestSubscription();
   }, [authUser, fetchFriends]);
+
+  // Set up real-time subscription for friend request count
+  useEffect(() => {
+    if (!authUser) return;
+
+    console.log('🔔 HEADER: Setting up friend request count subscription');
+
+    // Subscribe to changes in friend_requests table
+    const friendRequestSubscription = supabase
+      .channel(`friend_request_count_${authUser.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'friend_requests',
+          filter: `requested_id=eq.${authUser.id}`
+        },
+        () => {
+          console.log('🔔 HEADER: Friend request change detected, refreshing count');
+          fetchFriendRequestCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      friendRequestSubscription.unsubscribe();
+    };
+  }, [authUser, fetchFriendRequestCount]);
 
   useEffect(() => {
     console.log('Header: Supabase client defined?', !!supabase);
@@ -800,8 +851,14 @@ const Header: React.FC<HeaderProps> = ({ children }) => {
                 >
                   <span className="sr-only">View friends</span>
                   <Users className="h-5 w-5" />
-                  {/* Show total unread messages count */}
-                  {friends.some(f => (f.unreadCount || 0) > 0) && (
+                  {/* Show friend request count in red badge (top right) */}
+                  {friendRequestCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white font-medium z-10">
+                      {friendRequestCount}
+                    </span>
+                  )}
+                  {/* Show unread messages count in blue badge (bottom right) - only if no friend requests */}
+                  {friendRequestCount === 0 && friends.some(f => (f.unreadCount || 0) > 0) && (
                     <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-xs text-white font-medium">
                       {friends.reduce((total, f) => total + (f.unreadCount || 0), 0)}
                     </span>

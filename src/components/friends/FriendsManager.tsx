@@ -398,28 +398,7 @@ const FriendsManager: React.FC = () => {
 
       if (error) throw error;
 
-      // Create notification for friend request
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-notification`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              user_id: userId,
-              type: 'friend_request',
-              title: 'New Friend Request',
-              message: requestMessage.trim() || 'You have a new friend request',
-            }),
-          });
-        }
-      } catch (notifError) {
-        console.error('Failed to create notification:', notifError);
-      }
-
+      // Note: Notification is sent automatically via database trigger
       setSuccess('Friend request sent successfully!');
       setSearchResults([]);
       setSearchEmail('');
@@ -471,28 +450,6 @@ const FriendsManager: React.FC = () => {
           ]);
 
         if (friendshipError) throw friendshipError;
-
-        // Create notification for requester that request was accepted
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-notification`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`,
-              },
-              body: JSON.stringify({
-                user_id: requestData.requester_id,
-                type: 'friend_request',
-                title: 'Friend Request Accepted',
-                message: 'Your friend request was accepted!',
-              }),
-            });
-          }
-        } catch (notifError) {
-          console.error('Failed to create notification:', notifError);
-        }
 
         setSuccess('Friend request accepted!');
 
