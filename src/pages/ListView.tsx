@@ -82,12 +82,12 @@ const ListView: React.FC = () => {
 
       if (!isOwner) {
         const { data: ownerProfile } = await supabase
-          .from('user_profiles')
-          .select('full_name')
+          .from('profiles')
+          .select('name')
           .eq('user_id', listData.user_id)
           .single();
 
-        ownerName = ownerProfile?.full_name || 'Unknown User';
+        ownerName = ownerProfile?.name || 'Unknown User';
       }
 
       setList({

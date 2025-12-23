@@ -61,9 +61,9 @@ const ShareListModal: React.FC<ShareListModalProps> = ({
         .select(`
           id,
           shared_with_user_id,
-          user_profiles!list_shares_shared_with_user_id_fkey (
-            full_name,
-            avatar_url
+          profiles!list_shares_shared_with_user_id_fkey (
+            name,
+            photo_url
           )
         `)
         .eq('list_id', listId);
@@ -80,8 +80,8 @@ const ShareListModal: React.FC<ShareListModalProps> = ({
             id: share.id,
             shared_with_user_id: share.shared_with_user_id,
             email: userData?.user?.email || '',
-            full_name: share.user_profiles?.full_name || 'Unknown User',
-            avatar_url: share.user_profiles?.avatar_url || null
+            full_name: share.profiles?.name || 'Unknown User',
+            avatar_url: share.profiles?.photo_url || null
           };
         })
       );
