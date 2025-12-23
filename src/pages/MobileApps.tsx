@@ -81,12 +81,12 @@ const MobileApps: React.FC = () => {
               <h1 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
                 FamSink Mobile Apps
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-600">
-                  Now Available on iOS
+                  Now Available on iOS & Android
                 </span>
               </h1>
               <p className="text-xl text-gray-600 max-w-3xl lg:max-w-none leading-relaxed mb-8">
-                Take your family's sports schedules with you everywhere. Download our native iOS app now,
-                with all the power of FamSink optimized for your iPhone and iPad. Android coming soon!
+                Take your family's sports schedules with you everywhere. Download our native apps
+                with all the power of FamSink optimized for your iPhone, iPad, and Android devices.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <a
@@ -97,6 +97,15 @@ const MobileApps: React.FC = () => {
                 >
                   <Apple className="mr-2 h-5 w-5" />
                   Download on App Store
+                </a>
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.yearling.famsink&pcampaignid=web_share"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                >
+                  <Play className="mr-2 h-5 w-5" />
+                  Get it on Google Play
                 </a>
               </div>
             </div>
@@ -160,7 +169,7 @@ const MobileApps: React.FC = () => {
               Download FamSink Today
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Available now on iOS with full mobile features. Android app coming soon!
+              Available now on iOS and Android with full mobile features!
             </p>
           </div>
 
@@ -207,25 +216,41 @@ const MobileApps: React.FC = () => {
               </div>
 
               {/* Google Play Store */}
-              <div className="bg-white rounded-2xl shadow-lg p-8 border border-gray-200 opacity-60">
+              <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-green-200 hover:border-green-300 transition-colors">
                 <div className="flex items-center mb-6">
                   <div className="w-16 h-16 rounded-2xl bg-gradient-to-r from-green-500 to-green-600 flex items-center justify-center mr-4">
                     <Play className="h-8 w-8 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900">Google Play Store</h3>
-                    <p className="text-gray-600">Coming Soon for Android</p>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-semibold text-gray-900">Google Play Store</h3>
+                      <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">
+                        LIVE
+                      </span>
+                    </div>
+                    <p className="text-green-600 font-medium">Available Now for Android</p>
                   </div>
                 </div>
-                <div className="bg-gray-100 rounded-xl p-8 text-center">
-                  <QrCode className="h-32 w-32 mx-auto mb-4 text-gray-400" />
-                  <p className="text-gray-500 font-medium">In Development</p>
-                  <p className="text-sm text-gray-400 mt-2">Sign up to be notified when available</p>
+                <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-8 text-center border border-green-100">
+                  <p className="text-gray-700 font-semibold mb-4 text-lg">Scan to Download</p>
+                  <img
+                    src="/famsink_android.png"
+                    alt="Scan QR code to download FamSink from Google Play Store"
+                    className="w-48 h-48 mx-auto mb-4 object-contain"
+                  />
+                  <p className="text-gray-600 text-sm">Point your Android camera at the QR code</p>
+                  <p className="text-gray-500 text-sm mt-1">to install FamSink instantly</p>
                 </div>
                 <div className="mt-6">
-                  <div className="bg-gray-200 rounded-lg px-6 py-4 text-center">
-                    <span className="text-gray-500 font-semibold">Coming Soon</span>
-                  </div>
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.yearling.famsink&pcampaignid=web_share"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg px-6 py-4 text-center font-semibold shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+                  >
+                    <Play className="inline-block h-5 w-5 mr-2 mb-1" />
+                    Get it on Google Play
+                  </a>
                 </div>
               </div>
             </div>
@@ -233,7 +258,7 @@ const MobileApps: React.FC = () => {
             {/* Features List */}
             <div>
               <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                iOS App Features
+                Mobile App Features
               </h3>
               <div className="space-y-4 mb-8">
                 {appStoreFeatures.map((feature, index) => (
@@ -319,17 +344,17 @@ const MobileApps: React.FC = () => {
             </div>
 
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xl font-bold mb-6">
-                <Play className="h-8 w-8" />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 text-white text-xl font-bold mb-6">
+                ✓
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-3">Android App</h3>
               <p className="text-gray-600 leading-relaxed">
-                <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium mb-2">
-                  Coming Soon
+                <span className="inline-flex items-center px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium mb-2">
+                  Available Now
                 </span>
               </p>
               <p className="text-gray-600">
-                Native Android app with all the same features as iOS. Sign up to be notified when it launches!
+                Native Android app with all the same features as iOS including push notifications, offline access, and seamless sync.
               </p>
             </div>
           </div>
@@ -340,14 +365,14 @@ const MobileApps: React.FC = () => {
       <section className="py-20 bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="bg-white rounded-3xl shadow-xl p-12 border border-gray-100">
-            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 mb-8">
-              <Apple className="h-10 w-10 text-white" />
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-r from-blue-500 to-green-500 mb-8">
+              <Smartphone className="h-10 w-10 text-white" />
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
-              Download FamSink for iOS Today
+              Download FamSink Today
             </h2>
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              Get the full FamSink experience on your iPhone or iPad. Download now from the App Store
+              Get the full FamSink experience on your iOS or Android device. Download now
               and start managing your family's sports schedules on the go!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -359,6 +384,15 @@ const MobileApps: React.FC = () => {
               >
                 <Apple className="mr-2 h-5 w-5" />
                 Download on App Store
+              </a>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.yearling.famsink&pcampaignid=web_share"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg text-white bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+              >
+                <Play className="mr-2 h-5 w-5" />
+                Get it on Google Play
               </a>
               <Link
                 to="/auth/signup"
@@ -476,11 +510,11 @@ const MobileApps: React.FC = () => {
 
             <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
               <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                When will the Android app be available?
+                Is the Android app available now?
               </h3>
               <p className="text-gray-600">
-                We're actively developing the Android version and expect to launch it soon. Sign up for FamSink
-                to be notified the moment it becomes available on Google Play Store.
+                Yes! The FamSink Android app is live on the Google Play Store. Download it now for free and get the full
+                FamSink experience on your Android device with push notifications and offline access.
               </p>
             </div>
 
@@ -489,7 +523,7 @@ const MobileApps: React.FC = () => {
                 Do the mobile apps cost extra?
               </h3>
               <p className="text-gray-600">
-                No! The iOS app is completely free to download and use, just like our web platform.
+                No! Both the iOS and Android apps are completely free to download and use, just like our web platform.
                 We want every family to have access to great sports schedule management tools.
               </p>
             </div>
@@ -509,8 +543,8 @@ const MobileApps: React.FC = () => {
                 Can I use FamSink without the mobile app?
               </h3>
               <p className="text-gray-600">
-                Yes! Our web application is fully responsive and works great on mobile browsers. The native iOS app
-                provides additional features like push notifications and offline access, but the web app is fully functional on its own.
+                Yes! Our web application is fully responsive and works great on mobile browsers. The native mobile apps
+                provide additional features like push notifications and offline access, but the web app is fully functional on its own.
               </p>
             </div>
           </div>
@@ -524,8 +558,8 @@ const MobileApps: React.FC = () => {
             Get Started with FamSink
           </h2>
           <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Available now on web and iOS. Start organizing your family's sports life today with our
-            full-featured platform. Download the iOS app or use our web application!
+            Available now on web, iOS, and Android. Start organizing your family's sports life today with our
+            full-featured platform across all your devices!
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
@@ -537,6 +571,15 @@ const MobileApps: React.FC = () => {
               <Apple className="mr-2 h-5 w-5" />
               Download iOS App
             </a>
+            <a
+              href="https://play.google.com/store/apps/details?id=com.yearling.famsink&pcampaignid=web_share"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-lg text-blue-600 bg-white hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-0.5"
+            >
+              <Play className="mr-2 h-5 w-5" />
+              Download Android App
+            </a>
             <Link
               to="/auth/signup"
               className="inline-flex items-center px-8 py-4 border-2 border-white text-lg font-medium rounded-lg text-white hover:bg-white hover:text-blue-600 transition-all"
@@ -546,7 +589,7 @@ const MobileApps: React.FC = () => {
             </Link>
           </div>
           <p className="text-blue-200 text-sm mt-4">
-            iOS app available now • Web app available • Android coming soon
+            iOS app available • Android app available • Web app available
           </p>
         </div>
       </section>
