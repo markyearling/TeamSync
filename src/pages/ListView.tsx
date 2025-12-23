@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Check, X as XIcon, Trash2, CheckSquare, Square, GripVertical, MoreVertical } from 'lucide-react';
+import { ArrowLeft, Plus, Check, X as XIcon, Trash2, CheckSquare, Square, GripVertical, MoreVertical, Eye, EyeOff, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import DeleteConfirmationModal from '../components/lists/DeleteConfirmationModal';
 import { useCapacitor } from '../hooks/useCapacitor';
@@ -17,6 +17,9 @@ interface List {
   id: string;
   name: string;
   color: string;
+  user_id?: string;
+  is_owner?: boolean;
+  owner_name?: string;
 }
 
 const ListView: React.FC = () => {
@@ -35,14 +38,26 @@ const ListView: React.FC = () => {
   const [touchedItemId, setTouchedItemId] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hideCompleted, setHideCompleted] = useState(() => {
+    const saved = localStorage.getItem(`list-${listId}-hide-completed`);
+    return saved === 'true';
+  });
   const newItemInputRef = useRef<HTMLInputElement>(null);
   const { isNative } = useCapacitor();
 
   useEffect(() => {
     if (listId) {
       fetchListAndItems();
+      const saved = localStorage.getItem(`list-${listId}-hide-completed`);
+      setHideCompleted(saved === 'true');
     }
   }, [listId]);
+
+  useEffect(() => {
+    if (listId) {
+      localStorage.setItem(`list-${listId}-hide-completed`, hideCompleted.toString());
+    }
+  }, [hideCompleted, listId]);
 
   const fetchListAndItems = async () => {
     try {
@@ -54,7 +69,6 @@ const ListView: React.FC = () => {
         .from('lists')
         .select('*')
         .eq('id', listId)
-        .eq('user_id', user.id)
         .single();
 
       if (listError) throw listError;
@@ -63,7 +77,24 @@ const ListView: React.FC = () => {
         return;
       }
 
-      setList(listData);
+      const isOwner = listData.user_id === user.id;
+      let ownerName = '';
+
+      if (!isOwner) {
+        const { data: ownerProfile } = await supabase
+          .from('user_profiles')
+          .select('full_name')
+          .eq('user_id', listData.user_id)
+          .single();
+
+        ownerName = ownerProfile?.full_name || 'Unknown User';
+      }
+
+      setList({
+        ...listData,
+        is_owner: isOwner,
+        owner_name: ownerName
+      });
 
       const { data: itemsData, error: itemsError } = await supabase
         .from('list_items')
@@ -387,6 +418,8 @@ const ListView: React.FC = () => {
   }
 
   const checkedCount = items.filter(i => i.is_checked).length;
+  const displayedItems = hideCompleted ? items.filter(i => !i.is_checked) : items;
+  const hiddenCount = items.length - displayedItems.length;
 
   if (isNative) {
     return (
@@ -401,16 +434,26 @@ const ListView: React.FC = () => {
             style={{ paddingTop: 'env(safe-area-inset-top)' }}
           >
             <div className="flex items-center justify-between px-4">
-              <div className="flex items-center min-w-0">
-                <button
-                  onClick={() => navigate('/lists')}
-                  className="flex items-center justify-center text-gray-600 dark:text-gray-400 mr-3"
-                  aria-label="Back to Lists"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </button>
-                <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: list.color }} />
-                <h1 className="text-xl font-bold text-gray-900 dark:text-white truncate ml-3">{list.name}</h1>
+              <div className="flex flex-col min-w-0 flex-1">
+                <div className="flex items-center min-w-0">
+                  <button
+                    onClick={() => navigate('/lists')}
+                    className="flex items-center justify-center text-gray-600 dark:text-gray-400 mr-3"
+                    aria-label="Back to Lists"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: list.color }} />
+                  <h1 className="text-xl font-bold text-gray-900 dark:text-white truncate ml-3">{list.name}</h1>
+                </div>
+                {!list.is_owner && (
+                  <div className="ml-10 flex items-center mt-1">
+                    <Users className="h-3 w-3 mr-1 text-blue-600 dark:text-blue-400" />
+                    <span className="text-xs text-blue-600 dark:text-blue-400">
+                      Shared by {list.owner_name}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="relative">
                 <button
@@ -422,6 +465,13 @@ const ListView: React.FC = () => {
                 {isMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 z-50">
                     <div className="py-1">
+                      <button
+                        onClick={() => { setHideCompleted(!hideCompleted); setIsMenuOpen(false); }}
+                        className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        {hideCompleted ? <Eye className="h-4 w-4 mr-3" /> : <EyeOff className="h-4 w-4 mr-3" />}
+                        {hideCompleted ? `Show Completed (${hiddenCount})` : 'Hide Completed'}
+                      </button>
                       <button
                         onClick={() => { handleCheckAll(); setIsMenuOpen(false); }}
                         className="w-full text-left flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -442,7 +492,7 @@ const ListView: React.FC = () => {
                         className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
                       >
                         <Trash2 className="h-4 w-4 mr-3" />
-                        Delete ({checkedCount})
+                        Delete Completed ({checkedCount})
                       </button>
                     </div>
                   </div>
@@ -474,8 +524,10 @@ const ListView: React.FC = () => {
         <div className="list-items-container flex-1 overflow-y-auto">
           {items.length === 0 ? (
             <p className="text-center text-gray-500 dark:text-gray-400 py-8 text-base px-4">No items yet. Add your first item above!</p>
+          ) : displayedItems.length === 0 ? (
+            <p className="text-center text-gray-500 dark:text-gray-400 py-8 text-base px-4">All items are completed and hidden. Show them from the menu.</p>
           ) : (
-            items.map((item) => (
+            displayedItems.map((item) => (
               <div
                 key={item.id}
                 data-item-id={item.id}
@@ -545,25 +597,43 @@ const ListView: React.FC = () => {
       <div className={`${isNative ? '' : 'bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700'}`}>
         <div className={`${isNative ? 'px-4 py-1 mb-2' : 'px-4 sm:px-6 py-4'} ${!isNative && 'border-b border-gray-200 dark:border-gray-700'}`}>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center min-w-0">
-              {isNative && (
-                <button
-                  onClick={() => navigate('/lists')}
-                  className="flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mr-2 flex-shrink-0"
-                  aria-label="Back to Lists"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </button>
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center min-w-0">
+                {isNative && (
+                  <button
+                    onClick={() => navigate('/lists')}
+                    className="flex items-center justify-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mr-2 flex-shrink-0"
+                    aria-label="Back to Lists"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                  </button>
+                )}
+                <div
+                  className={`${isNative ? 'w-2.5 h-2.5 mr-2' : 'w-3 h-3 mr-3'} rounded-full flex-shrink-0`}
+                  style={{ backgroundColor: list.color }}
+                />
+                <h1 className={`${isNative ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 dark:text-white truncate`}>
+                  {list.name}
+                </h1>
+              </div>
+              {!list.is_owner && (
+                <div className="flex items-center mt-1 ml-6">
+                  <Users className="h-3 w-3 mr-1 text-blue-600 dark:text-blue-400" />
+                  <span className="text-xs text-blue-600 dark:text-blue-400">
+                    Shared by {list.owner_name}
+                  </span>
+                </div>
               )}
-              <div
-                className={`${isNative ? 'w-2.5 h-2.5 mr-2' : 'w-3 h-3 mr-3'} rounded-full flex-shrink-0`}
-                style={{ backgroundColor: list.color }}
-              />
-              <h1 className={`${isNative ? 'text-xl' : 'text-2xl'} font-bold text-gray-900 dark:text-white truncate`}>
-                {list.name}
-              </h1>
             </div>
             <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                onClick={() => setHideCompleted(!hideCompleted)}
+                className={`${isNative ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center whitespace-nowrap`}
+                title={hideCompleted ? 'Show completed items' : 'Hide completed items'}
+              >
+                {hideCompleted ? <Eye className={`${isNative ? 'h-3.5 w-3.5' : 'h-4 w-4 mr-1'}`} /> : <EyeOff className={`${isNative ? 'h-3.5 w-3.5' : 'h-4 w-4 mr-1'}`} />}
+                <span className={isNative ? 'ml-1' : 'hidden sm:inline'}>{hideCompleted ? `Show (${hiddenCount})` : 'Hide Done'}</span>
+              </button>
               <button
                 onClick={handleCheckAll}
                 className={`${isNative ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md flex items-center whitespace-nowrap`}
@@ -584,7 +654,7 @@ const ListView: React.FC = () => {
                 onClick={handleDeleteCheckedClick}
                 disabled={checkedCount === 0}
                 className={`${isNative ? 'px-2 py-1 text-xs' : 'px-3 py-1.5 text-sm'} text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md flex items-center disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap`}
-                title="Delete checked items"
+                title="Delete completed items"
               >
                 <Trash2 className={`${isNative ? 'h-3.5 w-3.5' : 'h-4 w-4 mr-1'} ${!isNative && 'mr-1'}`} />
                 <span className={isNative ? 'ml-1' : 'hidden sm:inline'}>Delete ({checkedCount})</span>
@@ -625,8 +695,12 @@ const ListView: React.FC = () => {
               <p className={`text-center text-gray-500 dark:text-gray-400 ${isNative ? 'py-6 text-sm' : 'py-8'}`}>
                 No items yet. Add your first item above!
               </p>
+            ) : displayedItems.length === 0 ? (
+              <p className={`text-center text-gray-500 dark:text-gray-400 ${isNative ? 'py-6 text-sm' : 'py-8'}`}>
+                All items are completed and hidden. Click "Show" to see them.
+              </p>
             ) : (
-              items.map((item) => (
+              displayedItems.map((item) => (
                 <div
                   key={item.id}
                   data-item-id={item.id}

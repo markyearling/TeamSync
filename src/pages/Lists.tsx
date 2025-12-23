@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, ListChecks, Trash2, Edit2, Menu } from 'lucide-react';
+import { Plus, ListChecks, Trash2, Edit2, Menu, Share2, Users } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import CreateListModal from '../components/lists/CreateListModal';
 import EditListModal from '../components/lists/EditListModal';
+import ShareListModal from '../components/lists/ShareListModal';
 import { useCapacitor } from '../hooks/useCapacitor';
 
 interface List {
@@ -14,6 +15,9 @@ interface List {
   updated_at: string;
   item_count?: number;
   checked_count?: number;
+  is_owner?: boolean;
+  owner_name?: string;
+  shared_with_count?: number;
 }
 
 const Lists: React.FC = () => {
@@ -21,6 +25,7 @@ const Lists: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [selectedList, setSelectedList] = useState<List | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [listToDelete, setListToDelete] = useState<List | null>(null);
@@ -38,17 +43,30 @@ const Lists: React.FC = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: listsData, error: listsError } = await supabase
+      const { data: ownedLists, error: ownedError } = await supabase
         .from('lists')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (listsError) throw listsError;
+      if (ownedError) throw ownedError;
 
-      if (listsData) {
-        const listsWithCounts = await Promise.all(
-          listsData.map(async (list) => {
+      const { data: sharedListsData, error: sharedError } = await supabase
+        .from('list_shares')
+        .select(`
+          list_id,
+          lists (*)
+        `)
+        .eq('shared_with_user_id', user.id);
+
+      if (sharedError) throw sharedError;
+
+      const sharedLists = sharedListsData?.map((share: any) => share.lists) || [];
+      const allLists = [...(ownedLists || []), ...sharedLists];
+
+      if (allLists.length > 0) {
+        const listsWithMetadata = await Promise.all(
+          allLists.map(async (list) => {
             const { count: totalCount } = await supabase
               .from('list_items')
               .select('*', { count: 'exact', head: true })
@@ -60,15 +78,38 @@ const Lists: React.FC = () => {
               .eq('list_id', list.id)
               .eq('is_checked', true);
 
+            const { count: sharedWithCount } = await supabase
+              .from('list_shares')
+              .select('*', { count: 'exact', head: true })
+              .eq('list_id', list.id);
+
+            const isOwner = list.user_id === user.id;
+            let ownerName = '';
+
+            if (!isOwner) {
+              const { data: ownerProfile } = await supabase
+                .from('user_profiles')
+                .select('full_name')
+                .eq('user_id', list.user_id)
+                .single();
+
+              ownerName = ownerProfile?.full_name || 'Unknown User';
+            }
+
             return {
               ...list,
               item_count: totalCount || 0,
               checked_count: checkedCount || 0,
+              is_owner: isOwner,
+              owner_name: ownerName,
+              shared_with_count: sharedWithCount || 0,
             };
           })
         );
 
-        setLists(listsWithCounts);
+        setLists(listsWithMetadata);
+      } else {
+        setLists([]);
       }
     } catch (error) {
       console.error('Error fetching lists:', error);
@@ -95,6 +136,12 @@ const Lists: React.FC = () => {
   const handleEditList = (list: List) => {
     setSelectedList(list);
     setShowEditModal(true);
+    setActiveMenuId(null);
+  };
+
+  const handleShareList = (list: List) => {
+    setSelectedList(list);
+    setShowShareModal(true);
     setActiveMenuId(null);
   };
 
@@ -211,26 +258,44 @@ const Lists: React.FC = () => {
 
                       {activeMenuId === list.id && (
                         <div className="absolute right-2 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditList(list);
-                            }}
-                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-md"
-                          >
-                            <Edit2 className="h-4 w-4 mr-2" />
-                            Edit List
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteList(list);
-                            }}
-                            className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 last:rounded-b-md"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete List
-                          </button>
+                          {list.is_owner ? (
+                            <>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleEditList(list);
+                                }}
+                                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-md"
+                              >
+                                <Edit2 className="h-4 w-4 mr-2" />
+                                Edit List
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleShareList(list);
+                                }}
+                                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
+                                <Share2 className="h-4 w-4 mr-2" />
+                                Share List
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteList(list);
+                                }}
+                                className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 last:rounded-b-md"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete List
+                              </button>
+                            </>
+                          ) : (
+                            <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+                              Shared by {list.owner_name}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -239,6 +304,12 @@ const Lists: React.FC = () => {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                   {list.name}
                 </h3>
+                {!list.is_owner && (
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mb-2 flex items-center">
+                    <Users className="h-3 w-3 mr-1" />
+                    Shared by {list.owner_name}
+                  </p>
+                )}
                 <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                   <span>
                     {list.item_count} {list.item_count === 1 ? 'item' : 'items'}
@@ -248,6 +319,15 @@ const Lists: React.FC = () => {
                       <span className="mx-2">•</span>
                       <span>
                         {list.checked_count} checked
+                      </span>
+                    </>
+                  )}
+                  {list.is_owner && list.shared_with_count! > 0 && (
+                    <>
+                      <span className="mx-2">•</span>
+                      <span className="flex items-center">
+                        <Users className="h-3 w-3 mr-1" />
+                        {list.shared_with_count}
                       </span>
                     </>
                   )}
@@ -268,26 +348,44 @@ const Lists: React.FC = () => {
 
                   {activeMenuId === list.id && (
                     <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-700">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEditList(list);
-                        }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-md"
-                      >
-                        <Edit2 className="h-4 w-4 mr-2" />
-                        Edit List
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteList(list);
-                        }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 last:rounded-b-md"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete List
-                      </button>
+                      {list.is_owner ? (
+                        <>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEditList(list);
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 first:rounded-t-md"
+                          >
+                            <Edit2 className="h-4 w-4 mr-2" />
+                            Edit List
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleShareList(list);
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            <Share2 className="h-4 w-4 mr-2" />
+                            Share List
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteList(list);
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 last:rounded-b-md"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete List
+                          </button>
+                        </>
+                      ) : (
+                        <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 text-center">
+                          Shared by {list.owner_name}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -312,6 +410,19 @@ const Lists: React.FC = () => {
             setSelectedList(null);
           }}
           onListUpdated={handleListUpdated}
+        />
+      )}
+
+      {showShareModal && selectedList && (
+        <ShareListModal
+          listId={selectedList.id}
+          listName={selectedList.name}
+          listColor={selectedList.color}
+          onClose={() => {
+            setShowShareModal(false);
+            setSelectedList(null);
+          }}
+          onShared={fetchLists}
         />
       )}
 
