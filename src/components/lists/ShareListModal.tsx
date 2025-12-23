@@ -58,14 +58,7 @@ const ShareListModal: React.FC<ShareListModalProps> = ({
 
       const { data: shares, error: sharesError } = await supabase
         .from('list_shares')
-        .select(`
-          id,
-          shared_with_user_id,
-          profiles!list_shares_shared_with_user_id_fkey (
-            name,
-            photo_url
-          )
-        `)
+        .select('id, shared_with_user_id')
         .eq('list_id', listId);
 
       if (sharesError) throw sharesError;
@@ -75,13 +68,20 @@ const ShareListModal: React.FC<ShareListModalProps> = ({
 
       const enrichedShares = await Promise.all(
         (shares || []).map(async (share: any) => {
-          const { data: userData } = await supabase.auth.admin.getUserById(share.shared_with_user_id);
+          const { data: userSettingsData } = await supabase
+            .from('user_settings')
+            .select('full_name, profile_photo_url')
+            .eq('user_id', share.shared_with_user_id)
+            .maybeSingle();
+
+          const adminData = admins?.find((a: AdministratorFriend) => a.user_id === share.shared_with_user_id);
+
           return {
             id: share.id,
             shared_with_user_id: share.shared_with_user_id,
-            email: userData?.user?.email || '',
-            full_name: share.profiles?.name || 'Unknown User',
-            avatar_url: share.profiles?.photo_url || null
+            email: adminData?.email || 'Unknown',
+            full_name: userSettingsData?.full_name || adminData?.full_name || 'Unknown User',
+            avatar_url: userSettingsData?.profile_photo_url || adminData?.avatar_url || null
           };
         })
       );
